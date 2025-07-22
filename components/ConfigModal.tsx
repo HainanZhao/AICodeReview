@@ -16,7 +16,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, onSav
 
   useEffect(() => {
     if (isOpen) {
-      setGitlabUrl(initialConfig?.gitlabUrl || 'https://gitlab.p.ghpr.asia');
+      setGitlabUrl(initialConfig?.gitlabUrl || 'https://gitlab.com');
       setAccessToken(initialConfig?.accessToken || '');
     }
   }, [isOpen, initialConfig]);
