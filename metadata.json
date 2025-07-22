@@ -1,0 +1,6 @@
+{
+  "name": "Gemini Code Reviewer",
+  "description": "An intelligent code review assistant powered by the Gemini API. Enter a GitLab Merge Request URL and receive instant, insightful feedback on the code changes.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
