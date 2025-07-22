@@ -3,13 +3,17 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "workspaces": [
+    "shared",
+    "backend"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/genai": "^1.10.0",
+    "@aireview/shared": "1.0.0",
     "react-dom": "^19.1.0",
     "react": "^19.1.0",
     "uuid": "^9.0.1"

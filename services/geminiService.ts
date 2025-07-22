@@ -1,65 +1,8 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
-import { ReviewFeedback, Severity, Config, GitLabMRDetails, GitLabPosition } from '../types';
+import { ReviewFeedback, Severity, Config, GitLabMRDetails, GitLabPosition, GeminiReviewResponse } from '@aireview/shared';
 import { fetchMrData } from "./gitlabService";
 
-// This will be populated by config.js at runtime in the browser
-const apiKey = (window as any).GEMINI_API_KEY;
-
-let ai: GoogleGenAI;
-
-if (apiKey) {
-    ai = new GoogleGenAI({ apiKey });
-} else {
-    // Log an error but don't throw, to allow the UI to load and show an error message.
-    // The reviewCode function will handle the case where 'ai' is not initialized.
-    console.error("Gemini API Key is not configured. The application will not be able to perform reviews. Please ensure the API_KEY is set in your deployment environment.");
-}
-
-const responseSchema = {
-    type: Type.ARRAY,
-    items: {
-        type: Type.OBJECT,
-        properties: {
-            filePath: {
-                type: Type.STRING,
-                description: "The full path of the file where the issue is located."
-            },
-            lineNumber: {
-                type: Type.INTEGER,
-                description: "The line number in the new file (+ lines) where the issue is found. Use 0 if it's a general comment."
-            },
-            severity: {
-                type: Type.STRING,
-                enum: [Severity.Critical, Severity.Warning, Severity.Suggestion, Severity.Info],
-                description: "The severity of the issue."
-            },
-            title: {
-                type: Type.STRING,
-                description: "A short, concise title for the feedback item."
-            },
-            description: {
-                type: Type.STRING,
-                description: "A detailed explanation of the issue and suggestions for improvement based on the code changes."
-            }
-        },
-        required: ["filePath", "lineNumber", "severity", "title", "description"]
-    }
-};
-
-const buildPrompt = (diff: string): string => `
-Please review the following code changes from a merge request.
-
-\`\`\`diff
-${diff}
-\`\`\`
-`;
-
 export const reviewCode = async (url: string, config: Config): Promise<{mrDetails: GitLabMRDetails, feedback: ReviewFeedback[]}> => {
-    if (!ai) {
-        throw new Error("Gemini AI client is not initialized. Please check your API key configuration.");
-    }
-
     if (!config || !config.gitlabUrl || !config.accessToken) {
         throw new Error("GitLab configuration is missing. Please set it in the settings.");
     }
@@ -83,35 +26,20 @@ export const reviewCode = async (url: string, config: Config): Promise<{mrDetail
         };
     }
 
-    const systemInstruction = `
-You are an expert code reviewer AI assistant specializing in reviewing GitLab Merge Requests.
-Your purpose is to provide high-quality, constructive feedback on the provided code changes (in diff format).
-
-Instructions:
-1.  Analyze the provided code diff for issues related to quality, correctness, performance, security, style, and best practices. Focus on the changes introduced (lines starting with '+').
-2.  Provide the file path for every comment. This must match one of the file paths in the diff.
-3.  Your feedback must be in a structured JSON format, adhering to the provided schema. For each identified issue, create a distinct feedback item.
-4.  If the code is exemplary, return an empty array.
-5.  For general comments not specific to a line, use a lineNumber of 0.
-6.  The feedback should be professional, clear, and helpful. Explain *why* something is an issue and suggest a better approach.
-7.  Do not include any introductory text or pleasantries in your response, only the JSON array.
-    `;
-    
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: buildPrompt(mrDetails.diffForPrompt),
-        config: {
-            systemInstruction: systemInstruction,
-            responseMimeType: "application/json",
-            responseSchema: responseSchema,
-            temperature: 0.2,
-        }
+        const response = await fetch('/api/gemini/review', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ diffForPrompt: mrDetails.diffForPrompt }),
     });
-    
-    const jsonText = response.text.trim();
-    if (!jsonText) return { mrDetails, feedback: [] };
 
-    const parsedResponse = JSON.parse(jsonText);
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const parsedResponse = await response.json() as GeminiReviewResponse[];
+
     if (!Array.isArray(parsedResponse)) {
         console.warn("Unexpected JSON structure from API:", parsedResponse);
         return { mrDetails, feedback: [] };
