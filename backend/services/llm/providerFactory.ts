@@ -1,0 +1,31 @@
+import { LLMProvider } from './types';
+import { GeminiProvider } from './geminiProvider';
+import { AnthropicProvider } from './anthropicProvider';
+import { GeminiCliProvider } from './geminiCliProvider';
+
+export async function createLLMProvider(type: string, apiKey?: string): Promise<LLMProvider> {
+    const providerType = type.toLowerCase();
+    
+    // Special handling for gemini-cli
+    if (providerType === 'gemini-cli') {
+        const isCliAvailable = await GeminiCliProvider.isAvailable();
+        if (!isCliAvailable) {
+            throw new Error('gemini command is not installed or not available in PATH');
+        }
+        return new GeminiCliProvider();
+    }
+    
+    // Check if API key is required but not provided
+    if (!apiKey) {
+        throw new Error(`API key is required for provider: ${type}`);
+    }
+    
+    switch (providerType) {
+        case 'gemini':
+            return new GeminiProvider(apiKey);
+        case 'anthropic':
+            return new AnthropicProvider(apiKey);
+        default:
+            throw new Error(`Unsupported LLM provider: ${type}`);
+    }
+}

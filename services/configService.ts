@@ -1,8 +1,8 @@
 import { Config } from '../types';
 
-const CONFIG_KEY = 'gemini-code-reviewer-config';
-const PROJECTS_KEY = 'gemini-code-reviewer-selected-projects';
-const THEME_KEY = 'gemini-code-reviewer-theme';
+const CONFIG_KEY = 'ai-code-reviewer-config';
+const PROJECTS_KEY = 'ai-code-reviewer-selected-projects';
+const THEME_KEY = 'ai-code-reviewer-theme';
 
 
 export const saveConfig = (config: Config): void => {
