@@ -203,7 +203,7 @@ export const postDiscussion = async (config: Config, mrDetails: GitLabMRDetails,
 
 ${feedback.description}
 
-*Powered by Gemini Code Reviewer*
+*Powered by AI Code Reviewer*
     `;
 
     const payload: { body: string; position?: ReviewFeedback['position'] } = { body };

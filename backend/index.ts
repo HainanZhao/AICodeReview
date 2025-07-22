@@ -1,24 +1,39 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { GeminiController } from './controllers/geminiController';
+import { createLLMProvider } from './services/llm/providerFactory';
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 
-const apiKey = process.env.GEMINI_API_KEY;
+const llmType = process.env.LLM_PROVIDER || 'gemini-cli';
+const apiKey = process.env.LLM_API_KEY || process.env.GEMINI_API_KEY; // Support legacy env var
 
-if (!apiKey) {
-    console.error("Gemini API Key is not configured in the backend. Please set the GEMINI_API_KEY environment variable.");
+if (llmType === 'gemini-cli' && !process.env.GOOGLE_CLOUD_PROJECT) {
+    console.error("GOOGLE_CLOUD_PROJECT is not configured in the backend. Please set the GOOGLE_CLOUD_PROJECT environment variable.");
     process.exit(1);
 }
 
-const geminiController = new GeminiController(apiKey);
+// Only check for API key if not using gemini-cli
+if (llmType !== 'gemini-cli' && !apiKey) {
+    console.error("LLM API Key is not configured in the backend. Please set the LLM_API_KEY environment variable.");
+    process.exit(1);
+}
 
-app.post('/api/gemini/review', geminiController.reviewCode);
+async function startServer() {
+    try {
+        const llmProvider = await createLLMProvider(llmType, apiKey);
+        app.post('/api/review', llmProvider.reviewCode.bind(llmProvider));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Backend server listening on port ${PORT}`);
-});
+        const PORT = process.env.PORT || 5959;
+        app.listen(PORT, () => {
+            console.log(`Backend server listening on port ${PORT} using ${llmType} provider`);
+        });
+    } catch (error) {
+        console.error("Failed to initialize LLM provider:", error);
+        process.exit(1);
+    }
+}
+
+startServer();

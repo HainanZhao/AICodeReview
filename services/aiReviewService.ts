@@ -1,6 +1,14 @@
 import { v4 as uuidv4 } from 'uuid';
-import { ReviewFeedback, Severity, Config, GitLabMRDetails, GitLabPosition, GeminiReviewResponse } from '@aireview/shared';
+import { ReviewFeedback, Severity, Config, GitLabMRDetails, GitLabPosition } from '@aireview/shared';
 import { fetchMrData } from "./gitlabService";
+
+export interface AIReviewResponse {
+    filePath: string;
+    lineNumber: number;
+    severity: Severity;
+    title: string;
+    description: string;
+}
 
 export const reviewCode = async (url: string, config: Config): Promise<{mrDetails: GitLabMRDetails, feedback: ReviewFeedback[]}> => {
     if (!config || !config.gitlabUrl || !config.accessToken) {
@@ -26,7 +34,7 @@ export const reviewCode = async (url: string, config: Config): Promise<{mrDetail
         };
     }
 
-        const response = await fetch('/api/review', {
+    const response = await fetch('/api/review', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -38,7 +46,7 @@ export const reviewCode = async (url: string, config: Config): Promise<{mrDetail
         throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const parsedResponse = await response.json() as GeminiReviewResponse[];
+    const parsedResponse = await response.json() as AIReviewResponse[];
 
     if (!Array.isArray(parsedResponse)) {
         console.warn("Unexpected JSON structure from API:", parsedResponse);
