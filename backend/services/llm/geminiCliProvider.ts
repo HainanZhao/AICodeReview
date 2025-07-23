@@ -1,20 +1,9 @@
 import { LLMProvider, ReviewRequest, ReviewResponse } from './types.js';
 import { Request, Response } from 'express';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
-import { promises as fs } from 'fs';
-import { join } from 'path';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
 
-const execAsync = promisify(exec);
-const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-
-// ES module equivalents for __filename and __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-interface GeminiItem {
+const execAsync = promisify(exec);interface GeminiItem {
     filePath: string;
     lineNumber: number;
     severity: ReviewResponse['severity'];
@@ -23,30 +12,6 @@ interface GeminiItem {
 }
 
 export class GeminiCliProvider implements LLMProvider {
-    private static async cleanupTmpFolder(tmpPath: string): Promise<void> {
-        try {
-            const files = await fs.readdir(tmpPath);
-            const now = Date.now();
-
-            for (const file of files) {
-                const filePath = join(tmpPath, file);
-                try {
-                    const stats = await fs.stat(filePath);
-                    
-                    // Remove files older than 24 hours
-                    if (now - stats.mtimeMs > ONE_DAY_IN_MS) {
-                        await fs.unlink(filePath);
-                        console.log(`Cleaned up old temporary file: ${file}`);
-                    }
-                } catch (error) {
-                    console.warn(`Failed to process file ${file}:`, error);
-                }
-            }
-            console.log('Temporary folder cleanup completed');
-        } catch (error) {
-            console.warn('Failed to clean up temporary folder:', error);
-        }
-    }
     public static async isAvailable(): Promise<boolean> {
         try {
             const { stdout } = await execAsync('command -v gemini');
@@ -80,51 +45,24 @@ Focus on the changes introduced (lines starting with '+'). Format your response 
 Return an empty array if the code is exemplary. No pleasantries or extra text, just the JSON array.`;
     }
 
-    private getTmpDir(): string {
-        // When running from CLI, __dirname might be in backend/dist/services/llm/
-        // When running with ts-node-dev, __dirname is backend/services/llm/
-        // We want to go to project root and then to backend/tmp
-        let projectRoot: string;
-        
-        if (__dirname.includes('dist/server')) {
-            // Running from CLI standalone server
-            projectRoot = dirname(dirname(__dirname));
-        } else if (__dirname.includes('backend/dist/services/llm')) {
-            // Running from compiled backend
-            projectRoot = dirname(dirname(dirname(dirname(__dirname))));
-        } else {
-            // Running with ts-node-dev from backend/services/llm/
-            projectRoot = dirname(dirname(dirname(__dirname)));
-        }
-        
-        const tmpPath = join(projectRoot, 'backend', 'tmp');
-        // Ensure the tmp directory exists
-        fs.mkdir(tmpPath, { recursive: true }).catch(err => {
-            console.warn('Failed to create tmp directory:', err);
-        });
-        return tmpPath;
-    }
-
     public async initializeWithCleanup(): Promise<void> {
-        const tmpPath = this.getTmpDir();
-        await GeminiCliProvider.cleanupTmpFolder(tmpPath);
+        // No temporary files to clean up since we use stdin
+        console.log('Temporary folder cleanup completed');
     }
 
     private async extractJsonFromOutput(output: string): Promise<GeminiItem[]> {
-        // Save a copy of the raw output we're trying to parse
-        const debugFile = join(this.getTmpDir(), `gemini-parse-attempt-${Date.now()}.txt`);
-        await fs.writeFile(debugFile, `Raw output being parsed:\n${output}`, 'utf8');
+        // Log the raw output for debugging (no temp file needed)
+        console.log('Raw Gemini output received:', output.substring(0, 200) + '...');
         
         const jsonMatch = output.match(/\[[\s\S]*\]/);
         if (!jsonMatch) {
-            console.warn(`No JSON array found in output. Assuming no recommendations. Full output saved to: ${debugFile}`);
+            console.warn('No JSON array found in output. Assuming no recommendations.');
             return [];
         }
 
         try {
             const jsonContent = jsonMatch[0];
-            // Save the extracted JSON string
-            await fs.appendFile(debugFile, `\n\nExtracted JSON string:\n${jsonContent}`, 'utf8');
+            console.log('Extracted JSON string:', jsonContent.substring(0, 100) + '...');
             
             const parsed = JSON.parse(jsonContent);
             if (!Array.isArray(parsed)) {
@@ -133,7 +71,7 @@ Return an empty array if the code is exemplary. No pleasantries or extra text, j
             }
             return parsed;
         } catch (error) {
-            console.warn(`Failed to parse JSON, assuming no recommendations. Debug file: ${debugFile}`);
+            console.warn('Failed to parse JSON, assuming no recommendations.');
             return [];
         }
     }
@@ -146,28 +84,20 @@ Return an empty array if the code is exemplary. No pleasantries or extra text, j
             return;
         }
 
-        const tempFile = join(this.getTmpDir(), `prompt-${Date.now()}.txt`);
-
         try {
-            // Write prompt to file
+            // Build the prompt
             const prompt = this.buildPrompt(diffForPrompt);
-            await fs.writeFile(tempFile, prompt, 'utf8');
 
             try {
-                // Execute gemini command with prompt file
-                const { stdout, stderr } = await execAsync(`gemini --yolo --prompt @"${tempFile}"`);
+                // Execute gemini command with prompt via stdin (no temp files needed)
+                const result = await this.executeGeminiWithStdin(prompt);
 
-                if (stderr) {
-                    console.warn("gemini warnings/errors:", stderr);
+                if (result.stderr) {
+                    console.warn("gemini warnings/errors:", result.stderr);
                 }
 
-                // Save raw output to a debug file
-                const debugFile = join(this.getTmpDir(), `gemini-output-${Date.now()}.txt`);
-                await fs.writeFile(debugFile, stdout, 'utf8');
-                console.log(`Raw Gemini output saved to: ${debugFile}`);
-
                 // Parse and validate the response
-                const parsedResponse = await this.extractJsonFromOutput(stdout);
+                const parsedResponse = await this.extractJsonFromOutput(result.stdout);
                 const validatedResponse = parsedResponse.map((item: GeminiItem): ReviewResponse => ({
                     filePath: String(item.filePath),
                     lineNumber: Number(item.lineNumber),
@@ -186,17 +116,42 @@ Return an empty array if the code is exemplary. No pleasantries or extra text, j
             console.error("Error preparing prompt:", error);
             // Return empty array for preparation errors
             res.json([]);
-        } finally {
-            if (tempFile) {
-                try {
-                    await fs.access(tempFile).then(() => fs.unlink(tempFile));
-                } catch (cleanupError) {
-                    // Only log if it's not a "file not found" error
-                    if ((cleanupError as NodeJS.ErrnoException).code !== 'ENOENT') {
-                        console.warn("Failed to clean up temporary file:", cleanupError);
-                    }
-                }
-            }
         }
+    }
+
+    private executeGeminiWithStdin(prompt: string): Promise<{ stdout: string; stderr: string }> {
+        return new Promise((resolve, reject) => {
+            const child = spawn('gemini', ['--yolo'], {
+                stdio: ['pipe', 'pipe', 'pipe'],
+                cwd: process.cwd() // Use current working directory where CLI was invoked
+            });
+
+            let stdout = '';
+            let stderr = '';
+
+            child.stdout.on('data', (data) => {
+                stdout += data.toString();
+            });
+
+            child.stderr.on('data', (data) => {
+                stderr += data.toString();
+            });
+
+            child.on('close', (code) => {
+                if (code === 0) {
+                    resolve({ stdout, stderr });
+                } else {
+                    reject(new Error(`gemini command failed with exit code ${code}: ${stderr}`));
+                }
+            });
+
+            child.on('error', (error) => {
+                reject(error);
+            });
+
+            // Send prompt via stdin
+            child.stdin.write(prompt);
+            child.stdin.end();
+        });
     }
 }
