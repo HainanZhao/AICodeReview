@@ -18,9 +18,9 @@ export const buildPrompt = (diff: string, discussions: any[]): string => {
 
     return `Please review the following code changes from a merge request.
 
-```diff
+\`\`\`diff
 ${diff}
-```
+\`\`\`
 
 ${discussionContext}
 
@@ -38,4 +38,5 @@ Focus on the changes introduced (lines starting with '+'). Format your response 
 - title: string (short, concise title)
 - description: string (detailed explanation and suggestions)
 
-Return an empty array if the code is exemplary. No pleasantries or extra text, just the JSON array.`;;
+Return an empty array if the code is exemplary. No pleasantries or extra text, just the JSON array.`;
+};

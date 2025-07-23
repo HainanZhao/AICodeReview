@@ -2,6 +2,15 @@ import path from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+    build: {
+        outDir: 'dist',
+        emptyOutDir: true,
+        rollupOptions: {
+            output: {
+                manualChunks: undefined
+            }
+        }
+    },
     server: {
         port: 5960,
         proxy: {

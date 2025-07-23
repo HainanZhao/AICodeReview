@@ -5,6 +5,7 @@
   "scripts": {
     "build": "tsc",
     "start": "NODE_NO_WARNINGS=1 ts-node-dev --respawn index.ts",
+    "start:prod": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
