@@ -1,13 +1,18 @@
-import { LLMProvider, ReviewRequest, ReviewResponse } from './types';
+import { LLMProvider, ReviewRequest, ReviewResponse } from './types.js';
 import { Request, Response } from 'express';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 const execAsync = promisify(exec);
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+// ES module equivalents for __filename and __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 interface GeminiItem {
     filePath: string;
@@ -77,12 +82,19 @@ Return an empty array if the code is exemplary. No pleasantries or extra text, j
 
     private getTmpDir(): string {
         // When running from CLI, __dirname might be in backend/dist/services/llm/
+        // When running with ts-node-dev, __dirname is backend/services/llm/
         // We want to go to project root and then to backend/tmp
-        let projectRoot = dirname(dirname(dirname(dirname(__dirname))));
+        let projectRoot: string;
         
-        // If we're already in the project root (when __dirname is dist/server/), adjust
         if (__dirname.includes('dist/server')) {
+            // Running from CLI standalone server
             projectRoot = dirname(dirname(__dirname));
+        } else if (__dirname.includes('backend/dist/services/llm')) {
+            // Running from compiled backend
+            projectRoot = dirname(dirname(dirname(dirname(__dirname))));
+        } else {
+            // Running with ts-node-dev from backend/services/llm/
+            projectRoot = dirname(dirname(dirname(__dirname)));
         }
         
         const tmpPath = join(projectRoot, 'backend', 'tmp');

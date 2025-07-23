@@ -21,7 +21,7 @@ program
 
 program
   .option('-c, --config <path>', 'path to configuration file')
-  .option('-p, --port <number>', 'port to run the server on', '3000')
+  .option('-p, --port <number>', 'port to run the server on', '5960')
   .option('--host <host>', 'host to bind the server to', 'localhost')
   .option('--provider <provider>', 'LLM provider (gemini-cli, gemini, anthropic)', 'gemini-cli')
   .option('--api-key <key>', 'API key for the LLM provider')

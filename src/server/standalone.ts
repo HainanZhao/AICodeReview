@@ -41,8 +41,8 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   try {
     console.log('\n🤖 Initializing LLM provider...');
     
-    // Import the backend module dynamically
-    const backendPath = join(__dirname, '..', '..', 'backend', 'dist', 'services', 'llm', 'providerFactory.js');
+    // Import the backend module using dynamic import for ES module compatibility
+    const backendPath = join(__dirname, '..', '..', 'backend', 'dist', 'backend', 'services', 'llm', 'providerFactory.js');
     const { createLLMProvider } = await import(backendPath);
     
     const llmProvider = await createLLMProvider(config.llm.provider, config.llm.apiKey);
@@ -56,7 +56,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   }
 
   // Serve static files (built frontend)
-  const distPath = join(__dirname, '..', '..', 'dist');
+  const distPath = join(__dirname, '..', 'public');
   app.use(express.static(distPath));
   
   // Serve index.html for all non-API routes (SPA routing)

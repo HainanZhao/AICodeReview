@@ -1,4 +1,4 @@
-import { GeminiReviewRequest, GeminiReviewResponse } from '@aireview/shared';
+import { GeminiReviewRequest, GeminiReviewResponse } from '../../src/types/shared.js';
 
 export { GeminiReviewRequest, GeminiReviewResponse };
 export const buildPrompt = (diff: string, discussions: any[]): string => {

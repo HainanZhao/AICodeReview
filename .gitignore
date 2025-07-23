@@ -27,3 +27,4 @@ backend/dist
 *.njsproj
 *.sln
 *.sw?
+*.tgz

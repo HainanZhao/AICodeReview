@@ -21,7 +21,7 @@ export async function createConfigInteractively(): Promise<void> {
   try {
     // Server configuration
     console.log('📡 Server Configuration:');
-    const port = await question('Port (3000): ') || '3000';
+    const port = await question('Port (5960): ') || '5960';
     const host = await question('Host (localhost): ') || 'localhost';
 
     // LLM provider configuration

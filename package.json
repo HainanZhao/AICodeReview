@@ -36,7 +36,6 @@
   },
   "type": "module",
   "workspaces": [
-    "shared",
     "backend"
   ],
   "scripts": {
@@ -52,12 +51,14 @@
     "pack:test": "npm pack && npm install -g ./aicodereview-cli-1.0.0.tgz"
   },
   "dependencies": {
-    "@aireview/shared": "1.0.0",
     "commander": "^12.1.0",
     "express": "^5.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "@anthropic-ai/sdk": "^0.17.1",
+    "@google/generative-ai": "^0.24.1",
+    "dotenv": "^17.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
