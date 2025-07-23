@@ -20,7 +20,6 @@ program
   .version(packageJson.version);
 
 program
-  .option('-c, --config <path>', 'path to configuration file')
   .option('-p, --port <number>', 'port to run the server on', '5960')
   .option('--host <host>', 'host to bind the server to', 'localhost')
   .option('--provider <provider>', 'LLM provider (gemini-cli, gemini, anthropic)', 'gemini-cli')
@@ -34,6 +33,17 @@ program
         const { createConfigInteractively } = await import('../dist/config/configWizard.js');
         await createConfigInteractively();
         return;
+      }
+
+      // Check if config exists, if not, run init wizard
+      const { ConfigLoader } = await import('../dist/config/configLoader.js');
+      const configLoader = new ConfigLoader();
+      
+      if (!configLoader.hasConfig()) {
+        console.log('No configuration found. Running setup wizard...');
+        const { createConfigInteractively } = await import('../dist/config/configWizard.js');
+        await createConfigInteractively();
+        console.log('Configuration created. Starting AI Code Review...\n');
       }
 
       const { startServer } = await import('../dist/server/standalone.js');

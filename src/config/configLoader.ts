@@ -5,7 +5,6 @@ import { AppConfig } from './configSchema.js';
 import { DEFAULT_CONFIG } from './defaultConfig.js';
 
 export interface CLIOptions {
-  config?: string;
   port?: string;
   host?: string;
   provider?: string;
@@ -15,18 +14,20 @@ export interface CLIOptions {
 }
 
 export class ConfigLoader {
-  private static CONFIG_FILENAMES = [
-    'aicodereview.config.json',
-    '.aicodereview.json',
-    'aicodereview.json'
-  ];
+  private static getHomeConfigPath(): string {
+    return join(homedir(), '.aicodereview', 'config.json');
+  }
+
+  hasConfig(): boolean {
+    return existsSync(ConfigLoader.getHomeConfigPath());
+  }
 
   static loadConfig(cliOptions: CLIOptions = {}): AppConfig {
     let config = { ...DEFAULT_CONFIG };
 
-    // 1. Load from config file
-    const configFile = this.findConfigFile(cliOptions.config);
-    if (configFile) {
+    // Load from home directory config file if it exists
+    const configFile = this.getHomeConfigPath();
+    if (existsSync(configFile)) {
       try {
         const fileConfig = JSON.parse(readFileSync(configFile, 'utf8'));
         config = this.mergeConfigs(config, fileConfig);
@@ -37,43 +38,16 @@ export class ConfigLoader {
       }
     }
 
-    // 2. Override with environment variables
+    // Override with environment variables
     config = this.applyEnvironmentVariables(config);
 
-    // 3. Override with CLI options
+    // Override with CLI options
     config = this.applyCLIOptions(config, cliOptions);
 
-    // 4. Validate config
+    // Validate config
     this.validateConfig(config);
 
     return config;
-  }
-
-  private static findConfigFile(customPath?: string): string | null {
-    if (customPath) {
-      if (existsSync(customPath)) {
-        return customPath;
-      } else {
-        throw new Error(`Config file not found: ${customPath}`);
-      }
-    }
-
-    // Check current directory
-    for (const filename of this.CONFIG_FILENAMES) {
-      const path = join(process.cwd(), filename);
-      if (existsSync(path)) {
-        return path;
-      }
-    }
-
-    // Check user home directory
-    const homeConfigDir = join(homedir(), '.aicodereview');
-    const homeConfigPath = join(homeConfigDir, 'config.json');
-    if (existsSync(homeConfigPath)) {
-      return homeConfigPath;
-    }
-
-    return null;
   }
 
   private static applyEnvironmentVariables(config: AppConfig): AppConfig {

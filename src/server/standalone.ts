@@ -59,14 +59,40 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   const distPath = join(__dirname, '..', 'public');
   app.use(express.static(distPath));
   
+  // Handle common browser requests that we expect to fail silently
+  app.get('/favicon.ico', (_req, res) => res.status(204).end());
+  app.get('/robots.txt', (_req, res) => res.status(204).end());
+  app.get('/manifest.json', (_req, res) => res.status(204).end());
+  
   // Serve index.html for all non-API routes (SPA routing)
   app.get('/', (_req, res) => {
-    res.sendFile(join(distPath, 'index.html'));
+    res.sendFile(join(distPath, 'index.html'), (err) => {
+      if (err) {
+        res.status(404).end();
+      }
+    });
   });
   
   // Handle all other non-API routes for SPA
   app.get(/^(?!\/api).*$/, (_req, res) => {
-    res.sendFile(join(distPath, 'index.html'));
+    res.sendFile(join(distPath, 'index.html'), (err) => {
+      if (err) {
+        res.status(404).end();
+      }
+    });
+  });
+
+  // Global error handler to suppress common 404 errors
+  app.use((err: any, req: any, res: any, next: any) => {
+    // Don't log common browser 404s
+    if (err.status === 404 || err.statusCode === 404) {
+      res.status(404).end();
+      return;
+    }
+    
+    // Log other errors
+    console.error('Server error:', err);
+    res.status(500).end();
   });
 
   // Start server

@@ -75,23 +75,12 @@ export async function createConfigInteractively(): Promise<void> {
       }
     };
 
-    // Ask where to save
-    console.log('\n💾 Save Configuration:');
-    console.log('1. Current directory (./aicodereview.config.json)');
-    console.log('2. User home directory (~/.aicodereview/config.json)');
-    
-    const saveChoice = await question('Where to save? (1-2, default: 1): ') || '1';
-    
-    let configPath: string;
-    if (saveChoice === '2') {
-      const homeConfigDir = join(homedir(), '.aicodereview');
-      if (!existsSync(homeConfigDir)) {
-        mkdirSync(homeConfigDir, { recursive: true });
-      }
-      configPath = join(homeConfigDir, 'config.json');
-    } else {
-      configPath = join(process.cwd(), 'aicodereview.config.json');
+    // Save to home directory
+    const homeConfigDir = join(homedir(), '.aicodereview');
+    if (!existsSync(homeConfigDir)) {
+      mkdirSync(homeConfigDir, { recursive: true });
     }
+    const configPath = join(homeConfigDir, 'config.json');
 
     // Write config file
     writeFileSync(configPath, JSON.stringify(config, null, 2));
