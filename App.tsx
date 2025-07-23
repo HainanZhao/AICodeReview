@@ -210,11 +210,9 @@ function App() {
     
     try {
       const { feedback: aiReviewResult } = await reviewCode(mrDetails, config);
-      console.log('Redo Review Result:', aiReviewResult);
       
       // Combine existing GitLab comments with new AI review comments
       const combinedFeedback = [...(mrDetails.existingFeedback || []), ...aiReviewResult];
-      console.log('Redo Combined Feedback:', combinedFeedback);
       
       setFeedback(() => combinedFeedback);
     } catch (error) {

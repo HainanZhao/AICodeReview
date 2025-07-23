@@ -92,11 +92,9 @@ export const loadProjectsFromCache = (): GitLabProject[] | null => {
     const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
     if (Date.now() - cachedTimestamp > CACHE_DURATION) {
-      console.log("Project cache expired.");
       return null;
     }
 
-    console.log("Loading projects from cache.");
     return JSON.parse(projectsStr) as GitLabProject[];
   } catch (error) {
     console.error("Failed to load projects from cache", error);

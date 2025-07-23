@@ -56,26 +56,18 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
         const fileLevel: ReviewFeedback[] = [];
         const lineLevel = new Map<number, ReviewFeedback[]>();
 
-        console.log(`Processing feedback for file ${fileDiff.filePath}:`, feedbackForFile);
-
         if (feedbackForFile) {
             for (const fb of feedbackForFile) {
-                console.log(`Processing feedback: lineNumber=${fb.lineNumber}, filePath=${fb.filePath}, title=${fb.title}`);
                 // Comments with lineNumber 0 are file-level
                 if (fb.lineNumber === 0) {
                     fileLevel.push(fb);
-                    console.log(`Added to file-level feedback`);
                 } else {
                     const existing = lineLevel.get(fb.lineNumber) || [];
                     existing.push(fb);
                     lineLevel.set(fb.lineNumber, existing);
-                    console.log(`Added to line-level feedback for line ${fb.lineNumber}`);
                 }
             }
         }
-        
-        console.log(`Final file-level feedback:`, fileLevel);
-        console.log(`Final line-level feedback map:`, lineLevel);
         
         return { fileLevelFeedback: fileLevel, lineLevelFeedbackMap: lineLevel };
     }, [feedbackForFile, fileDiff.filePath]);
@@ -125,12 +117,13 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
             if (!hunk.isCollapsed) {
                  hunk.lines.filter(l => l.type !== 'meta').forEach((line, lineIndex) => {
                     const feedbackItems = (line.newLine && lineLevelFeedbackMap.get(line.newLine)) || [];
-                    const pendingFeedbackItems = feedbackItems.filter(f => f.status !== 'submitted');
+                    // Show all feedback items (both pending and submitted/existing)
+                    const allFeedbackItems = feedbackItems;
 
                     elements.push(
                         <React.Fragment key={`${fileDiff.filePath}-${hunkIndex}-${lineIndex}`}>
                             <DiffLine line={line} onAddComment={() => handlers.onAddCustomFeedback(fileDiff, line)} />
-                            {pendingFeedbackItems.map(fb => {
+                            {allFeedbackItems.map(fb => {
                                 const isActive = fb.id === activeFeedbackId;
                                 return (
                                     <tr 
@@ -138,10 +131,10 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
                                         id={`feedback-wrapper-${fb.id}`} 
                                         className={`transition-colors duration-300 ${isActive ? 'bg-blue-100/50 dark:bg-brand-primary/40' : 'bg-white dark:bg-brand-surface'}`}
                                     >
-                                        <td className="text-brand-secondary align-top text-center pt-4 pl-2">
+                                        <td className="text-brand-secondary align-top text-center pt-1 pl-1">
                                             <AddCommentIcon />
                                         </td>
-                                        <td colSpan={3} className="p-2">
+                                        <td colSpan={3} className="p-0.5">
                                             <FeedbackCard feedback={fb} onPostComment={onPostComment} onToggleIgnoreFeedback={onToggleIgnoreFeedback} {...handlers} />
                                         </td>
                                     </tr>

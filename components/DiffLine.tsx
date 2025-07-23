@@ -26,8 +26,8 @@ export const DiffLine: React.FC<DiffLineProps> = ({ line, onAddComment }) => {
     const canComment = line.type === 'add' || line.type === 'context';
     
     return (
-        <tr className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/10 h-6`}>
-            <td className="w-8 text-center align-middle h-6">
+        <tr className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/10 h-4`}>
+            <td className="w-8 text-center align-middle h-4">
                 {/* 
                   The button is always rendered to maintain a consistent column width, preventing layout shifts.
                   It is only made visible and interactive via CSS on hover for commentable lines.
@@ -41,13 +41,13 @@ export const DiffLine: React.FC<DiffLineProps> = ({ line, onAddComment }) => {
                       ${canComment ? 'group-hover:opacity-100' : 'pointer-events-none'}
                     `}
                 >
-                    <PlusIcon className="w-4 h-4" />
+                    <PlusIcon className="w-2.5 h-2.5" />
                 </button>
             </td>
-            <td className="w-10 text-right px-2 select-none opacity-70 align-middle h-6">{line.oldLine || ''}</td>
-            <td className="w-10 text-right px-2 select-none opacity-70 align-middle h-6">{line.newLine || ''}</td>
-            <td className="w-full pr-4 align-middle font-mono text-xs h-6">
-                {line.type !== 'meta' && <span className="mr-2 select-none">{prefix}</span>}
+            <td className="w-10 text-right px-1 select-none opacity-70 align-middle h-4 text-xs">{line.oldLine || ''}</td>
+            <td className="w-10 text-right px-1 select-none opacity-70 align-middle h-4 text-xs">{line.newLine || ''}</td>
+            <td className="w-full pr-2 align-middle font-mono text-xs h-4">
+                {line.type !== 'meta' && <span className="mr-1 select-none">{prefix}</span>}
                 <span className="whitespace-pre-wrap break-words">{line.content}</span>
             </td>
         </tr>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ReviewFeedback, Severity } from '../types';
 import { AddCommentIcon, EditIcon, TrashIcon, EyeSlashIcon, CheckmarkIcon } from './icons';
 import { Spinner } from './Spinner';
@@ -74,20 +74,20 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({ feedback, onPostComm
   if (feedback.isEditing) {
     const config = SEVERITY_CONFIG[feedback.severity] || SEVERITY_CONFIG[Severity.Info];
     return (
-      <div className={`shadow-lg ${config.colorClass} border-l-4 rounded-md`}>
-        <div className="p-4">
-            <label htmlFor={`description-${feedback.id}`} className="block text-sm font-medium text-gray-700 dark:text-brand-subtle mb-1">
+      <div className={`shadow-sm ${config.colorClass} border-l-4 rounded-md`}>
+        <div className="p-2">
+            <label htmlFor={`description-${feedback.id}`} className="block text-xs font-medium text-gray-700 dark:text-brand-subtle mb-1">
               {feedback.isNewlyAdded ? 'Add New Comment' : `Edit Comment: ${feedback.title}`}
             </label>
-            <textarea id={`description-${feedback.id}`} value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} placeholder="Detailed explanation and suggestions..." className="w-full p-2 bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text text-sm font-mono rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary" rows={5} autoFocus></textarea>
+            <textarea id={`description-${feedback.id}`} value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} placeholder="Detailed explanation and suggestions..." className="w-full p-1.5 bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text text-xs font-mono rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary" rows={3} autoFocus></textarea>
         </div>
-        <div className="px-4 py-2 bg-black/10 dark:bg-black/20 flex items-center justify-between rounded-b-md">
-           <button onClick={() => onDeleteFeedback(feedback.id)} className="p-2 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-red-200 dark:hover:bg-red-800/50 hover:text-red-700 dark:hover:text-red-300 transition-colors" aria-label="Delete comment">
+        <div className="px-2 py-1.5 bg-black/10 dark:bg-black/20 flex items-center justify-between rounded-b-md">
+           <button onClick={() => onDeleteFeedback(feedback.id)} className="p-1 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-red-200 dark:hover:bg-red-800/50 hover:text-red-700 dark:hover:text-red-300 transition-colors" aria-label="Delete comment">
               <TrashIcon />
            </button>
            <div className="flex items-center space-x-2">
-                <button onClick={handleCancel} className="text-sm text-gray-700 dark:text-brand-subtle font-semibold py-2 px-4 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors">Cancel</button>
-                <button onClick={handleSave} disabled={!editedDescription.trim()} className="text-sm bg-brand-secondary hover:bg-red-600 disabled:bg-gray-300 dark:disabled:bg-brand-primary disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-md transition-all">Save</button>
+                <button onClick={handleCancel} className="text-xs text-gray-700 dark:text-brand-subtle font-semibold py-1 px-2 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors">Cancel</button>
+                <button onClick={handleSave} disabled={!editedDescription.trim()} className="text-xs bg-brand-secondary hover:bg-red-600 disabled:bg-gray-300 dark:disabled:bg-brand-primary disabled:cursor-not-allowed text-white font-bold py-1 px-2 rounded-md transition-all">Save</button>
            </div>
         </div>
       </div>
@@ -99,15 +99,15 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({ feedback, onPostComm
   // If this is an existing comment from GitLab
   if (feedback.isExisting) {
     return (
-      <div className="shadow-lg border-l-4 border-gray-400 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-brand-primary/20">
-        <div className="p-4">
-          <div className="flex items-start space-x-3">
+      <div className="shadow-sm border-l-4 border-gray-400 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-brand-primary/20">
+        <div className="p-1.5">
+          <div className="flex items-start space-x-2">
             <div className="flex-1">
               <div className="flex justify-between items-center">
-                <h3 className="text-sm font-bold text-gray-600 dark:text-gray-400">{feedback.title}</h3>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Existing comment</span>
+                <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-400">{feedback.title}</h3>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Existing</span>
               </div>
-              <p className="mt-2 text-xs text-gray-800 dark:text-brand-text whitespace-pre-wrap">{feedback.description}</p>
+              <p className="mt-0.5 text-xs text-gray-800 dark:text-brand-text whitespace-pre-wrap">{feedback.description}</p>
             </div>
           </div>
         </div>
@@ -116,24 +116,24 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({ feedback, onPostComm
   }
 
   return (
-    <div className={`transition-all duration-300 shadow-lg ${config.colorClass} border-l-4 rounded-md`}>
-      <div className={`p-4 ${feedback.isIgnored ? 'opacity-60' : ''}`}>
-        <div className="flex items-start space-x-3">
-            <div className={`mt-1 ${config.titleColor}`}>{config.icon}</div>
+    <div className={`transition-all duration-300 shadow-sm ${config.colorClass} border-l-4 rounded-md`}>
+      <div className={`p-1.5 ${feedback.isIgnored ? 'opacity-60' : ''}`}>
+        <div className="flex items-start space-x-2">
+            <div className={`mt-0.5 ${config.titleColor}`}>{config.icon}</div>
             <div className="flex-1">
                 <div className="flex justify-between items-center">
-                    <h3 className={`text-sm font-bold ${config.titleColor}`}>{feedback.title}</h3>
+                    <h3 className={`text-xs font-semibold ${config.titleColor}`}>{feedback.title}</h3>
                 </div>
-                <p className="mt-2 text-xs text-gray-800 dark:text-brand-text whitespace-pre-wrap">{feedback.description}</p>
+                <p className="mt-0.5 text-xs text-gray-800 dark:text-brand-text whitespace-pre-wrap">{feedback.description}</p>
             </div>
         </div>
       </div>
        {feedback.severity !== Severity.Info && (
-            <div className="px-4 py-2 bg-black/10 dark:bg-black/20 flex items-center justify-between rounded-b-md">
+            <div className="px-1.5 py-1 bg-black/10 dark:bg-black/20 flex items-center justify-between rounded-b-md">
                 {feedback.isIgnored ? (
                      <>
-                        <span className="text-sm italic text-gray-600 dark:text-brand-subtle">Comment ignored</span>
-                        <button onClick={() => onToggleIgnoreFeedback(feedback.id)} className="text-sm text-gray-700 dark:text-brand-subtle font-semibold py-2 px-4 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors">
+                        <span className="text-xs italic text-gray-600 dark:text-brand-subtle">Comment ignored</span>
+                        <button onClick={() => onToggleIgnoreFeedback(feedback.id)} className="text-xs text-gray-700 dark:text-brand-subtle font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors">
                             Undo
                         </button>
                     </>
@@ -142,33 +142,33 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({ feedback, onPostComm
                         <div>
                             {feedback.status === 'pending' && (
                                 <div className="flex items-center space-x-1">
-                                    <button onClick={() => onSetEditing(feedback.id, true)} className="flex items-center space-x-2 text-sm text-gray-600 dark:text-brand-subtle font-semibold py-1 px-3 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors">
+                                    <button onClick={() => onSetEditing(feedback.id, true)} className="flex items-center space-x-1 text-xs text-gray-600 dark:text-brand-subtle font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors">
                                         <EditIcon />
                                         <span>Edit</span>
                                     </button>
-                                     <button onClick={() => onToggleIgnoreFeedback(feedback.id)} className="flex items-center space-x-2 text-sm text-gray-600 dark:text-brand-subtle font-semibold py-1 px-3 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors" aria-label="Ignore comment">
+                                     <button onClick={() => onToggleIgnoreFeedback(feedback.id)} className="flex items-center space-x-1 text-xs text-gray-600 dark:text-brand-subtle font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors" aria-label="Ignore comment">
                                         <EyeSlashIcon />
                                         <span>Ignore</span>
                                     </button>
                                 </div>
                             )}
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-1">
                             {feedback.status === 'error' && <p className="text-xs text-red-600 dark:text-red-400">Error: {feedback.submissionError}</p>}
                             
                             {feedback.status === 'pending' && (
-                                <button onClick={handleAction} className="flex items-center space-x-2 text-sm bg-gray-600 dark:bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-1 px-3 rounded-md transition-colors">
+                                <button onClick={handleAction} className="flex items-center space-x-1 text-xs bg-gray-600 dark:bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-0.5 px-1.5 rounded-md transition-colors">
                                     <AddCommentIcon />
                                     <span>Add to MR</span>
                                 </button>
                             )}
-                            {feedback.status === 'submitting' && <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-brand-subtle py-1 px-3"><Spinner size="sm" /> <span>Posting...</span></div>}
-                            {feedback.status === 'submitted' && <div className="flex items-center space-x-2 text-sm text-green-600 dark:text-green-400 py-1 px-3">
+                            {feedback.status === 'submitting' && <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-brand-subtle py-0.5 px-1.5"><Spinner size="sm" /> <span>Posting...</span></div>}
+                            {feedback.status === 'submitted' && <div className="flex items-center space-x-1 text-xs text-green-600 dark:text-green-400 py-0.5 px-1.5">
                                 <CheckmarkIcon />
                                 <span>Posted on GitLab</span>
                             </div>}
                             {feedback.status === 'error' && (
-                                <button onClick={handleAction} className="flex items-center space-x-2 text-sm bg-red-600 hover:bg-red-500 text-white font-semibold py-1 px-3 rounded-md transition-colors">
+                                <button onClick={handleAction} className="flex items-center space-x-1 text-xs bg-red-600 hover:bg-red-500 text-white font-semibold py-0.5 px-1.5 rounded-md transition-colors">
                                     <span>Retry</span>
                                 </button>
                             )}

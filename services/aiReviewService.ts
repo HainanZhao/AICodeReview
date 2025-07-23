@@ -36,9 +36,8 @@ export const fetchMrDetails = async (
 
   const mrDetails = await fetchMrData(config, url);
 
-  // For now, existing feedback is just a placeholder or fetched from elsewhere if available
-  // This part needs to be implemented if existing comments are to be fetched from GitLab
-  const existingFeedback: ReviewFeedback[] = [];
+  // Return existing feedback from GitLab discussions
+  const existingFeedback = mrDetails.existingFeedback || [];
 
   return { mrDetails, feedback: existingFeedback };
 };
@@ -91,8 +90,6 @@ export const reviewCode = async (
 
     const parsedResponse = (await response.json()) as GeminiReviewResponse[];
 
-    console.log("Raw API response:", parsedResponse);
-
     if (!Array.isArray(parsedResponse)) {
       console.warn("Unexpected JSON structure from API:", parsedResponse);
       return { feedback: [] };
@@ -104,10 +101,7 @@ export const reviewCode = async (
 
     const generatedFeedback = (parsedResponse as any[]).map(
       (item): ReviewFeedback | null => {
-        console.log(`Processing AI suggestion for ${item.filePath}:${item.lineNumber}`);
-        
         const parsedFile = parsedFileDiffsMap.get(item.filePath);
-        console.log(`Found parsed file for ${item.filePath}:`, !!parsedFile);
 
         let position: GitLabPosition | null = null;
         let lineContent: string = "";
@@ -118,8 +112,6 @@ export const reviewCode = async (
 
         if (item.lineNumber > 0 && parsedFile) {
           const allLines = parsedFile.hunks.flatMap((h) => h.lines);
-          console.log(`All lines in ${item.filePath}:`, allLines.map(l => `${l.newLine}:${l.type}`));
-          
           // First try to find the exact line that was added
           let targetLine = allLines.find(
             (l) => l.newLine === item.lineNumber && l.type === "add"
@@ -128,13 +120,11 @@ export const reviewCode = async (
           // If not found, try to find any line with that line number (context, modified, deleted, etc.)
           if (!targetLine) {
             targetLine = allLines.find((l) => l.newLine === item.lineNumber);
-            console.log(`Found alternative target line for ${item.lineNumber}:`, targetLine);
           }
           
           // Also check for deleted lines using oldLine number
           if (!targetLine) {
             targetLine = allLines.find((l) => l.oldLine === item.lineNumber && l.type === "remove");
-            console.log(`Found deleted line for ${item.lineNumber}:`, targetLine);
           }
 
           // If still not found, allow the comment but warn
@@ -196,13 +186,10 @@ export const reviewCode = async (
       }
     );
 
-    console.log("Generated feedback before filtering:", generatedFeedback);
-
     const feedback = generatedFeedback.filter(
       (fb): fb is ReviewFeedback => fb !== null
     );
     
-    console.log("Final feedback after filtering:", feedback);
     return { feedback };
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {

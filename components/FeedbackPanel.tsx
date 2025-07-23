@@ -55,37 +55,23 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   const { feedback, mrDetails, isLoading, error, onPostComment, onPostAllComments, onToggleIgnoreFeedback, isAiAnalyzing, onApproveMR, onRedoReview, ...handlers } = props;
   const [currentCommentIndex, setCurrentCommentIndex] = useState(-1);
 
-  // Debug logging
-  console.log('FeedbackPanel props:', { feedback, feedbackLength: feedback?.length, isLoading, isAiAnalyzing, error });
-
   const feedbackByFile = useMemo(() => {
     const result = new Map<string, ReviewFeedback[]>();
     
     // Add all feedback (including existing feedback from GitLab which is already in feedback state)
     if (feedback) {
-      feedback.forEach((item, index) => {
-        console.log(`Processing feedback item ${index}:`, {
-          id: item.id,
-          filePath: item.filePath,
-          lineNumber: item.lineNumber,
-          title: item.title,
-          status: item.status,
-          severity: item.severity
-        });
-        
+      feedback.forEach((item) => {
         const fileFeedback = result.get(item.filePath) || [];
         fileFeedback.push(item);
         result.set(item.filePath, fileFeedback);
       });
     }
     
-    console.log('feedbackByFile result:', result);
     return result;
   }, [feedback]);
 
   const generalComments = useMemo(() => {
     const general = feedbackByFile.get('') || [];
-    console.log('General comments:', general);
     return general;
   }, [feedbackByFile]);
 
@@ -106,8 +92,6 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
       );
 
       if (!isLineVisible) {
-        console.log(`Auto-expanding context for AI comment on line ${comment.lineNumber} in ${comment.filePath}`);
-        
         // Find the best hunk to expand (closest to the comment line)
         let bestHunk: { hunk: any; hunkIndex: number } | null = null;
         let minDistance = Infinity;
@@ -136,7 +120,6 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
           const direction = comment.lineNumber < bestHunk.hunk.newStartLine ? 'up' : 'down';
           const linesToExpand = Math.min(minDistance + 5, 20); // Expand enough to show the line plus some context, max 20 lines
           
-          console.log(`Expanding hunk ${hunkIndex} in ${comment.filePath} ${direction} by ${linesToExpand} lines`);
           handlers.onExpandHunkContext(comment.filePath, hunkIndex, direction, linesToExpand);
         }
       }
@@ -146,7 +129,6 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   const pendingComments = useMemo(() => {
     if (!feedback) return [];
     const pending = feedback.filter((f: ReviewFeedback) => f.status === 'pending' && f.severity !== 'Info' && !f.isEditing && !f.isIgnored);
-    console.log('Pending comments:', pending);
     return pending;
   }, [feedback]);
 
@@ -214,25 +196,25 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
     const shouldShowNoIssuesMessage = !feedback || feedback.length === 0 || (feedback.length === 1 && feedback[0].severity === Severity.Info && feedback[0].status === 'submitted');
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-1.5">
         {pendingComments.length > 0 && (
-            <div className="p-3 bg-gray-100/80 dark:bg-brand-primary/50 rounded-lg flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm">
-                <p className="text-sm text-gray-600 dark:text-brand-subtle">{pendingComments.length} comments to post.</p>
-                <div className="flex items-center space-x-4">
-                     <div className="flex items-center space-x-2">
-                         <span className="text-sm font-mono text-gray-500 dark:text-brand-subtle w-14 text-center">
+            <div className="p-1.5 bg-gray-100/80 dark:bg-brand-primary/50 rounded-lg flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm">
+                <p className="text-xs text-gray-600 dark:text-brand-subtle">{pendingComments.length} comments to post.</p>
+                <div className="flex items-center space-x-2">
+                     <div className="flex items-center space-x-1">
+                         <span className="text-xs font-mono text-gray-500 dark:text-brand-subtle w-10 text-center">
                            {currentCommentIndex > -1 ? `${String(currentCommentIndex + 1).padStart(2, '0')}` : '--'}/{`${String(pendingComments.length).padStart(2, '0')}`}
                          </span>
-                        <button onClick={() => handleNavigate('up')} className="p-1 rounded-md bg-gray-200 dark:bg-brand-primary hover:bg-brand-secondary text-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed" disabled={pendingComments.length === 0} aria-label="Previous comment">
+                        <button onClick={() => handleNavigate('up')} className="p-0.5 rounded-md bg-gray-200 dark:bg-brand-primary hover:bg-brand-secondary text-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed" disabled={pendingComments.length === 0} aria-label="Previous comment">
                             <ArrowUpIcon/>
                         </button>
-                        <button onClick={() => handleNavigate('down')} className="p-1 rounded-md bg-gray-200 dark:bg-brand-primary hover:bg-brand-secondary text-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed" disabled={pendingComments.length === 0} aria-label="Next comment">
+                        <button onClick={() => handleNavigate('down')} className="p-0.5 rounded-md bg-gray-200 dark:bg-brand-primary hover:bg-brand-secondary text-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed" disabled={pendingComments.length === 0} aria-label="Next comment">
                             <ArrowDownIcon/>
                         </button>
                     </div>
                     <button 
                         onClick={onPostAllComments}
-                        className="bg-brand-secondary hover:bg-red-600 text-white text-sm font-bold py-1.5 px-3 rounded-md transition-colors"
+                        className="bg-brand-secondary hover:bg-red-600 text-white text-xs font-semibold py-1 px-2 rounded-md transition-colors"
                     >
                         Add All Comments
                     </button>
@@ -242,8 +224,8 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
 
         {/* Display general MR comments first */}
         {generalComments.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 px-2">General Comments</h3>
+          <div className="space-y-1.5">
+            <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 px-2">General Comments</h3>
             {generalComments.map((comment) => (
               <FeedbackCard
                 key={comment.id}
@@ -267,7 +249,6 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
 
         {mrDetails.parsedDiffs.map((fileDiff) => {
           const feedbackForThisFile = feedbackByFile.get(fileDiff.filePath) || [];
-          console.log(`Feedback for file ${fileDiff.filePath}:`, feedbackForThisFile);
           
           return (
             <FileDiffCard
