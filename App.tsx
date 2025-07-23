@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Header } from './components/Header';
 import { ReviewDashboard } from './components/CodeEditor';
 import { FeedbackPanel } from './components/FeedbackPanel';
-import { reviewCode, fetchMrDetails } from './services/geminiService';
+import { reviewCode, fetchMrDetails } from './services/aiReviewService';
 import { fetchProjects, postDiscussion, approveMergeRequest } from './services/gitlabService';
 import { ReviewFeedback, Config, GitLabMRDetails, GitLabProject, ParsedFileDiff, ParsedDiffLine, GitLabPosition, Severity, ParsedHunk } from './types';
 import { ConfigModal } from './components/ConfigModal';

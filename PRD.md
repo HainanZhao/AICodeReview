@@ -1,87 +1,148 @@
-# Product Requirements Document: Gemini Code Reviewer Full-Stack Transformation
+# Product Requirements Document: Gemini Code Review Assistant
 
 ## 1. Introduction
 
-This document outlines the requirements for transforming the Gemini Code Reviewer application from a frontend-only application with direct Gemini API access to a full-stack application. The primary driver for this change is to enhance security by moving sensitive API key handling to a dedicated backend service.
+This document outlines the requirements and architecture of the Gemini Code Review Assistant, a full-stack application designed to automate code reviews using Google's Gemini AI. The application integrates with GitLab to provide intelligent code review feedback on merge requests.
 
 ## 2. Goals
 
-*   **Security Enhancement:** Prevent the exposure of the Gemini API key on the client-side by relocating API calls to a secure backend.
-*   **Improved Maintainability:** Centralize API interaction logic in a dedicated backend service, making it easier to manage and update.
-*   **Scalability (Future):** Lay the groundwork for potential future enhancements that might require more complex server-side logic or integrations.
-*   **No User Experience Regression:** Ensure the core functionality and user experience of the code review process remain unchanged from the user's perspective.
+*   **Automated Code Review:** Leverage Gemini AI to provide comprehensive code review feedback, analyzing code quality, performance, security, and best practices.
+*   **GitLab Integration:** Seamless integration with GitLab's merge request workflow, allowing users to fetch diffs and post comments directly.
+*   **Flexible LLM Integration:** Support multiple LLM providers through a modular architecture, with initial support for Gemini API and CLI-based interactions.
+*   **Security & Maintainability:** Keep sensitive credentials secure through backend management and maintain clean separation of concerns.
 
-## 3. User Stories / Features
+## 3. Features & Capabilities
 
-### 3.1. Existing Functionality (Unchanged)
+### 3.1. Core Features
 
-*   As a user, I can input a GitLab Merge Request URL to initiate a code review.
-*   As a user, I can view the generated code review feedback within the application.
-*   As a user, I can interact with the feedback (e.g., post comments to GitLab, edit, ignore).
-*   As a user, I can configure GitLab access tokens and URLs.
+*   **GitLab Integration:**
+    * Input GitLab Merge Request URLs to initiate reviews
+    * Configure GitLab access tokens and instance URLs
+    * Fetch merge request diffs and existing discussions
+    * Post review comments back to GitLab
 
-### 3.2. New (Internal) Functionality
+*   **Code Review Analysis:**
+    * Code quality assessment
+    * Performance analysis
+    * Security vulnerability detection
+    * Style and best practices evaluation
+    * Bug detection
 
-*   As a developer, I can deploy the application with the Gemini API key securely configured on the backend.
-*   As a developer, I can manage frontend and backend dependencies and build processes independently.
+*   **Review Management:**
+    * View generated feedback in a structured interface
+    * Filter and sort review items by severity
+    * Edit or ignore review items before posting
+    * Track feedback status (submitted/pending)
 
-## 4. Technical Design (High-Level)
+### 3.2. Technical Features
 
-### 4.1. Architecture
+*   **LLM Provider System:**
+    * Modular LLM provider interface
+    * Support for Gemini API via Google AI SDK
+    * Support for Gemini CLI integration
+    * Extensible for future LLM providers
 
-The application will adopt a client-server architecture:
+*   **Configuration Management:**
+    * Environment-based configuration
+    * Secure API key handling
+    * GitLab instance configuration
+    * LLM provider selection
 
-*   **Frontend:** A React application (served by Vite) responsible for the user interface and interaction.
-*   **Backend:** A Node.js (Express.js) application responsible for handling Gemini API requests and securely managing the Gemini API key.
+## 4. Technical Architecture
+
+### 4.1. System Overview
 
 ```
-+-----------------+       +-----------------+       +-----------------+
-|     Frontend    |       |     Backend     |       |    Gemini API   |
-| (React/Vite)    |-----> | (Node.js/Express)|-----> | (Google Gen AI) |
-|                 |       |                 |       |                 |
-| - User Interface|       | - API Key Mgmt  |       | - Code Review   |
-| - Calls /api/gemini/review |       | - Calls Gemini API|       |   Generation    |
-+-----------------+       +-----------------+       +-----------------+
-        ^
-        | (Proxy)
-        |
-+-----------------+
-|   Vite Dev Server|
-+-----------------+
++---------------+        +---------------+        +---------------+
+|   Frontend    |        |    Backend    |        |  LLM Service  |
+| (React/Vite)  | -----> | (Node/Express)| -----> | (Gemini API/  |
+|               |        |               |        |  CLI)         |
++---------------+        +---------------+        +---------------+
+       |                       |                        |
+       |                       |                        |
+       v                       v                        |
++---------------+        +---------------+              |
+|   GitLab API  | <----- |  LLM Provider |              |
+| (REST Client) |        |   Interface   | <------------+
++---------------+        +---------------+
 ```
 
-### 4.2. Frontend Changes
+### 4.2. Frontend Architecture
 
-*   **`services/geminiService.ts`:**
-    *   Remove direct `GoogleGenAI` instantiation and API key usage.
-    *   Modify `reviewCode` function to make an `HTTP POST` request to `/api/gemini/review` on the backend, sending the `diffForPrompt` in the request body.
-    *   Handle responses from the backend API.
-*   **`vite.config.ts`:**
-    *   Configure a proxy rule to forward requests to `/api` to the backend server (e.g., `http://localhost:3000`).
-*   **`index.html`:**
-    *   Remove any client-side injection of the Gemini API key (e.g., `<script src="/config.js"></script>`).
+*   **Core Services:**
+    * `aiReviewService.ts`: Handles AI code review functionality and backend API requests
+    * `gitlabService.ts`: Handles GitLab API interactions
+    * `configService.ts`: Manages application configuration
 
-### 4.3. Backend Changes
+*   **Components:**
+    * `CodeEditor.tsx`: Code diff visualization
+    * `FeedbackPanel.tsx`: Review feedback display
+    * `FileDiffCard.tsx`: Per-file diff display
+    * `ConfigModal.tsx`: Configuration management
+    * `MrSummary.tsx`: Merge request overview
 
-*   **New `backend/` directory:**
-    *   Initialize a new Node.js project (`package.json`).
-    *   Install necessary dependencies: `express`, `dotenv`, `@google/generative-ai`, `ts-node`, `typescript`.
-    *   Create `backend/index.ts` as the main entry point.
-    *   Create `backend/tsconfig.json` for TypeScript configuration.
-*   **`backend/index.ts`:**
-    *   Set up an Express.js server.
-    *   Load `GEMINI_API_KEY` from environment variables using `dotenv`.
-    *   Instantiate `GoogleGenAI` with the securely loaded API key.
-    *   Define a `POST /api/gemini/review` endpoint.
-    *   This endpoint will receive the `diffForPrompt` from the frontend.
-    *   It will then call the Gemini API using the `GoogleGenAI` instance.
-    *   The response from Gemini will be parsed and returned directly to the frontend.
-    *   Implement error handling for API calls and missing API keys.
+### 4.3. Backend Architecture
 
-### 4.4. Deployment/Execution
+*   **Services Layer:**
+    * **LLM Provider Interface:**
+        * Abstract provider interface for LLM integrations
+        * Concrete implementations:
+            * `GeminiProvider`: Uses Google AI SDK
+            * `GeminiCliProvider`: Uses Gemini CLI tool
+        * Factory pattern for provider instantiation
 
-*   **`entrypoint.sh`:**
-    *   Modify to start both the backend server (e.g., `npm --prefix ./backend run start &`) and the frontend development server (`npm run dev`).
+    * **LLM Service:**
+        * Prompt engineering and formatting
+        * Response parsing and validation
+        * Error handling and logging
+
+*   **Controller Layer:**
+    * `GeminiController`:
+        * Request validation
+        * Provider coordination
+        * Response formatting
+
+*   **Infrastructure:**
+    * Express.js server
+    * Environment configuration
+    * Error middleware
+    * Logging system
+
+### 4.4. Data Flow
+
+1. **Review Request:**
+   ```
+   Frontend -> Backend:
+   POST /api/review
+   {
+     diffForPrompt: string,
+     discussions?: GitLabDiscussion[]
+   }
+   ```
+
+2. **Review Response:**
+   ```
+   Backend -> Frontend:
+   {
+     filePath: string,
+     lineNumber: number,
+     severity: "Critical" | "Warning" | "Suggestion" | "Info",
+     title: string,
+     description: string
+   }[]
+   ```
+
+### 4.5. Configuration
+
+*   **Backend Environment:**
+    * `LLM_PROVIDER`: Provider selection ('gemini-api'|'gemini-cli')
+    * `LLM_API_KEY`: Gemini API key
+    * `GOOGLE_CLOUD_PROJECT`: Required for CLI provider
+
+*   **Frontend Configuration:**
+    * GitLab instance URL
+    * GitLab access token
+    * UI preferences
 
 ## 5. Out of Scope
 

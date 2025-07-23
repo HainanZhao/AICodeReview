@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ReviewFeedback, Severity } from '../types';
-import { AddCommentIcon, EditIcon, TrashIcon, EyeSlashIcon } from './icons';
+import { AddCommentIcon, EditIcon, TrashIcon, EyeSlashIcon, CheckmarkIcon } from './icons';
 import { Spinner } from './Spinner';
 
 const BugIcon = () => (
@@ -163,7 +163,10 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({ feedback, onPostComm
                                 </button>
                             )}
                             {feedback.status === 'submitting' && <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-brand-subtle py-1 px-3"><Spinner size="sm" /> <span>Posting...</span></div>}
-                            {feedback.status === 'submitted' && <div className="text-sm text-green-600 dark:text-green-400 py-1 px-3">✓ Posted</div>}
+                            {feedback.status === 'submitted' && <div className="flex items-center space-x-2 text-sm text-green-600 dark:text-green-400 py-1 px-3">
+                                <CheckmarkIcon />
+                                <span>Posted on GitLab</span>
+                            </div>}
                             {feedback.status === 'error' && (
                                 <button onClick={handleAction} className="flex items-center space-x-2 text-sm bg-red-600 hover:bg-red-500 text-white font-semibold py-1 px-3 rounded-md transition-colors">
                                     <span>Retry</span>
