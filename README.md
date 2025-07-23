@@ -8,10 +8,10 @@ AI-powered code review tool with web interface supporting multiple LLM providers
 
 ```bash
 # Install globally
-npm install -g @aicodereview/cli
+npm install -g aicodereview-cli
 
 # Or run without installing
-npx @aicodereview/cli
+npx aicodereview-cli
 ```
 
 ### Basic Usage
@@ -202,10 +202,10 @@ gcloud config set project YOUR_PROJECT_ID
 ### Installation Issues
 ```bash
 # If global installation fails, try with sudo (macOS/Linux)
-sudo npm install -g @aicodereview/cli
+sudo npm install -g aicodereview-cli
 
 # Or use npx to run without installing
-npx @aicodereview/cli
+npx aicodereview-cli
 
 # Clear npm cache if needed
 npm cache clean --force

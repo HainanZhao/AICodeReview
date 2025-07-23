@@ -10,7 +10,7 @@ Convert the AI Code Reviewer project into a standalone npm package that users ca
 ### 1.1 Update Main package.json - ✅ COMPLETED
 - ✅ Changed `"private": true` to `"private": false`
 - ✅ Added `"bin"` field to define CLI command
-- ✅ Updated package name to `@aicodereview/cli`
+- ✅ Updated package name to `aicodereview-cli`
 - ✅ Added proper description, keywords, and repository fields
 - ✅ Added `"files"` field to specify what gets published
 - ✅ Updated version to 1.0.0 for initial release
@@ -68,17 +68,17 @@ Convert the AI Code Reviewer project into a standalone npm package that users ca
 ### 3.1 CLI Commands Structure
 ```bash
 # Primary usage
-npx @aicodereview/cli
+npx aicodereview-cli
 
 # With custom config
-npx @aicodereview/cli --config ./my-config.json
+npx aicodereview-cli --config ./my-config.json
 
 # With inline options
-npx @aicodereview/cli --port 8080 --provider gemini --api-key YOUR_KEY
+npx aicodereview-cli --port 8080 --provider gemini --api-key YOUR_KEY
 
 # Help and version
-npx @aicodereview/cli --help
-npx @aicodereview/cli --version
+npx aicodereview-cli --help
+npx aicodereview-cli --version
 ```
 
 ### 3.2 CLI Features
@@ -187,10 +187,10 @@ README.md                # Package usage instructions
 ### Installation
 ```bash
 # Global installation
-npm install -g @aicodereview/cli
+npm install -g aicodereview-cli
 
 # Or run directly
-npx @aicodereview/cli
+npx aicodereview-cli
 ```
 
 ### Usage Examples

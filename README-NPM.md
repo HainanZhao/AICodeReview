@@ -6,12 +6,12 @@ AI-powered code review tool with web interface. Supports multiple LLM providers 
 
 ### Global Installation
 ```bash
-npm install -g @aicodereview/cli
+npm install -g aicodereview-cli
 ```
 
 ### Run Without Installation
 ```bash
-npx @aicodereview/cli
+npx aicodereview-cli
 ```
 
 ## Usage
@@ -22,7 +22,7 @@ npx @aicodereview/cli
 aicodereview
 
 # Or using npx
-npx @aicodereview/cli
+npx aicodereview-cli
 ```
 
 ### Configuration Options
