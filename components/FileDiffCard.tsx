@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ParsedFileDiff, ReviewFeedback, ParsedDiffLine, Severity, ParsedHunk, GitLabMRDetails } from '../types';
-import { ChevronDownIcon, ChevronUpIcon, AddCommentIcon, PlusIcon } from './icons';
+import { ChevronDownIcon, ChevronUpIcon, AddCommentIcon } from './icons';
 import { DiffLine } from './DiffLine';
 import { FeedbackCard } from './FeedbackCard';
 
@@ -174,7 +174,10 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
     };
 
     return (
-        <div className="border border-gray-200 dark:border-brand-primary/50 rounded-lg bg-gray-50/50 dark:bg-brand-primary/20 overflow-hidden">
+        <div 
+            className="border border-gray-200 dark:border-brand-primary/50 rounded-lg bg-gray-50/50 dark:bg-brand-primary/20 overflow-hidden transition-all duration-300"
+            data-file-path={fileDiff.filePath}
+        >
             <div className="w-full flex items-center justify-between p-3 text-left bg-gray-100 dark:bg-brand-primary/30 border-b border-gray-200 dark:border-brand-primary/50">
                 <div className="flex items-center space-x-3 truncate">
                     <span className="font-mono text-sm text-gray-800 dark:text-brand-text font-semibold truncate" title={filePathDisplay}>{filePathDisplay}</span>

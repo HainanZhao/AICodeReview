@@ -1,6 +1,7 @@
 import React from 'react';
 import { GitLabMRDetails } from '../types';
 import { PlusIcon } from './icons';
+import { FileTree } from './FileTree';
 
 interface MrSummaryProps {
   mrDetails: GitLabMRDetails;
@@ -8,13 +9,48 @@ interface MrSummaryProps {
 }
 
 export const MrSummary: React.FC<MrSummaryProps> = ({ mrDetails, onNewReview }) => {
+  const scrollToFile = (filePath: string) => {
+    // Find the FileDiffCard element by its data-file-path attribute
+    const fileElement = document.querySelector(`[data-file-path="${filePath}"]`);
+    if (fileElement) {
+      // Scroll to the element
+      fileElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start',
+        inline: 'nearest'
+      });
+      
+      // Add a brief highlight effect
+      const originalClasses = fileElement.className;
+      fileElement.className += ' ring-2 ring-blue-500 ring-opacity-75';
+      
+      // Remove highlight after 2 seconds
+      setTimeout(() => {
+        fileElement.className = originalClasses;
+      }, 2000);
+    } else {
+      // Fallback: try to find element by key if data attribute doesn't work
+      const allFileDiffs = document.querySelectorAll('[data-file-path]');
+      const targetElement = Array.from(allFileDiffs).find(el => 
+        el.getAttribute('data-file-path') === filePath
+      );
+      
+      if (targetElement) {
+        targetElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-brand-surface rounded-lg shadow-xl h-full flex flex-col">
        <div className="p-3 border-b border-gray-200 dark:border-brand-primary">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Reviewing MR !{mrDetails.mrIid}</h2>
       </div>
       <div className="p-4 space-y-3 flex-grow flex flex-col">
-        <div className="flex-grow space-y-3">
+        <div className="flex-grow space-y-3 overflow-y-auto">
             <div>
                 <h3 className="font-semibold text-gray-900 dark:text-brand-text break-words text-sm">{mrDetails.title}</h3>
                 <p className="text-xs text-gray-500 dark:text-brand-subtle mt-0.5">by {mrDetails.authorName}</p>
@@ -24,6 +60,13 @@ export const MrSummary: React.FC<MrSummaryProps> = ({ mrDetails, onNewReview }) 
                 <span className="text-gray-500 dark:text-brand-subtle mx-2">→</span>
                 <span className="bg-gray-200 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded-full truncate">{mrDetails.targetBranch}</span>
             </div>
+            
+            {/* File Tree Component */}
+            <FileTree 
+              fileDiffs={mrDetails.parsedDiffs} 
+              onFileClick={scrollToFile}
+            />
+            
              <a 
               href={mrDetails.webUrl} 
               target="_blank" 
