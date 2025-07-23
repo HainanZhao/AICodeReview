@@ -56,20 +56,29 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
         const fileLevel: ReviewFeedback[] = [];
         const lineLevel = new Map<number, ReviewFeedback[]>();
 
+        console.log(`Processing feedback for file ${fileDiff.filePath}:`, feedbackForFile);
+
         if (feedbackForFile) {
             for (const fb of feedbackForFile) {
+                console.log(`Processing feedback: lineNumber=${fb.lineNumber}, filePath=${fb.filePath}, title=${fb.title}`);
                 // Comments with lineNumber 0 are file-level
                 if (fb.lineNumber === 0) {
                     fileLevel.push(fb);
+                    console.log(`Added to file-level feedback`);
                 } else {
                     const existing = lineLevel.get(fb.lineNumber) || [];
                     existing.push(fb);
                     lineLevel.set(fb.lineNumber, existing);
+                    console.log(`Added to line-level feedback for line ${fb.lineNumber}`);
                 }
             }
         }
+        
+        console.log(`Final file-level feedback:`, fileLevel);
+        console.log(`Final line-level feedback map:`, lineLevel);
+        
         return { fileLevelFeedback: fileLevel, lineLevelFeedbackMap: lineLevel };
-    }, [feedbackForFile]);
+    }, [feedbackForFile, fileDiff.filePath]);
 
 
     const additions = fileDiff.hunks.flatMap(h => h.lines).filter(l => l.type === 'add').length;

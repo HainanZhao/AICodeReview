@@ -7,6 +7,7 @@ import { join } from 'path';
 import { dirname } from 'path';
 
 const execAsync = promisify(exec);
+const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 interface GeminiItem {
     filePath: string;
@@ -17,6 +18,30 @@ interface GeminiItem {
 }
 
 export class GeminiCliProvider implements LLMProvider {
+    private static async cleanupTmpFolder(tmpPath: string): Promise<void> {
+        try {
+            const files = await fs.readdir(tmpPath);
+            const now = Date.now();
+
+            for (const file of files) {
+                const filePath = join(tmpPath, file);
+                try {
+                    const stats = await fs.stat(filePath);
+                    
+                    // Remove files older than 24 hours
+                    if (now - stats.mtimeMs > ONE_DAY_IN_MS) {
+                        await fs.unlink(filePath);
+                        console.log(`Cleaned up old temporary file: ${file}`);
+                    }
+                } catch (error) {
+                    console.warn(`Failed to process file ${file}:`, error);
+                }
+            }
+            console.log('Temporary folder cleanup completed');
+        } catch (error) {
+            console.warn('Failed to clean up temporary folder:', error);
+        }
+    }
     public static async isAvailable(): Promise<boolean> {
         try {
             const { stdout } = await execAsync('command -v gemini');
@@ -59,6 +84,11 @@ Return an empty array if the code is exemplary. No pleasantries or extra text, j
         return tmpPath;
     }
 
+    public async initializeWithCleanup(): Promise<void> {
+        const tmpPath = this.getTmpDir();
+        await GeminiCliProvider.cleanupTmpFolder(tmpPath);
+    }
+
     private async extractJsonFromOutput(output: string): Promise<GeminiItem[]> {
         // Save a copy of the raw output we're trying to parse
         const debugFile = join(this.getTmpDir(), `gemini-parse-attempt-${Date.now()}.txt`);
@@ -66,8 +96,8 @@ Return an empty array if the code is exemplary. No pleasantries or extra text, j
         
         const jsonMatch = output.match(/\[[\s\S]*\]/);
         if (!jsonMatch) {
-            console.error(`Failed to find JSON array in output. Full output saved to: ${debugFile}`);
-            throw new Error("No JSON array found in the output. Check the debug file for the full response.");
+            console.warn(`No JSON array found in output. Assuming no recommendations. Full output saved to: ${debugFile}`);
+            return [];
         }
 
         try {
@@ -77,12 +107,13 @@ Return an empty array if the code is exemplary. No pleasantries or extra text, j
             
             const parsed = JSON.parse(jsonContent);
             if (!Array.isArray(parsed)) {
-                throw new Error("Parsed output is not an array");
+                console.warn("Parsed output is not an array. Assuming no recommendations.");
+                return [];
             }
             return parsed;
         } catch (error) {
-            console.error(`Failed to parse JSON. Debug file: ${debugFile}`);
-            throw new Error(`Failed to parse JSON from output: ${error}`);
+            console.warn(`Failed to parse JSON, assuming no recommendations. Debug file: ${debugFile}`);
+            return [];
         }
     }
 
@@ -127,11 +158,13 @@ Return an empty array if the code is exemplary. No pleasantries or extra text, j
                 res.json(validatedResponse);
             } catch (execError) {
                 console.error("Error executing gemini:", execError);
-                res.status(500).json({ error: "Failed to get review from gemini." });
+                // Return empty array for execution errors
+                res.json([]);
             }
         } catch (error) {
             console.error("Error preparing prompt:", error);
-            res.status(500).json({ error: "Failed to prepare prompt for gemini." });
+            // Return empty array for preparation errors
+            res.json([]);
         } finally {
             if (tempFile) {
                 try {

@@ -29,8 +29,9 @@ const parseMrUrl = (mrUrl: string, gitlabBaseUrl: string): { projectPath: string
         }
 
         return { projectPath, mrIid };
-    } catch(e) {
-        throw new Error(`Invalid URL format. Please check your MR URL and GitLab instance URL. Details: ${e.message}`);
+    } catch(e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+        throw new Error(`Invalid URL format. Please check your MR URL and GitLab instance URL. Details: ${errorMessage}`);
     }
 };
 
@@ -84,13 +85,16 @@ const fetchFileContentAsLines = async (config: Config, projectId: number, filePa
 const parseDiffsToHunks = (diffs: FileDiff[]): { diffForPrompt: string, parsedDiffs: ParsedFileDiff[] } => {
     const parsedDiffs: ParsedFileDiff[] = [];
 
+
     const diffForPrompt = diffs.map((file) => {
         const hunks: ParsedHunk[] = [];
         let currentHunk: ParsedHunk | null = null;
-        
+        let oldLineOffset = 0;
+        let newLineOffset = 0;
+
         const diffLines = file.diff.split('\n');
         for (const line of diffLines) {
-             if (line.startsWith('@@')) {
+            if (line.startsWith('@@')) {
                 if (currentHunk) {
                     hunks.push(currentHunk);
                 }
@@ -109,19 +113,42 @@ const parseDiffsToHunks = (diffs: FileDiff[]): { diffForPrompt: string, parsedDi
                         lines: [],
                         isCollapsed: false,
                     };
+                    // Reset offsets for new hunk
+                    oldLineOffset = 0;
+                    newLineOffset = 0;
                 }
-             }
+            }
 
             if (currentHunk) {
                 if (line.startsWith('+') && !line.startsWith('+++')) {
-                    currentHunk.lines.push({ type: 'add', newLine: currentHunk.newStartLine + currentHunk.lines.filter(l => l.type !== 'remove').length, content: line.substring(1) });
+                    currentHunk.lines.push({ 
+                        type: 'add', 
+                        newLine: currentHunk.newStartLine + newLineOffset, 
+                        content: line.substring(1) 
+                    });
+                    newLineOffset++;
                 } else if (line.startsWith('-') && !line.startsWith('---')) {
-                    currentHunk.lines.push({ type: 'remove', oldLine: currentHunk.oldStartLine + currentHunk.lines.filter(l => l.type !== 'add').length, content: line.substring(1) });
+                    currentHunk.lines.push({ 
+                        type: 'remove', 
+                        oldLine: currentHunk.oldStartLine + oldLineOffset, 
+                        content: line.substring(1) 
+                    });
+                    oldLineOffset++;
                 } else if (line.startsWith(' ') && currentHunk) {
-                    currentHunk.lines.push({ type: 'context', oldLine: currentHunk.oldStartLine + currentHunk.lines.filter(l => l.type !== 'add').length, newLine: currentHunk.newStartLine + currentHunk.lines.filter(l => l.type !== 'remove').length, content: line.substring(1) });
+                    currentHunk.lines.push({ 
+                        type: 'context', 
+                        oldLine: currentHunk.oldStartLine + oldLineOffset,
+                        newLine: currentHunk.newStartLine + newLineOffset,
+                        content: line.substring(1) 
+                    });
+                    oldLineOffset++;
+                    newLineOffset++;
                 } else if (line.startsWith('@@')) {
-                     currentHunk.lines.push({ type: 'meta', content: line });
+                    currentHunk.lines.push({ type: 'meta', content: line });
                 }
+                // Update the hunk offsets
+                currentHunk.oldLineOffset = oldLineOffset;
+                currentHunk.newLineOffset = newLineOffset;
             }
         }
         if (currentHunk) {
@@ -151,26 +178,29 @@ const fetchMrDiscussions = async (config: Config, projectId: number, mrIid: stri
 
 const convertDiscussionsToFeedback = (discussions: any[]): ReviewFeedback[] => {
     return discussions.flatMap(discussion => 
-        discussion.notes.map((note: any) => ({
-            id: `gitlab-${note.id}`,
-            lineNumber: note.position?.new_line || 0,
-            filePath: note.position?.new_path || '',
-            severity: Severity.Info,
-            title: `Comment by ${note.author.name}`,
-            description: note.body,
-            lineContent: '',  // We don't have this from the API
-            position: note.position ? {
-                base_sha: '',  // These will be filled in later
-                start_sha: '',
-                head_sha: '',
-                position_type: 'text',
-                old_path: note.position.old_path || note.position.new_path,
-                new_path: note.position.new_path,
-                new_line: note.position.new_line
-            } : null,
-            status: 'submitted',
-            isExisting: true
-        }))
+        discussion.notes
+            .filter((note: any) => !note.system && note.position) // Only inline comments with position
+            .map((note: any) => ({
+                id: `gitlab-${note.id}`,
+                lineNumber: note.position?.new_line || 0,
+                filePath: note.position?.new_path || '',
+                severity: Severity.Info,
+                title: `Comment by ${note.author.name}`,
+                description: note.body,
+                lineContent: '',  // We don't have this from the API
+                position: {
+                    base_sha: '',  // These will be filled in later
+                    start_sha: '',
+                    head_sha: '',
+                    position_type: 'text',
+                    old_path: note.position.old_path || note.position.new_path,
+                    new_path: note.position.new_path,
+                    new_line: note.position.new_line,
+                    old_line: note.position.old_line
+                },
+                status: 'submitted',
+                isExisting: true
+            }))
     );
 };
 
@@ -206,7 +236,7 @@ export const fetchMrData = async (config: Config, mrUrl: string): Promise<GitLab
 
     const { diffForPrompt, parsedDiffs } = parseDiffsToHunks(diffs);
 
-    // Convert existing discussions to feedback items
+    // Convert existing inline discussions to feedback items (only show inline comments with position)
     const existingFeedback = convertDiscussionsToFeedback(discussions);
 
     const fileContents = new Map<string, { oldContent?: string[]; newContent?: string[] }>();
@@ -221,7 +251,7 @@ export const fetchMrData = async (config: Config, mrUrl: string): Promise<GitLab
 
 
     // Fill in the SHA values for existing feedback positions
-    existingFeedback.forEach(feedback => {
+    existingFeedback.forEach((feedback: ReviewFeedback) => {
         if (feedback.position) {
             feedback.position.base_sha = latestVersion.base_commit_sha;
             feedback.position.start_sha = latestVersion.start_commit_sha;
@@ -245,7 +275,7 @@ export const fetchMrData = async (config: Config, mrUrl: string): Promise<GitLab
         diffForPrompt,
         parsedDiffs,
         fileContents,
-        discussions,
+        discussions, // Include discussions for reference
         existingFeedback, // Add existing feedback to the returned object
     };
 };
@@ -253,8 +283,6 @@ export const fetchMrData = async (config: Config, mrUrl: string): Promise<GitLab
 export const postDiscussion = async (config: Config, mrDetails: GitLabMRDetails, feedback: ReviewFeedback): Promise<any> => {
     const { projectId, mrIid } = mrDetails;
     
-    const url = `${config.gitlabUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions`;
-
     const body = `
 **${feedback.severity}: ${feedback.title}**
 
@@ -263,8 +291,15 @@ ${feedback.description}
 *Powered by AI Code Reviewer*
     `;
 
-    const payload: { body: string; position?: ReviewFeedback['position'] } = { body };
-    if (feedback.position) {
+    // Use discussions endpoint for all comments (both inline and general)
+    const url = `${config.gitlabUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions`;
+    
+    const payload: { body: string; position?: ReviewFeedback['position'] } = { 
+        body: body.trim() 
+    };
+    
+    // For inline comments, include position
+    if (feedback.lineNumber > 0 && feedback.position) {
         payload.position = feedback.position;
     }
 

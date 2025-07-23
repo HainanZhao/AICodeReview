@@ -10,6 +10,8 @@ import { ConfigModal } from './components/ConfigModal';
 import { loadConfig, loadTheme, saveTheme, loadProjectsFromCache, saveProjectsToCache } from './services/configService';
 import { MrSummary } from './components/MrSummary';
 
+
+
 function App() {
   const [feedback, setFeedback] = useState<ReviewFeedback[] | null>(null);
   const [mrDetails, setMrDetails] = useState<GitLabMRDetails | null>(null);
@@ -75,6 +77,9 @@ function App() {
 
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
 
+    type FeedbackUpdate = (prev: ReviewFeedback[] | null) => ReviewFeedback[];
+
+
   const handleReviewRequest = useCallback(async (url: string) => {
     if (!url.trim()) {
       setError("Cannot start review with an empty URL.");
@@ -90,26 +95,41 @@ function App() {
     setError(null);
     setFeedback(null);
     setMrDetails(null);
+    setIsAiAnalyzing(false);
 
     try {
-      const { mrDetails: details, feedback: existingFeedback } = await fetchMrDetails(url, config);
-      setMrDetails(details);
-      setFeedback(existingFeedback);
+      const result = await fetchMrDetails(url, config);
+      if (!result?.mrDetails) {
+        throw new Error("Failed to fetch merge request details");
+      }
+
+      // Set MR details and show existing comments immediately
+      setMrDetails(result.mrDetails);
+      setFeedback(result.feedback || []); // Show existing comments right away
       setIsLoading(false);
 
+      // Then start AI review
       setIsAiAnalyzing(true);
-      const { feedback: aiReviewResult } = await reviewCode(details, config);
-      
-      setFeedback(prev => {
-        if (!prev) return aiReviewResult;
-        return [...prev, ...aiReviewResult];
+      const { feedback: aiReviewResult } = await reviewCode(result.mrDetails, config);
+
+      // Deduplicate feedback by id (or by content if needed)
+      const existingFeedback = result.feedback || [];
+      const aiFeedback = aiReviewResult || [];
+      const seen = new Set();
+      const dedupedFeedback = [...existingFeedback, ...aiFeedback].filter(fb => {
+        const key = fb.id || (fb.filePath + ':' + fb.lineNumber + ':' + fb.title);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
       });
-    } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : "An unknown error occurred during the review.");
-    } finally {
+
+      setFeedback(() => dedupedFeedback);
       setIsAiAnalyzing(false);
+    } catch(error) {
+      console.error('Error fetching MR details:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
       setIsLoading(false);
+      setIsAiAnalyzing(false);
     }
   }, [config]);
 
@@ -181,6 +201,29 @@ function App() {
     if (!config || !mrDetails) return;
     await approveMergeRequest(config, mrDetails.projectId, mrDetails.mrIid);
   }, [config, mrDetails]);
+
+  const handleRedoReview = useCallback(async () => {
+    if (!config || !mrDetails || isAiAnalyzing) return;
+    
+    setIsAiAnalyzing(true);
+    setError(null);
+    
+    try {
+      const { feedback: aiReviewResult } = await reviewCode(mrDetails, config);
+      console.log('Redo Review Result:', aiReviewResult);
+      
+      // Combine existing GitLab comments with new AI review comments
+      const combinedFeedback = [...(mrDetails.existingFeedback || []), ...aiReviewResult];
+      console.log('Redo Combined Feedback:', combinedFeedback);
+      
+      setFeedback(() => combinedFeedback);
+    } catch (error) {
+      console.error('Error during redo review:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred during review');
+    } finally {
+      setIsAiAnalyzing(false);
+    }
+  }, [config, mrDetails, isAiAnalyzing]);
 
   const handleToggleIgnoreFeedback = useCallback((feedbackId: string) => {
     setFeedback(prev => prev!.map(f =>
@@ -377,6 +420,7 @@ function App() {
             onToggleIgnoreFeedback={handleToggleIgnoreFeedback}
             isAiAnalyzing={isAiAnalyzing}
             onApproveMR={handleApproveMR}
+            onRedoReview={handleRedoReview}
           />
         </div>
       </main>

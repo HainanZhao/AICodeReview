@@ -12,7 +12,9 @@ export async function createLLMProvider(type: string, apiKey?: string): Promise<
         if (!isCliAvailable) {
             throw new Error('gemini command is not installed or not available in PATH');
         }
-        return new GeminiCliProvider();
+        const provider = new GeminiCliProvider();
+        await provider.initializeWithCleanup();
+        return provider;
     }
     
     // Check if API key is required but not provided

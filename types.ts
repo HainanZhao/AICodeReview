@@ -94,6 +94,8 @@ export interface ParsedHunk {
   newLineCount: number;
   lines: ParsedDiffLine[];
   isCollapsed: boolean;
+  oldLineOffset?: number;
+  newLineOffset?: number;
 }
 
 // Represents a fully parsed file diff with structured hunks
@@ -152,5 +154,6 @@ export interface GitLabMRDetails {
     diffForPrompt: string;
     parsedDiffs: ParsedFileDiff[];
     fileContents: Map<string, { oldContent?: string[]; newContent?: string[] }>;
-    discussions: GitLabDiscussion[]; // Add discussions to MR details
+    discussions: GitLabDiscussion[];
+    existingFeedback?: ReviewFeedback[]; // GitLab comments converted to feedback format, optional for backward compatibility
 }

@@ -1,10 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { ReviewFeedback, GitLabMRDetails, ParsedFileDiff, ParsedDiffLine, Severity } from '../types';
 import { FileDiffCard } from './FileDiffCard';
+import { FeedbackCard } from './FeedbackCard';
 import { Spinner } from './Spinner';
-import { ArrowUpIcon, ArrowDownIcon, ApproveIcon } from './icons';
+import { ArrowUpIcon, ArrowDownIcon, ApproveIcon, RefreshIcon } from './icons';
 
 interface FeedbackPanelProps {
+  onRedoReview?: () => void;
   feedback: ReviewFeedback[] | null;
   mrDetails: GitLabMRDetails | null;
   isLoading: boolean;
@@ -50,36 +52,102 @@ const NoIssuesFound = () => (
 
 
 export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
-  const { feedback, mrDetails, isLoading, error, onPostComment, onPostAllComments, onToggleIgnoreFeedback, isAiAnalyzing, onApproveMR, ...handlers } = props;
+  const { feedback, mrDetails, isLoading, error, onPostComment, onPostAllComments, onToggleIgnoreFeedback, isAiAnalyzing, onApproveMR, onRedoReview, ...handlers } = props;
   const [currentCommentIndex, setCurrentCommentIndex] = useState(-1);
+
+  // Debug logging
+  console.log('FeedbackPanel props:', { feedback, feedbackLength: feedback?.length, isLoading, isAiAnalyzing, error });
 
   const feedbackByFile = useMemo(() => {
     const result = new Map<string, ReviewFeedback[]>();
     
-    // Add new feedback
+    // Add all feedback (including existing feedback from GitLab which is already in feedback state)
     if (feedback) {
-      feedback.forEach(item => {
+      feedback.forEach((item, index) => {
+        console.log(`Processing feedback item ${index}:`, {
+          id: item.id,
+          filePath: item.filePath,
+          lineNumber: item.lineNumber,
+          title: item.title,
+          status: item.status,
+          severity: item.severity
+        });
+        
         const fileFeedback = result.get(item.filePath) || [];
         fileFeedback.push(item);
         result.set(item.filePath, fileFeedback);
       });
     }
     
-    // Add existing feedback from GitLab
-    if (mrDetails?.existingFeedback) {
-      mrDetails.existingFeedback.forEach(item => {
-        const fileFeedback = result.get(item.filePath) || [];
-        fileFeedback.push(item);
-        result.set(item.filePath, fileFeedback);
-      });
-    }
-    
+    console.log('feedbackByFile result:', result);
     return result;
-  }, [feedback, mrDetails?.existingFeedback]);
+  }, [feedback]);
+
+  const generalComments = useMemo(() => {
+    const general = feedbackByFile.get('') || [];
+    console.log('General comments:', general);
+    return general;
+  }, [feedbackByFile]);
+
+  // Auto-expand hunks to show lines with AI comments
+  useEffect(() => {
+    if (!mrDetails || !feedback) return;
+
+    feedback.forEach(comment => {
+      // Only auto-expand for new AI comments (pending status)
+      if (comment.status !== 'pending' || comment.lineNumber === 0) return;
+
+      const fileDiff = mrDetails.parsedDiffs.find(f => f.filePath === comment.filePath);
+      if (!fileDiff) return;
+
+      // Check if the comment line is visible in any hunk
+      const isLineVisible = fileDiff.hunks.some(hunk => 
+        hunk.lines.some(line => line.newLine === comment.lineNumber)
+      );
+
+      if (!isLineVisible) {
+        console.log(`Auto-expanding context for AI comment on line ${comment.lineNumber} in ${comment.filePath}`);
+        
+        // Find the best hunk to expand (closest to the comment line)
+        let bestHunk: { hunk: any; hunkIndex: number } | null = null;
+        let minDistance = Infinity;
+        
+        fileDiff.hunks.forEach((hunk, hunkIndex) => {
+          const hunkStart = hunk.newStartLine;
+          const hunkEnd = hunk.newStartLine + hunk.newLineCount - 1;
+          
+          let distance;
+          if (comment.lineNumber < hunkStart) {
+            distance = hunkStart - comment.lineNumber;
+          } else if (comment.lineNumber > hunkEnd) {
+            distance = comment.lineNumber - hunkEnd;
+          } else {
+            distance = 0; // Line is within hunk (shouldn't happen if we got here)
+          }
+          
+          if (distance < minDistance) {
+            minDistance = distance;
+            bestHunk = { hunk, hunkIndex };
+          }
+        });
+
+        if (bestHunk && minDistance > 0) {
+          const { hunkIndex } = bestHunk;
+          const direction = comment.lineNumber < bestHunk.hunk.newStartLine ? 'up' : 'down';
+          const linesToExpand = Math.min(minDistance + 5, 20); // Expand enough to show the line plus some context, max 20 lines
+          
+          console.log(`Expanding hunk ${hunkIndex} in ${comment.filePath} ${direction} by ${linesToExpand} lines`);
+          handlers.onExpandHunkContext(comment.filePath, hunkIndex, direction, linesToExpand);
+        }
+      }
+    });
+  }, [feedback, mrDetails, handlers]);
 
   const pendingComments = useMemo(() => {
     if (!feedback) return [];
-    return feedback.filter(f => f.status === 'pending' && f.severity !== 'Info' && !f.isEditing && !f.isIgnored);
+    const pending = feedback.filter((f: ReviewFeedback) => f.status === 'pending' && f.severity !== 'Info' && !f.isEditing && !f.isIgnored);
+    console.log('Pending comments:', pending);
+    return pending;
   }, [feedback]);
 
   useEffect(() => {
@@ -172,6 +240,24 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
             </div>
         )}
 
+        {/* Display general MR comments first */}
+        {generalComments.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 px-2">General Comments</h3>
+            {generalComments.map((comment) => (
+              <FeedbackCard
+                key={comment.id}
+                feedback={comment}
+                onPostComment={onPostComment}
+                onUpdateFeedback={handlers.onUpdateFeedback}
+                onDeleteFeedback={handlers.onDeleteFeedback}
+                onSetEditing={handlers.onSetEditing}
+                onToggleIgnoreFeedback={onToggleIgnoreFeedback}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Show the "No Issues" message as a banner if there's no feedback, but always show the diffs below */}
         {shouldShowNoIssuesMessage && (!mrDetails.parsedDiffs || mrDetails.parsedDiffs.length === 0) && (
             <div className="flex items-center justify-center py-10">
@@ -179,18 +265,23 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
             </div>
         )}
 
-        {mrDetails.parsedDiffs.map((fileDiff) => (
-          <FileDiffCard
-            key={fileDiff.filePath}
-            fileDiff={fileDiff}
-            feedbackForFile={feedbackByFile.get(fileDiff.filePath) || []}
-            onPostComment={onPostComment}
-            activeFeedbackId={activeFeedbackId}
-            mrDetails={mrDetails}
-            onToggleIgnoreFeedback={onToggleIgnoreFeedback}
-            {...handlers}
-          />
-        ))}
+        {mrDetails.parsedDiffs.map((fileDiff) => {
+          const feedbackForThisFile = feedbackByFile.get(fileDiff.filePath) || [];
+          console.log(`Feedback for file ${fileDiff.filePath}:`, feedbackForThisFile);
+          
+          return (
+            <FileDiffCard
+              key={fileDiff.filePath}
+              fileDiff={fileDiff}
+              feedbackForFile={feedbackForThisFile}
+              onPostComment={onPostComment}
+              activeFeedbackId={activeFeedbackId}
+              mrDetails={mrDetails}
+              onToggleIgnoreFeedback={onToggleIgnoreFeedback}
+              {...handlers}
+            />
+          );
+        })}
       </div>
     );
   };
@@ -200,6 +291,16 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
       <div className="border-b border-gray-200 dark:border-brand-primary flex items-center justify-between px-4 py-2">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white">Review Feedback</h2>
         <div className="flex items-center space-x-4">
+          {onRedoReview && !isAiAnalyzing && mrDetails && (
+            <button
+              onClick={onRedoReview}
+              className="h-[28px] px-2.5 flex items-center bg-gray-100 dark:bg-brand-primary text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-brand-secondary rounded text-sm font-medium transition-colors"
+              aria-label="Redo review"
+            >
+              <RefreshIcon className="w-4 h-4 mr-1.5" />
+              <span>Redo Review</span>
+            </button>
+          )}
           {isAiAnalyzing && (
             <div className="flex items-center space-x-2 text-brand-secondary">
               <Spinner size="sm" />
@@ -209,7 +310,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
           {mrDetails && onApproveMR && (
             <button
               onClick={onApproveMR}
-              className="h-[18px] px-2.5 flex items-center bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors"
+              className="h-[28px] px-2.5 flex items-center bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors"
               aria-label="Approve merge request"
             >
               <ApproveIcon className="w-4 h-4 mr-1.5" />
