@@ -37,7 +37,7 @@ export const MrSummary: React.FC<MrSummaryProps> = ({ mrDetails, onNewReview }) 
         <div className="flex-shrink-0">
             <button
             onClick={onNewReview}
-            className="w-full flex items-center justify-center bg-brand-secondary hover:bg-red-600 text-white font-bold py-3 px-4 rounded-md transition-colors text-sm"
+            className="w-full flex items-center justify-center bg-brand-secondary hover:bg-red-600 text-white font-bold py-1.5 px-3 rounded-md transition-colors text-sm"
             >
             <PlusIcon />
             <span className="ml-2">Start New Review</span>

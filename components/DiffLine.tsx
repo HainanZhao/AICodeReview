@@ -26,8 +26,8 @@ export const DiffLine: React.FC<DiffLineProps> = ({ line, onAddComment }) => {
     const canComment = line.type === 'add' || line.type === 'context';
     
     return (
-        <tr className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/10`}>
-            <td className="w-8 text-center px-1 align-middle py-0">
+        <tr className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/10 h-6`}>
+            <td className="w-8 text-center align-middle h-6">
                 {/* 
                   The button is always rendered to maintain a consistent column width, preventing layout shifts.
                   It is only made visible and interactive via CSS on hover for commentable lines.
@@ -37,16 +37,16 @@ export const DiffLine: React.FC<DiffLineProps> = ({ line, onAddComment }) => {
                     title={canComment ? "Add comment" : ""}
                     disabled={!canComment}
                     className={`
-                      opacity-0 bg-brand-secondary text-white rounded-full p-0.5 leading-none shadow-lg hover:bg-red-600 transition-opacity duration-150
+                      opacity-0 bg-brand-secondary text-white rounded-full p-[1px] leading-none shadow-lg hover:bg-red-600 transition-opacity duration-150
                       ${canComment ? 'group-hover:opacity-100' : 'pointer-events-none'}
                     `}
                 >
-                    <PlusIcon />
+                    <PlusIcon className="w-4 h-4" />
                 </button>
             </td>
-            <td className="w-10 text-right px-2 select-none opacity-70 align-middle py-0">{line.oldLine || ''}</td>
-            <td className="w-10 text-right px-2 select-none opacity-70 align-middle py-0">{line.newLine || ''}</td>
-            <td className="w-full pr-4 align-middle font-mono text-xs py-0 leading-none">
+            <td className="w-10 text-right px-2 select-none opacity-70 align-middle h-6">{line.oldLine || ''}</td>
+            <td className="w-10 text-right px-2 select-none opacity-70 align-middle h-6">{line.newLine || ''}</td>
+            <td className="w-full pr-4 align-middle font-mono text-xs h-6">
                 {line.type !== 'meta' && <span className="mr-2 select-none">{prefix}</span>}
                 <span className="whitespace-pre-wrap break-words">{line.content}</span>
             </td>

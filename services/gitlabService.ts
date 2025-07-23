@@ -296,3 +296,10 @@ export const fetchMergeRequestsForProjects = async (config: Config, projects: Gi
 
     return allMrs;
 };
+
+export const approveMergeRequest = async (config: Config, projectId: number, mrIid: string): Promise<void> => {
+    const url = `${config.gitlabUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/approve`;
+    await gitlabApiFetch(url, config, {
+        method: 'POST',
+    });
+};

@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { ReviewFeedback, GitLabMRDetails, ParsedFileDiff, ParsedDiffLine, Severity } from '../types';
 import { FileDiffCard } from './FileDiffCard';
 import { Spinner } from './Spinner';
-import { ArrowUpIcon, ArrowDownIcon } from './icons';
+import { ArrowUpIcon, ArrowDownIcon, ApproveIcon } from './icons';
 
 interface FeedbackPanelProps {
   feedback: ReviewFeedback[] | null;
@@ -19,6 +19,7 @@ interface FeedbackPanelProps {
   onExpandHunkContext: (filePath: string, hunkIndex: number, direction: 'up' | 'down', lines: number) => void;
   onToggleIgnoreFeedback: (id: string) => void;
   isAiAnalyzing: boolean;
+  onApproveMR?: () => Promise<void>;
 }
 
 const InitialState = () => (
@@ -49,7 +50,7 @@ const NoIssuesFound = () => (
 
 
 export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
-  const { feedback, mrDetails, isLoading, error, onPostComment, onPostAllComments, onToggleIgnoreFeedback, isAiAnalyzing, ...handlers } = props;
+  const { feedback, mrDetails, isLoading, error, onPostComment, onPostAllComments, onToggleIgnoreFeedback, isAiAnalyzing, onApproveMR, ...handlers } = props;
   const [currentCommentIndex, setCurrentCommentIndex] = useState(-1);
 
   const feedbackByFile = useMemo(() => {
@@ -163,7 +164,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
                     </div>
                     <button 
                         onClick={onPostAllComments}
-                        className="bg-brand-secondary hover:bg-red-600 text-white text-sm font-bold py-2 px-4 rounded-md transition-colors"
+                        className="bg-brand-secondary hover:bg-red-600 text-white text-sm font-bold py-1.5 px-3 rounded-md transition-colors"
                     >
                         Add All Comments
                     </button>
@@ -196,16 +197,28 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   
   return (
     <div className="bg-white dark:bg-brand-surface rounded-lg shadow-xl h-full flex flex-col">
-      <div className="p-4 border-b border-gray-200 dark:border-brand-primary flex items-center space-x-4">
+      <div className="border-b border-gray-200 dark:border-brand-primary flex items-center justify-between px-4 py-2">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white">Review Feedback</h2>
-        {isAiAnalyzing && (
-          <div className="flex items-center space-x-2 text-brand-secondary">
-            <Spinner size="sm" />
-            <span className="text-sm font-medium">AI Analyzing...</span>
-          </div>
-        )}
+        <div className="flex items-center space-x-4">
+          {isAiAnalyzing && (
+            <div className="flex items-center space-x-2 text-brand-secondary">
+              <Spinner size="sm" />
+              <span className="text-sm font-medium">AI Analyzing...</span>
+            </div>
+          )}
+          {mrDetails && onApproveMR && (
+            <button
+              onClick={onApproveMR}
+              className="h-[18px] px-2.5 flex items-center bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors"
+              aria-label="Approve merge request"
+            >
+              <ApproveIcon className="w-4 h-4 mr-1.5" />
+              <span>Approve MR</span>
+            </button>
+          )}
+        </div>
       </div>
-      <div className="p-1 sm:p-4 flex-grow overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+      <div className="p-1 sm:p-4 flex-grow overflow-y-auto" style={{ maxHeight: 'calc(100vh - 150px)' }}>
           {renderContent()}
       </div>
     </div>

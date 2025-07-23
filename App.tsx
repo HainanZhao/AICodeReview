@@ -4,7 +4,7 @@ import { Header } from './components/Header';
 import { ReviewDashboard } from './components/CodeEditor';
 import { FeedbackPanel } from './components/FeedbackPanel';
 import { reviewCode, fetchMrDetails } from './services/geminiService';
-import { fetchProjects, postDiscussion } from './services/gitlabService';
+import { fetchProjects, postDiscussion, approveMergeRequest } from './services/gitlabService';
 import { ReviewFeedback, Config, GitLabMRDetails, GitLabProject, ParsedFileDiff, ParsedDiffLine, GitLabPosition, Severity, ParsedHunk } from './types';
 import { ConfigModal } from './components/ConfigModal';
 import { loadConfig, loadTheme, saveTheme, loadProjectsFromCache, saveProjectsToCache } from './services/configService';
@@ -177,6 +177,11 @@ function App() {
       ));
   }, []);
 
+  const handleApproveMR = useCallback(async () => {
+    if (!config || !mrDetails) return;
+    await approveMergeRequest(config, mrDetails.projectId, mrDetails.mrIid);
+  }, [config, mrDetails]);
+
   const handleToggleIgnoreFeedback = useCallback((feedbackId: string) => {
     setFeedback(prev => prev!.map(f =>
         f.id === feedbackId ? { ...f, isIgnored: !f.isIgnored } : f
@@ -341,7 +346,7 @@ function App() {
         onSave={handleSaveConfig}
         initialConfig={config}
       />
-      <main className="flex-grow w-full px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <main className="flex-grow w-full px-2 md:px-4 lg:px-4 py-2 md:py-3 lg:py-3 grid grid-cols-1 lg:grid-cols-12 gap-4">
         <div className={`flex flex-col ${mrDetails ? 'lg:col-span-3' : 'lg:col-span-4'}`}>
           {mrDetails ? (
             <MrSummary mrDetails={mrDetails} onNewReview={handleNewReview} />
@@ -371,6 +376,7 @@ function App() {
             onExpandHunkContext={handleExpandHunkContext}
             onToggleIgnoreFeedback={handleToggleIgnoreFeedback}
             isAiAnalyzing={isAiAnalyzing}
+            onApproveMR={handleApproveMR}
           />
         </div>
       </main>
