@@ -1,24 +1,64 @@
 {
-  "name": "ai-code-reviewer",
-  "private": true,
-  "version": "0.0.0",
+  "name": "@aicodereview/cli",
+  "private": false,
+  "version": "1.0.0",
+  "description": "AI-powered code review tool with web interface",
+  "keywords": [
+    "code-review",
+    "ai",
+    "gemini",
+    "claude",
+    "static-analysis",
+    "cli"
+  ],
+  "author": "HainanZhao",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HainanZhao/AICodeReview.git"
+  },
+  "homepage": "https://github.com/HainanZhao/AICodeReview#readme",
+  "bugs": {
+    "url": "https://github.com/HainanZhao/AICodeReview/issues"
+  },
+  "bin": {
+    "aicodereview": "./bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "dist/",
+    "backend/dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "type": "module",
   "workspaces": [
-    "shared",
     "backend"
   ],
   "scripts": {
     "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
     "start:frontend": "vite",
     "start:backend": "cd backend && npm run start",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "npm run build:src && npm run build:frontend && npm run build:backend",
+    "build:src": "tsc -p src/tsconfig.json",
+    "build:frontend": "vite build",
+    "build:backend": "cd backend && npm run build",
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build",
+    "pack:test": "npm pack && npm install -g ./aicodereview-cli-1.0.0.tgz"
   },
   "dependencies": {
-    "@aireview/shared": "1.0.0",
+    "commander": "^12.1.0",
+    "express": "^5.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "@anthropic-ai/sdk": "^0.17.1",
+    "@google/generative-ai": "^0.24.1",
+    "dotenv": "^17.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

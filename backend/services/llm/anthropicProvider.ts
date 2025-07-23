@@ -1,4 +1,4 @@
-import { LLMProvider, ReviewRequest, ReviewResponse } from './types';
+import { LLMProvider, ReviewRequest, ReviewResponse } from './types.js';
 import { Request, Response } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 
