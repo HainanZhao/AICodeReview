@@ -1,12 +1,28 @@
 import { GeminiReviewRequest, GeminiReviewResponse } from '@aireview/shared';
 
 export { GeminiReviewRequest, GeminiReviewResponse };
-export const buildPrompt = (diff: string): string => {
+export const buildPrompt = (diff: string, discussions: any[]): string => {
+    let discussionContext = '';
+    if (discussions && discussions.length > 0) {
+        discussionContext = '\n\nExisting Discussions:\n';
+        discussions.forEach(discussion => {
+            discussion.notes.forEach((note: any) => {
+                if (note.position && note.position.new_path && note.position.new_line) {
+                    discussionContext += `File: ${note.position.new_path}, Line: ${note.position.new_line}, Comment: ${note.body}\n`;
+                } else {
+                    discussionContext += `General Comment: ${note.body}\n`;
+                }
+            });
+        });
+    }
+
     return `Please review the following code changes from a merge request.
 
-\`\`\`diff
+```diff
 ${diff}
-\`\`\`
+```
+
+${discussionContext}
 
 Analyze the code changes for:
 1. Code quality issues
@@ -22,5 +38,4 @@ Focus on the changes introduced (lines starting with '+'). Format your response 
 - title: string (short, concise title)
 - description: string (detailed explanation and suggestions)
 
-Return an empty array if the code is exemplary. No pleasantries or extra text, just the JSON array.`;
-};
+Return an empty array if the code is exemplary. No pleasantries or extra text, just the JSON array.`;;

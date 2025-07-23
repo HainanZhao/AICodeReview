@@ -2,16 +2,27 @@ import { v4 as uuidv4 } from 'uuid';
 import { ReviewFeedback, Severity, Config, GitLabMRDetails, GitLabPosition, GeminiReviewResponse } from '@aireview/shared';
 import { fetchMrData } from "./gitlabService";
 
-export const reviewCode = async (url: string, config: Config): Promise<{mrDetails: GitLabMRDetails, feedback: ReviewFeedback[]}> => {
+export const fetchMrDetails = async (url: string, config: Config): Promise<{mrDetails: GitLabMRDetails, feedback: ReviewFeedback[]}> => {
     if (!config || !config.gitlabUrl || !config.accessToken) {
         throw new Error("GitLab configuration is missing. Please set it in the settings.");
     }
     
     const mrDetails = await fetchMrData(config, url);
 
+    // For now, existing feedback is just a placeholder or fetched from elsewhere if available
+    // This part needs to be implemented if existing comments are to be fetched from GitLab
+    const existingFeedback: ReviewFeedback[] = []; 
+
+    return { mrDetails, feedback: existingFeedback };
+};
+
+export const reviewCode = async (mrDetails: GitLabMRDetails, config: Config): Promise<{feedback: ReviewFeedback[]}> => {
+    if (!config || !config.gitlabUrl || !config.accessToken) {
+        throw new Error("GitLab configuration is missing. Please set it in the settings.");
+    }
+
     if (mrDetails.diffForPrompt.trim() === "") {
         return {
-            mrDetails,
             feedback: [{
                 id: uuidv4(),
                 lineNumber: 0,
@@ -95,5 +106,5 @@ export const reviewCode = async (url: string, config: Config): Promise<{mrDetail
 
     const feedback = generatedFeedback.filter((fb): fb is ReviewFeedback => fb !== null);
 
-    return { mrDetails, feedback };
+    return { feedback };
 };

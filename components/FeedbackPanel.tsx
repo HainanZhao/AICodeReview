@@ -18,6 +18,7 @@ interface FeedbackPanelProps {
   onToggleHunkCollapse: (filePath: string, hunkIndex: number) => void;
   onExpandHunkContext: (filePath: string, hunkIndex: number, direction: 'up' | 'down', lines: number) => void;
   onToggleIgnoreFeedback: (id: string) => void;
+  isAiAnalyzing: boolean;
 }
 
 const InitialState = () => (
@@ -27,8 +28,8 @@ const InitialState = () => (
           <path strokeLinecap="round" strokeLinejoin="round" d="M6.06,13.06a1,1,0,0,0,1.42,0l2.29-2.29a1.44,1.44,0,0,0,.41-1V7.5a.5.5,0,0,0-.5-.5H7.41a1.44,1.44,0,0,0-1,.41L4.09,9.68a1,1,0,0,0,0,1.42Z"/>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12,3a9,9,0,0,0-9,9,1,1,0,0,0,1,1h.5a1,1,0,0,1,1,1v.5a1,1,0,0,0,1,1h5a1,1,0,0,0,1-1v-.5a1,1,0,0,1,1-1h.5a1,1,0,0,0,1-1A9,9,0,0,0,12,3Z"/>
         </svg>
-        <h3 className="mt-2 text-xl font-semibold text-gray-900 dark:text-white">Awaiting Analysis</h3>
-        <p className="mt-1 text-md text-gray-500 dark:text-brand-subtle">
+        <h3 className="mt-2 text-base font-semibold text-gray-900 dark:text-white">Awaiting Analysis</h3>
+        <p className="mt-1 text-sm text-gray-500 dark:text-brand-subtle">
             Select a Merge Request from the dashboard to begin.
         </p>
     </div>
@@ -39,8 +40,8 @@ const NoIssuesFound = () => (
          <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-16 w-16 text-green-500 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <h3 className="mt-2 text-xl font-semibold text-gray-900 dark:text-white">Excellent Work!</h3>
-        <p className="mt-1 text-md text-gray-500 dark:text-brand-subtle">
+        <h3 className="mt-2 text-base font-semibold text-gray-900 dark:text-white">Excellent Work!</h3>
+        <p className="mt-1 text-sm text-gray-500 dark:text-brand-subtle">
             Our AI reviewer found no issues in the provided changes. Keep up the great coding!
         </p>
     </div>
@@ -48,18 +49,32 @@ const NoIssuesFound = () => (
 
 
 export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
-  const { feedback, mrDetails, isLoading, error, onPostComment, onPostAllComments, onToggleIgnoreFeedback, ...handlers } = props;
+  const { feedback, mrDetails, isLoading, error, onPostComment, onPostAllComments, onToggleIgnoreFeedback, isAiAnalyzing, ...handlers } = props;
   const [currentCommentIndex, setCurrentCommentIndex] = useState(-1);
 
   const feedbackByFile = useMemo(() => {
-    if (!feedback) return new Map<string, ReviewFeedback[]>();
-    return feedback.reduce((acc, item) => {
-        const fileFeedback = acc.get(item.filePath) || [];
+    const result = new Map<string, ReviewFeedback[]>();
+    
+    // Add new feedback
+    if (feedback) {
+      feedback.forEach(item => {
+        const fileFeedback = result.get(item.filePath) || [];
         fileFeedback.push(item);
-        acc.set(item.filePath, fileFeedback);
-        return acc;
-    }, new Map<string, ReviewFeedback[]>());
-  }, [feedback]);
+        result.set(item.filePath, fileFeedback);
+      });
+    }
+    
+    // Add existing feedback from GitLab
+    if (mrDetails?.existingFeedback) {
+      mrDetails.existingFeedback.forEach(item => {
+        const fileFeedback = result.get(item.filePath) || [];
+        fileFeedback.push(item);
+        result.set(item.filePath, fileFeedback);
+      });
+    }
+    
+    return result;
+  }, [feedback, mrDetails?.existingFeedback]);
 
   const pendingComments = useMemo(() => {
     if (!feedback) return [];
@@ -92,7 +107,17 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   const activeFeedbackId = currentCommentIndex > -1 ? pendingComments[currentCommentIndex]?.id : null;
   
   const renderContent = () => {
-    if (isLoading) {
+    if (isLoading && !isAiAnalyzing) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center">
+          <Spinner size="lg" />
+          <p className="mt-4 text-lg text-gray-500 dark:text-brand-subtle">Loading MR details...</p>
+          <p className="text-sm text-gray-500/70 dark:text-brand-subtle/70">Fetching merge request information.</p>
+        </div>
+      );
+    }
+
+    if (isLoading && isAiAnalyzing) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-center">
           <Spinner size="lg" />
@@ -171,8 +196,14 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   
   return (
     <div className="bg-white dark:bg-brand-surface rounded-lg shadow-xl h-full flex flex-col">
-      <div className="p-4 border-b border-gray-200 dark:border-brand-primary">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Review Feedback</h2>
+      <div className="p-4 border-b border-gray-200 dark:border-brand-primary flex items-center space-x-4">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white">Review Feedback</h2>
+        {isAiAnalyzing && (
+          <div className="flex items-center space-x-2 text-brand-secondary">
+            <Spinner size="sm" />
+            <span className="text-sm font-medium">AI Analyzing...</span>
+          </div>
+        )}
       </div>
       <div className="p-1 sm:p-4 flex-grow overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
           {renderContent()}

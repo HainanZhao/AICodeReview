@@ -1,4 +1,4 @@
-import { Config, GitLabMRDetails, FileDiff, ReviewFeedback, ParsedDiffLine, ParsedFileDiff, GitLabProject, GitLabMergeRequest, ParsedHunk } from '../types';
+import { Config, GitLabMRDetails, FileDiff, ReviewFeedback, ParsedDiffLine, ParsedFileDiff, GitLabProject, GitLabMergeRequest, ParsedHunk, Severity, GitLabDiscussion } from '../types';
 
 const parseMrUrl = (mrUrl: string, gitlabBaseUrl: string): { projectPath: string; mrIid: string } => {
     try {
@@ -144,14 +144,48 @@ const parseDiffsToHunks = (diffs: FileDiff[]): { diffForPrompt: string, parsedDi
 };
 
 
+const fetchMrDiscussions = async (config: Config, projectId: number, mrIid: string): Promise<any[]> => {
+    const url = `${config.gitlabUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions`;
+    return gitlabApiFetch(url, config);
+};
+
+const convertDiscussionsToFeedback = (discussions: any[]): ReviewFeedback[] => {
+    return discussions.flatMap(discussion => 
+        discussion.notes.map((note: any) => ({
+            id: `gitlab-${note.id}`,
+            lineNumber: note.position?.new_line || 0,
+            filePath: note.position?.new_path || '',
+            severity: Severity.Info,
+            title: `Comment by ${note.author.name}`,
+            description: note.body,
+            lineContent: '',  // We don't have this from the API
+            position: note.position ? {
+                base_sha: '',  // These will be filled in later
+                start_sha: '',
+                head_sha: '',
+                position_type: 'text',
+                old_path: note.position.old_path || note.position.new_path,
+                new_path: note.position.new_path,
+                new_line: note.position.new_line
+            } : null,
+            status: 'submitted',
+            isExisting: true
+        }))
+    );
+};
+
 export const fetchMrData = async (config: Config, mrUrl: string): Promise<GitLabMRDetails> => {
     const { projectPath, mrIid } = parseMrUrl(mrUrl, config.gitlabUrl);
     const encodedProjectPath = encodeURIComponent(projectPath);
     const baseUrl = `${config.gitlabUrl}/api/v4/projects/${encodedProjectPath}/merge_requests/${mrIid}`;
     
-    const [mr, versions] = await Promise.all([
-        gitlabApiFetch(baseUrl, config),
-        gitlabApiFetch(`${baseUrl}/versions`, config)
+    // First get the MR details
+    const mr = await gitlabApiFetch(baseUrl, config);
+    
+    // Then fetch versions and discussions in parallel
+    const [versions, discussions] = await Promise.all([
+        gitlabApiFetch(`${baseUrl}/versions`, config),
+        fetchMrDiscussions(config, mr.project_id, mrIid)
     ]);
 
     const latestVersion = versions[0];
@@ -159,9 +193,21 @@ export const fetchMrData = async (config: Config, mrUrl: string): Promise<GitLab
         throw new Error("Could not retrieve merge request version details.");
     }
     
-    const diffs: FileDiff[] = await gitlabApiFetch(`${baseUrl}/diffs`, config);
+    // Try to fetch diffs with extended context, fallback to default if it fails
+    let diffs: FileDiff[];
+    try {
+        // First attempt with 20 lines of context
+        diffs = await gitlabApiFetch(`${baseUrl}/diffs?context_lines=20`, config);
+    } catch (error) {
+        console.warn('Failed to fetch diffs with extended context, falling back to default context:', error);
+        // Fallback to default GitLab context
+        diffs = await gitlabApiFetch(`${baseUrl}/diffs`, config);
+    }
 
     const { diffForPrompt, parsedDiffs } = parseDiffsToHunks(diffs);
+
+    // Convert existing discussions to feedback items
+    const existingFeedback = convertDiscussionsToFeedback(discussions);
 
     const fileContents = new Map<string, { oldContent?: string[]; newContent?: string[] }>();
     const contentPromises = diffs.map(async (diff) => {
@@ -173,6 +219,15 @@ export const fetchMrData = async (config: Config, mrUrl: string): Promise<GitLab
     });
     await Promise.all(contentPromises);
 
+
+    // Fill in the SHA values for existing feedback positions
+    existingFeedback.forEach(feedback => {
+        if (feedback.position) {
+            feedback.position.base_sha = latestVersion.base_commit_sha;
+            feedback.position.start_sha = latestVersion.start_commit_sha;
+            feedback.position.head_sha = latestVersion.head_commit_sha;
+        }
+    });
 
     return {
         projectPath,
@@ -190,6 +245,8 @@ export const fetchMrData = async (config: Config, mrUrl: string): Promise<GitLab
         diffForPrompt,
         parsedDiffs,
         fileContents,
+        discussions,
+        existingFeedback, // Add existing feedback to the returned object
     };
 };
 

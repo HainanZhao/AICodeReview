@@ -106,6 +106,35 @@ export interface ParsedFileDiff {
     hunks: ParsedHunk[];
 }
 
+// Represents a single note (comment) within a GitLab discussion
+export interface GitLabNote {
+  id: number;
+  type: string | null;
+  body: string;
+  author: {
+    id: number;
+    username: string;
+    name: string;
+    state: string;
+    avatar_url: string;
+    web_url: string;
+  };
+  created_at: string;
+  updated_at: string;
+  system: boolean;
+  resolvable: boolean;
+  resolved_by: any; // Can be null or a user object
+  resolved_at: string | null;
+  position: GitLabPosition | null; // Position can be null for non-diff notes
+}
+
+// Represents a GitLab discussion (thread of notes)
+export interface GitLabDiscussion {
+  id: string;
+  individual_note: boolean;
+  notes: GitLabNote[];
+}
+
 // Contains all the necessary details fetched from GitLab for a merge request.
 export interface GitLabMRDetails {
     projectPath: string;
@@ -123,4 +152,5 @@ export interface GitLabMRDetails {
     diffForPrompt: string;
     parsedDiffs: ParsedFileDiff[];
     fileContents: Map<string, { oldContent?: string[]; newContent?: string[] }>;
+    discussions: GitLabDiscussion[]; // Add discussions to MR details
 }

@@ -3,11 +3,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { Header } from './components/Header';
 import { ReviewDashboard } from './components/CodeEditor';
 import { FeedbackPanel } from './components/FeedbackPanel';
-import { reviewCode } from './services/geminiService';
+import { reviewCode, fetchMrDetails } from './services/geminiService';
 import { fetchProjects, postDiscussion } from './services/gitlabService';
 import { ReviewFeedback, Config, GitLabMRDetails, GitLabProject, ParsedFileDiff, ParsedDiffLine, GitLabPosition, Severity, ParsedHunk } from './types';
 import { ConfigModal } from './components/ConfigModal';
-import { loadConfig, loadTheme, saveTheme } from './services/configService';
+import { loadConfig, loadTheme, saveTheme, loadProjectsFromCache, saveProjectsToCache } from './services/configService';
 import { MrSummary } from './components/MrSummary';
 
 function App() {
@@ -49,13 +49,22 @@ function App() {
     }
 
     const loadProjects = async () => {
-        setIsLoadingProjects(true);
+        const cachedProjects = loadProjectsFromCache();
+        if (cachedProjects) {
+            setProjects(cachedProjects);
+            setIsLoadingProjects(false);
+        }
+
         try {
+            setIsLoadingProjects(true);
             const fetchedProjects = await fetchProjects(config);
             setProjects(fetchedProjects);
+            saveProjectsToCache(fetchedProjects);
         } catch (err) {
             console.error("Failed to load projects in App.tsx", err);
-            setProjects([]);
+            if (!cachedProjects) { // Only set empty if no cache was loaded
+                setProjects([]);
+            }
         } finally {
             setIsLoadingProjects(false);
         }
@@ -63,6 +72,8 @@ function App() {
     loadProjects();
   }, [config]);
 
+
+  const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
 
   const handleReviewRequest = useCallback(async (url: string) => {
     if (!url.trim()) {
@@ -81,13 +92,23 @@ function App() {
     setMrDetails(null);
 
     try {
-      const { mrDetails: details, feedback: reviewResult } = await reviewCode(url, config);
+      const { mrDetails: details, feedback: existingFeedback } = await fetchMrDetails(url, config);
       setMrDetails(details);
-      setFeedback(reviewResult);
+      setFeedback(existingFeedback);
+      setIsLoading(false);
+
+      setIsAiAnalyzing(true);
+      const { feedback: aiReviewResult } = await reviewCode(details, config);
+      
+      setFeedback(prev => {
+        if (!prev) return aiReviewResult;
+        return [...prev, ...aiReviewResult];
+      });
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "An unknown error occurred during the review.");
     } finally {
+      setIsAiAnalyzing(false);
       setIsLoading(false);
     }
   }, [config]);
@@ -312,7 +333,7 @@ function App() {
       <Header 
         onOpenSettings={() => setIsConfigModalOpen(true)}
         onToggleTheme={handleThemeToggle}
-        currentTheme={theme} 
+        currentTheme={theme}
       />
       <ConfigModal 
         isOpen={isConfigModalOpen} 
@@ -349,6 +370,7 @@ function App() {
             onToggleHunkCollapse={handleToggleHunkCollapse}
             onExpandHunkContext={handleExpandHunkContext}
             onToggleIgnoreFeedback={handleToggleIgnoreFeedback}
+            isAiAnalyzing={isAiAnalyzing}
           />
         </div>
       </main>

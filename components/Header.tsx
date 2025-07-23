@@ -1,5 +1,6 @@
 import React from 'react';
 import { SettingsIcon, SunIcon, MoonIcon } from './icons';
+import { Spinner } from './Spinner';
 
 const BrainCircuitIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-brand-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -23,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onToggleTheme, c
             <BrainCircuitIcon />
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
-                Gemini Code Reviewer
+                AI Code Reviewer
               </h1>
               <p className="text-sm text-gray-500 dark:text-brand-subtle">
                 AI-powered Merge Request analysis

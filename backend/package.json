@@ -3,9 +3,8 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "start": "ts-node index.ts",
     "build": "tsc",
-    "dev": "ts-node-dev --respawn index.ts",
+    "start": "NODE_NO_WARNINGS=1 ts-node-dev --respawn index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

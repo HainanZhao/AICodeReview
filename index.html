@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gemini Code Reviewer</title>
+    <title>AI Code Reviewer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       // On page load or when changing themes, best to add inline in `head` to avoid FOUC
-      if (localStorage.getItem('gemini-code-reviewer-theme') === 'dark' || (!('gemini-code-reviewer-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      if (localStorage.getItem('ai-code-reviewer-theme') === 'dark' || (!('ai-code-reviewer-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         document.documentElement.classList.add('dark')
       } else {
         document.documentElement.classList.remove('dark')
@@ -29,6 +29,9 @@
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
               mono: ['Fira Code', 'monospace'],
+            },
+            fontSize: {
+              base: ['0.875rem', { lineHeight: '1.5rem' }],
             },
           },
         },

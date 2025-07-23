@@ -10,7 +10,7 @@ export class GeminiController {
     }
 
     public reviewCode = async (req: Request, res: Response): Promise<void> => {
-        const { diffForPrompt } = req.body as GeminiReviewRequest;
+        const { diffForPrompt, discussions } = req.body as GeminiReviewRequest;
 
         if (!diffForPrompt) {
             res.status(400).json({ error: "Missing diffForPrompt in request body." });
@@ -19,7 +19,7 @@ export class GeminiController {
 
         try {
             const model = this.ai.getGenerativeModel({ model: "gemini-pro" });
-            const result = await model.generateContent(buildPrompt(diffForPrompt));
+            const result = await model.generateContent(buildPrompt(diffForPrompt, discussions));
             const response = await result.response;
             const text = response.text().trim();
             

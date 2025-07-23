@@ -27,7 +27,7 @@ export const DiffLine: React.FC<DiffLineProps> = ({ line, onAddComment }) => {
     
     return (
         <tr className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/10`}>
-            <td className="w-8 text-center px-1 align-middle">
+            <td className="w-8 text-center px-1 align-middle py-0">
                 {/* 
                   The button is always rendered to maintain a consistent column width, preventing layout shifts.
                   It is only made visible and interactive via CSS on hover for commentable lines.
@@ -44,9 +44,9 @@ export const DiffLine: React.FC<DiffLineProps> = ({ line, onAddComment }) => {
                     <PlusIcon />
                 </button>
             </td>
-            <td className="w-10 text-right px-2 select-none opacity-70 align-middle">{line.oldLine || ''}</td>
-            <td className="w-10 text-right px-2 select-none opacity-70 align-middle">{line.newLine || ''}</td>
-            <td className="w-full pr-4 align-middle">
+            <td className="w-10 text-right px-2 select-none opacity-70 align-middle py-0">{line.oldLine || ''}</td>
+            <td className="w-10 text-right px-2 select-none opacity-70 align-middle py-0">{line.newLine || ''}</td>
+            <td className="w-full pr-4 align-middle font-mono text-xs py-0 leading-none">
                 {line.type !== 'meta' && <span className="mr-2 select-none">{prefix}</span>}
                 <span className="whitespace-pre-wrap break-words">{line.content}</span>
             </td>

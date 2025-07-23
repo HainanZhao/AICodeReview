@@ -186,7 +186,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
                 </div>
             </div>
              {fileLevelFeedback.length > 0 && (
-                <div className="p-4 border-b border-gray-200 dark:border-brand-primary/50 bg-white dark:bg-brand-surface space-y-4">
+                <div className="p-4 border-b border-gray-200 dark:border-brand-primary/50 bg-white dark:bg-brand-surface space-y-4 text-sm">
                     {fileLevelFeedback.map(fb => {
                          const isActive = fb.id === activeFeedbackId;
                          return (

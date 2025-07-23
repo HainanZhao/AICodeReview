@@ -2,6 +2,8 @@ import { Config } from '../types';
 
 const CONFIG_KEY = 'ai-code-reviewer-config';
 const PROJECTS_KEY = 'ai-code-reviewer-selected-projects';
+const PROJECTS_CACHE_KEY = 'ai-code-reviewer-projects-cache';
+const PROJECTS_CACHE_TIMESTAMP_KEY = 'ai-code-reviewer-projects-cache-timestamp';
 const THEME_KEY = 'ai-code-reviewer-theme';
 
 
@@ -64,6 +66,40 @@ export const loadTheme = (): 'light' | 'dark' | null => {
     return null;
   } catch (error) {
     console.error("Failed to load theme from localStorage", error);
+    return null;
+  }
+};
+
+export const saveProjectsToCache = (projects: GitLabProject[]): void => {
+  try {
+    localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(projects));
+    localStorage.setItem(PROJECTS_CACHE_TIMESTAMP_KEY, Date.now().toString());
+  } catch (error) {
+    console.error("Failed to save projects to cache", error);
+  }
+};
+
+export const loadProjectsFromCache = (): GitLabProject[] | null => {
+  try {
+    const projectsStr = localStorage.getItem(PROJECTS_CACHE_KEY);
+    const timestampStr = localStorage.getItem(PROJECTS_CACHE_TIMESTAMP_KEY);
+
+    if (!projectsStr || !timestampStr) {
+      return null;
+    }
+
+    const cachedTimestamp = parseInt(timestampStr, 10);
+    const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+
+    if (Date.now() - cachedTimestamp > CACHE_DURATION) {
+      console.log("Project cache expired.");
+      return null;
+    }
+
+    console.log("Loading projects from cache.");
+    return JSON.parse(projectsStr) as GitLabProject[];
+  } catch (error) {
+    console.error("Failed to load projects from cache", error);
     return null;
   }
 };

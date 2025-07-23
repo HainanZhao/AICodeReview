@@ -79,7 +79,7 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({ feedback, onPostComm
             <label htmlFor={`description-${feedback.id}`} className="block text-sm font-medium text-gray-700 dark:text-brand-subtle mb-1">
               {feedback.isNewlyAdded ? 'Add New Comment' : `Edit Comment: ${feedback.title}`}
             </label>
-            <textarea id={`description-${feedback.id}`} value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} placeholder="Detailed explanation and suggestions..." className="w-full p-2 bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary" rows={5} autoFocus></textarea>
+            <textarea id={`description-${feedback.id}`} value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} placeholder="Detailed explanation and suggestions..." className="w-full p-2 bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text text-sm font-mono rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary" rows={5} autoFocus></textarea>
         </div>
         <div className="px-4 py-2 bg-black/10 dark:bg-black/20 flex items-center justify-between rounded-b-md">
            <button onClick={() => onDeleteFeedback(feedback.id)} className="p-2 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-red-200 dark:hover:bg-red-800/50 hover:text-red-700 dark:hover:text-red-300 transition-colors" aria-label="Delete comment">
@@ -95,6 +95,26 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({ feedback, onPostComm
   }
 
   const config = SEVERITY_CONFIG[feedback.severity] || SEVERITY_CONFIG[Severity.Info];
+  
+  // If this is an existing comment from GitLab
+  if (feedback.isExisting) {
+    return (
+      <div className="shadow-lg border-l-4 border-gray-400 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-brand-primary/20">
+        <div className="p-4">
+          <div className="flex items-start space-x-3">
+            <div className="flex-1">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold text-gray-600 dark:text-gray-400">{feedback.title}</h3>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Existing comment</span>
+              </div>
+              <p className="mt-2 text-xs text-gray-800 dark:text-brand-text whitespace-pre-wrap">{feedback.description}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`transition-all duration-300 shadow-lg ${config.colorClass} border-l-4 rounded-md`}>
       <div className={`p-4 ${feedback.isIgnored ? 'opacity-60' : ''}`}>
@@ -102,9 +122,9 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({ feedback, onPostComm
             <div className={`mt-1 ${config.titleColor}`}>{config.icon}</div>
             <div className="flex-1">
                 <div className="flex justify-between items-center">
-                    <h3 className={`text-md font-bold ${config.titleColor}`}>{feedback.title}</h3>
+                    <h3 className={`text-sm font-bold ${config.titleColor}`}>{feedback.title}</h3>
                 </div>
-                <p className="mt-2 text-sm text-gray-800 dark:text-brand-text whitespace-pre-wrap">{feedback.description}</p>
+                <p className="mt-2 text-xs text-gray-800 dark:text-brand-text whitespace-pre-wrap">{feedback.description}</p>
             </div>
         </div>
       </div>
