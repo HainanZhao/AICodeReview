@@ -219,83 +219,81 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
           </div>
         </div>
       </div>
-      {feedback.severity !== Severity.Info && (
-        <div className="px-1.5 py-1 bg-black/10 dark:bg-black/20 flex items-center justify-between rounded-b-md">
-          {feedback.isIgnored ? (
-            <>
-              <span className="text-xs italic text-gray-600 dark:text-brand-subtle">
-                Comment ignored
-              </span>
-              <button
-                onClick={() => onToggleIgnoreFeedback(feedback.id)}
-                className="text-xs text-gray-700 dark:text-brand-subtle font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors"
-              >
-                Undo
-              </button>
-            </>
-          ) : (
-            <>
-              <div>
-                {feedback.status === 'pending' && (
-                  <div className="flex items-center space-x-1">
-                    <button
-                      onClick={() => onSetEditing(feedback.id, true)}
-                      className="flex items-center space-x-1 text-xs text-gray-600 dark:text-brand-subtle font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors"
-                    >
-                      <EditIcon />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      onClick={() => onToggleIgnoreFeedback(feedback.id)}
-                      className="flex items-center space-x-1 text-xs text-gray-600 dark:text-brand-subtle font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors"
-                      aria-label="Ignore comment"
-                    >
-                      <EyeSlashIcon />
-                      <span>Ignore</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center space-x-1">
-                {feedback.status === 'error' && (
-                  <p className="text-xs text-red-600 dark:text-red-400">
-                    Error: {feedback.submissionError}
-                  </p>
-                )}
+      <div className="px-1.5 py-1 bg-black/10 dark:bg-black/20 flex items-center justify-between rounded-b-md">
+        {feedback.isIgnored ? (
+          <>
+            <span className="text-xs italic text-gray-600 dark:text-brand-subtle">
+              Comment ignored
+            </span>
+            <button
+              onClick={() => onToggleIgnoreFeedback(feedback.id)}
+              className="text-xs text-gray-700 dark:text-brand-subtle font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors"
+            >
+              Undo
+            </button>
+          </>
+        ) : (
+          <>
+            <div>
+              {feedback.status === 'pending' && (
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => onSetEditing(feedback.id, true)}
+                    className="flex items-center space-x-1 text-xs text-gray-600 dark:text-brand-subtle font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors"
+                  >
+                    <EditIcon />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    onClick={() => onToggleIgnoreFeedback(feedback.id)}
+                    className="flex items-center space-x-1 text-xs text-gray-600 dark:text-brand-subtle font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors"
+                    aria-label="Ignore comment"
+                  >
+                    <EyeSlashIcon />
+                    <span>Ignore</span>
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center space-x-1">
+              {feedback.status === 'error' && (
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  Error: {feedback.submissionError}
+                </p>
+              )}
 
-                {feedback.status === 'pending' && (
-                  <button
-                    onClick={handleAction}
-                    className="flex items-center space-x-1 text-xs bg-gray-600 dark:bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-0.5 px-1.5 rounded-md transition-colors"
-                  >
-                    <AddCommentIcon />
-                    <span>Add to MR</span>
-                  </button>
-                )}
-                {feedback.status === 'submitting' && (
-                  <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-brand-subtle py-0.5 px-1.5">
-                    <Spinner size="sm" /> <span>Posting...</span>
-                  </div>
-                )}
-                {feedback.status === 'submitted' && (
-                  <div className="flex items-center space-x-1 text-xs text-green-600 dark:text-green-400 py-0.5 px-1.5">
-                    <CheckmarkIcon />
-                    <span>Posted on GitLab</span>
-                  </div>
-                )}
-                {feedback.status === 'error' && (
-                  <button
-                    onClick={handleAction}
-                    className="flex items-center space-x-1 text-xs bg-red-600 hover:bg-red-500 text-white font-semibold py-0.5 px-1.5 rounded-md transition-colors"
-                  >
-                    <span>Retry</span>
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+              {feedback.status === 'pending' && (
+                <button
+                  onClick={handleAction}
+                  className="flex items-center space-x-1 text-xs bg-gray-600 dark:bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-0.5 px-1.5 rounded-md transition-colors"
+                >
+                  <AddCommentIcon />
+                  <span>Add to MR</span>
+                </button>
+              )}
+              {feedback.status === 'submitting' && (
+                <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-brand-subtle py-0.5 px-1.5">
+                  <Spinner size="sm" /> <span>Posting...</span>
+                </div>
+              )}
+              {feedback.status === 'submitted' && (
+                <div className="flex items-center space-x-1 text-xs text-green-600 dark:text-green-400 py-0.5 px-1.5">
+                  <CheckmarkIcon />
+                  <span>Posted on GitLab</span>
+                </div>
+              )}
+              {feedback.status === 'error' && (
+                <button
+                  onClick={handleAction}
+                  className="flex items-center space-x-1 text-xs bg-red-600 hover:bg-red-500 text-white font-semibold py-0.5 px-1.5 rounded-md transition-colors"
+                >
+                  <span>Retry</span>
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };

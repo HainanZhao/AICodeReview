@@ -16,6 +16,7 @@ import {
   Severity,
 } from './shared/src/types';
 import { ConfigModal } from './components/ConfigModal';
+import { ResizablePane } from './components/ResizablePane';
 import {
   loadConfig,
   loadTheme,
@@ -90,8 +91,6 @@ function App() {
 
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
 
-  type FeedbackUpdate = (prev: ReviewFeedback[] | null) => ReviewFeedback[];
-
   const handleReviewRequest = useCallback(
     async (url: string) => {
       if (!url.trim()) {
@@ -111,31 +110,51 @@ function App() {
       setIsAiAnalyzing(false);
 
       try {
+        // First, fetch MR details and existing comments - this is critical for manual review
         const result = await fetchMrDetails(url, config);
         if (!result?.mrDetails) {
-          throw new Error('Failed to fetch merge request details');
+          throw new Error('Failed to fetch merge request details from GitLab');
         }
 
-        // Set MR details and show existing comments immediately
+        // Set MR details and show existing comments immediately - this enables manual review
         setMrDetails(result.mrDetails);
         setFeedback(result.feedback || []); // Show existing comments right away
         setIsLoading(false);
 
-        // Then start AI review
+        // Now attempt AI review - if this fails, user can still review manually
         setIsAiAnalyzing(true);
-        const { feedback: aiReviewResult } = await reviewCode(result.mrDetails, config);
+        try {
+          const { feedback: aiReviewResult } = await reviewCode(result.mrDetails, config);
 
-        // Combine existing GitLab comments with new AI review comments
-        const existingFeedback = result.feedback || [];
-        const combinedFeedback = [...existingFeedback, ...aiReviewResult];
+          // Combine existing GitLab comments with new AI review comments
+          const existingFeedback = result.feedback || [];
+          const combinedFeedback = [...existingFeedback, ...aiReviewResult];
 
-        setFeedback(() => combinedFeedback);
-        setIsAiAnalyzing(false);
+          setFeedback(() => combinedFeedback);
+          setIsAiAnalyzing(false);
+        } catch (aiError) {
+          console.error('AI Review failed:', aiError);
+          setIsAiAnalyzing(false);
+          
+          // Set a non-blocking error message that doesn't prevent manual review
+          const aiErrorMessage = aiError instanceof Error ? aiError.message : 'AI review failed';
+          setError(
+            `AI Review Error: ${aiErrorMessage}. You can still review the code manually and add comments.`
+          );
+
+          // Keep the existing feedback (GitLab comments) and MR details intact
+          // This allows users to continue with manual review
+        }
       } catch (error) {
         console.error('Error fetching MR details:', error);
-        setError(error instanceof Error ? error.message : 'An error occurred');
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to fetch merge request details';
+        setError(`Unable to load merge request: ${errorMessage}`);
         setIsLoading(false);
         setIsAiAnalyzing(false);
+        // Clear everything if we can't even fetch MR details
+        setMrDetails(null);
+        setFeedback(null);
       }
     },
     [config]
@@ -145,6 +164,10 @@ function App() {
     setConfig(newConfig);
     setError(null);
   };
+
+  const handleClearError = useCallback(() => {
+    setError(null);
+  }, []);
 
   const handlePostComment = useCallback(
     async (feedbackId: string) => {
@@ -243,7 +266,13 @@ function App() {
       setFeedback(() => combinedFeedback);
     } catch (error) {
       console.error('Error during redo review:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred during review');
+      const errorMessage = error instanceof Error ? error.message : 'AI review failed';
+      setError(
+        `AI Review Error: ${errorMessage}. You can still review the code manually and add comments.`
+      );
+
+      // Keep existing feedback intact so user can continue with manual review
+      // Don't clear the current feedback - preserve what's already there
     } finally {
       setIsAiAnalyzing(false);
     }
@@ -418,7 +447,7 @@ function App() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col font-sans">
+    <div className="min-h-screen flex flex-col font-sans h-screen">
       <Header
         onOpenSettings={() => setIsConfigModalOpen(true)}
         onToggleTheme={handleThemeToggle}
@@ -430,40 +459,48 @@ function App() {
         onSave={handleSaveConfig}
         initialConfig={config}
       />
-      <main className="flex-grow w-full px-2 md:px-4 lg:px-4 py-2 md:py-3 lg:py-3 grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className={`flex flex-col ${mrDetails ? 'lg:col-span-3' : 'lg:col-span-4'}`}>
-          {mrDetails ? (
-            <MrSummary mrDetails={mrDetails} onNewReview={handleNewReview} />
-          ) : (
-            <ReviewDashboard
-              onReview={handleReviewRequest}
+      <main className="flex-grow w-full px-2 md:px-4 lg:px-4 py-2 md:py-3 lg:py-3 h-full">
+        <ResizablePane
+          defaultSizePercent={mrDetails ? 25 : 33}
+          minSizePercent={20}
+          maxSizePercent={50}
+          className="h-full"
+        >
+          <div className="flex flex-col h-full">
+            {mrDetails ? (
+              <MrSummary mrDetails={mrDetails} onNewReview={handleNewReview} />
+            ) : (
+              <ReviewDashboard
+                onReview={handleReviewRequest}
+                isLoading={isLoading}
+                config={config}
+                projects={projects}
+                isLoadingProjects={isLoadingProjects}
+              />
+            )}
+          </div>
+          <div className="flex flex-col h-full">
+            <FeedbackPanel
+              feedback={feedback}
+              mrDetails={mrDetails}
               isLoading={isLoading}
-              config={config}
-              projects={projects}
-              isLoadingProjects={isLoadingProjects}
+              error={error}
+              onPostComment={handlePostComment}
+              onPostAllComments={handlePostAllComments}
+              onUpdateFeedback={handleUpdateFeedback}
+              onDeleteFeedback={handleDeleteFeedback}
+              onSetEditing={handleSetEditing}
+              onAddCustomFeedback={handleAddCustomFeedback}
+              onToggleHunkCollapse={handleToggleHunkCollapse}
+              onExpandHunkContext={handleExpandHunkContext}
+              onToggleIgnoreFeedback={handleToggleIgnoreFeedback}
+              isAiAnalyzing={isAiAnalyzing}
+              onApproveMR={handleApproveMR}
+              onRedoReview={handleRedoReview}
+              onClearError={handleClearError}
             />
-          )}
-        </div>
-        <div className={`flex flex-col ${mrDetails ? 'lg:col-span-9' : 'lg:col-span-8'}`}>
-          <FeedbackPanel
-            feedback={feedback}
-            mrDetails={mrDetails}
-            isLoading={isLoading}
-            error={error}
-            onPostComment={handlePostComment}
-            onPostAllComments={handlePostAllComments}
-            onUpdateFeedback={handleUpdateFeedback}
-            onDeleteFeedback={handleDeleteFeedback}
-            onSetEditing={handleSetEditing}
-            onAddCustomFeedback={handleAddCustomFeedback}
-            onToggleHunkCollapse={handleToggleHunkCollapse}
-            onExpandHunkContext={handleExpandHunkContext}
-            onToggleIgnoreFeedback={handleToggleIgnoreFeedback}
-            isAiAnalyzing={isAiAnalyzing}
-            onApproveMR={handleApproveMR}
-            onRedoReview={handleRedoReview}
-          />
-        </div>
+          </div>
+        </ResizablePane>
       </main>
     </div>
   );

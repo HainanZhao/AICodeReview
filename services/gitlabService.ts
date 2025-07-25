@@ -3,7 +3,6 @@ import {
   GitLabMRDetails,
   FileDiff,
   ReviewFeedback,
-  ParsedDiffLine,
   ParsedFileDiff,
   GitLabProject,
   GitLabMergeRequest,
@@ -112,40 +111,34 @@ const fetchFileContentAsLines = async (
   }
 };
 
-const CONTEXT_LINES = 50;
+const MAX_FILE_LINES = 10000;
 
 export const parseDiffsToHunks = (
   diffs: FileDiff[],
   fileContents: Map<string, { oldContent?: string[]; newContent?: string[] }>
 ): { diffForPrompt: string; parsedDiffs: ParsedFileDiff[] } => {
   const parsedDiffs: ParsedFileDiff[] = [];
-
   const allDiffsForPrompt: string[] = [];
 
   diffs.forEach((file) => {
     const hunks: ParsedHunk[] = [];
-    let currentHunk: ParsedHunk | null = null;
     let oldLineOffset = 0;
     let newLineOffset = 0;
 
     const diffLines = file.diff.split('\n');
-    const oldFileContent = fileContents.get(file.new_path)?.oldContent;
     const newFileContent = fileContents.get(file.new_path)?.newContent;
 
-    let currentPromptHunkLines: string[] = [];
-
+    // Parse original hunks
     for (const line of diffLines) {
       if (line.startsWith('@@')) {
-        if (currentHunk) {
-          hunks.push(currentHunk);
-        }
         const match = line.match(/@@ -(\d+)(,(\d+))? \+(\d+)(,(\d+))? @@/);
         if (match) {
           const oldStartLine = parseInt(match[1], 10);
           const oldLineCount = match[3] ? parseInt(match[3], 10) : 1;
           const newStartLine = parseInt(match[4], 10);
           const newLineCount = match[6] ? parseInt(match[6], 10) : 1;
-          currentHunk = {
+
+          const currentHunk: ParsedHunk = {
             header: line,
             oldStartLine,
             oldLineCount,
@@ -154,41 +147,13 @@ export const parseDiffsToHunks = (
             lines: [],
             isCollapsed: false,
           };
-          // Reset offsets for new hunk
+          hunks.push(currentHunk);
           oldLineOffset = 0;
           newLineOffset = 0;
-
-          // Add context lines for the prompt
-          currentPromptHunkLines = [];
-          currentPromptHunkLines.push(`--- a/${file.old_path}`);
-          currentPromptHunkLines.push(`+++ b/${file.new_path}`);
-          currentPromptHunkLines.push(line); // Add the @@ header
-
-          // Add pre-context for the prompt
-          if (oldFileContent && newFileContent) {
-            const preContextLines: string[] = [];
-            const preContextStartOld = Math.max(0, oldStartLine - CONTEXT_LINES - 1);
-            const preContextStartNew = Math.max(0, newStartLine - CONTEXT_LINES - 1);
-
-            for (let i = 0; i < CONTEXT_LINES; i++) {
-              const oldLineIndex = preContextStartOld + i;
-              const newLineIndex = preContextStartNew + i;
-
-              if (
-                oldLineIndex >= 0 &&
-                newLineIndex >= 0 &&
-                oldFileContent[oldLineIndex] !== undefined &&
-                newFileContent[newLineIndex] !== undefined
-              ) {
-                preContextLines.push(' ' + newFileContent[newLineIndex]);
-              }
-            }
-            currentPromptHunkLines.push(...preContextLines);
-          }
         }
-      }
+      } else if (hunks.length > 0) {
+        const currentHunk = hunks[hunks.length - 1];
 
-      if (currentHunk) {
         if (line.startsWith('+') && !line.startsWith('+++')) {
           currentHunk.lines.push({
             type: 'add',
@@ -196,7 +161,6 @@ export const parseDiffsToHunks = (
             content: line.substring(1),
           });
           newLineOffset++;
-          currentPromptHunkLines.push(line);
         } else if (line.startsWith('-') && !line.startsWith('---')) {
           currentHunk.lines.push({
             type: 'remove',
@@ -204,8 +168,7 @@ export const parseDiffsToHunks = (
             content: line.substring(1),
           });
           oldLineOffset++;
-          currentPromptHunkLines.push(line);
-        } else if (line.startsWith(' ') && currentHunk) {
+        } else if (line.startsWith(' ')) {
           currentHunk.lines.push({
             type: 'context',
             oldLine: currentHunk.oldStartLine + oldLineOffset,
@@ -214,16 +177,116 @@ export const parseDiffsToHunks = (
           });
           oldLineOffset++;
           newLineOffset++;
-          currentPromptHunkLines.push(line);
         }
-        // Update the hunk offsets
-        currentHunk.oldLineOffset = oldLineOffset;
-        currentHunk.newLineOffset = newLineOffset;
       }
     }
-    if (currentHunk) {
-      hunks.push(currentHunk);
+
+    // Generate simplified prompt content
+    const promptParts: string[] = [];
+
+    // Files that typically don't contain meaningful code logic and should be excluded from full content
+    const isNonMeaningfulFile = (filePath: string): boolean => {
+      const fileName = filePath.toLowerCase();
+      const baseName = fileName.split('/').pop() || '';
+
+      // Lock files
+      if (
+        baseName.includes('lock') &&
+        (baseName.endsWith('.json') || baseName.endsWith('.yaml') || baseName.endsWith('.yml'))
+      ) {
+        return true;
+      }
+
+      // Common auto-generated or non-code files
+      const skipPatterns = [
+        // Package managers
+        'package-lock.json',
+        'yarn.lock',
+        'pnpm-lock.yaml',
+        'composer.lock',
+        'pipfile.lock',
+        'poetry.lock',
+        'cargo.lock',
+        'gemfile.lock',
+        'go.sum',
+
+        // Build artifacts and dependencies
+        'node_modules/',
+        'vendor/',
+        'target/',
+        'build/',
+        'dist/',
+        '.next/',
+        '.nuxt/',
+
+        // IDE and editor files
+        '.vscode/',
+        '.idea/',
+        '*.iml',
+
+        // Version control
+        '.git/',
+        '.gitignore',
+
+        // Large data files
+        '*.min.js',
+        '*.min.css',
+        '*.bundle.js',
+        '*.chunk.js',
+
+        // Binary or media files (though these shouldn't be in diffs usually)
+        '*.png',
+        '*.jpg',
+        '*.jpeg',
+        '*.gif',
+        '*.ico',
+        '*.pdf',
+        '*.zip',
+        '*.tar.gz',
+
+        // Generated documentation
+        'docs/api/',
+        'coverage/',
+
+        // Configuration files that are typically large and auto-generated
+        'webpack.config.js',
+        'vite.config.js',
+        'rollup.config.js',
+      ];
+
+      return skipPatterns.some((pattern) => {
+        if (pattern.endsWith('/')) {
+          return fileName.includes(pattern);
+        }
+        if (pattern.startsWith('*.')) {
+          return baseName.endsWith(pattern.substring(1));
+        }
+        return baseName === pattern || fileName.endsWith('/' + pattern);
+      });
+    };
+
+    // Check if we should include full file content (for small files with meaningful code)
+    const shouldIncludeFullFile =
+      newFileContent &&
+      newFileContent.length <= MAX_FILE_LINES &&
+      !file.deleted_file &&
+      !isNonMeaningfulFile(file.new_path);
+
+    if (shouldIncludeFullFile) {
+      // Include full file content with line numbers
+      promptParts.push(`\n=== FULL FILE CONTENT: ${file.new_path} ===`);
+      newFileContent.forEach((line, index) => {
+        promptParts.push(`${(index + 1).toString().padStart(4, ' ')}: ${line}`);
+      });
+      promptParts.push(`=== END FILE CONTENT ===\n`);
     }
+
+    // Always include the git diff
+    promptParts.push(`\n=== GIT DIFF: ${file.new_path} ===`);
+    promptParts.push(file.diff);
+    promptParts.push(`=== END DIFF ===\n`);
+
+    allDiffsForPrompt.push(promptParts.join('\n'));
 
     parsedDiffs.push({
       filePath: file.new_path,
@@ -233,53 +296,33 @@ export const parseDiffsToHunks = (
       isRenamed: file.renamed_file,
       hunks,
     });
-
-    // Add post-context for the prompt
-    if (oldFileContent && newFileContent && currentHunk) {
-      const postContextLines: string[] = [];
-      const postContextStartOld = currentHunk.oldStartLine + currentHunk.oldLineCount - 1;
-      const postContextStartNew = currentHunk.newStartLine + currentHunk.newLineCount - 1;
-
-      for (let i = 0; i < CONTEXT_LINES; i++) {
-        const oldLineIndex = postContextStartOld + i;
-        const newLineIndex = postContextStartNew + i;
-
-        if (
-          oldLineIndex < oldFileContent.length &&
-          newLineIndex < newFileContent.length &&
-          oldFileContent[oldLineIndex] !== undefined &&
-          newFileContent[newLineIndex] !== undefined
-        ) {
-          postContextLines.push(' ' + newFileContent[newLineIndex]);
-        }
-      }
-      currentPromptHunkLines.push(...postContextLines);
-    }
-    allDiffsForPrompt.push(currentPromptHunkLines.join('\n'));
   });
 
-  return { diffForPrompt: allDiffsForPrompt.join('\n'), parsedDiffs };
+  return {
+    diffForPrompt: allDiffsForPrompt.join('\n'),
+    parsedDiffs,
+  };
 };
 
 const fetchMrDiscussions = async (
   config: Config,
   projectId: number,
   mrIid: string
-): Promise<any[]> => {
+): Promise<GitLabDiscussion[]> => {
   const url = `${config.gitlabUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions`;
   return gitlabApiFetch(url, config);
 };
 
-const convertDiscussionsToFeedback = (discussions: any[]): ReviewFeedback[] => {
+const convertDiscussionsToFeedback = (discussions: GitLabDiscussion[]): ReviewFeedback[] => {
   return discussions.flatMap((discussion) =>
     discussion.notes
-      .filter((note: GitLabDiscussion['notes'][0]) => !note.system && note.position) // Only inline comments with position
-      .map((note: GitLabDiscussion['notes'][0]) => ({
+      .filter((note) => !note.system && note.position) // Only inline comments with position
+      .map((note) => ({
         id: `gitlab-${note.id}`,
         lineNumber: note.position?.new_line || 0,
         filePath: note.position?.new_path || '',
         severity: Severity.Info,
-        title: `Comment by ${note.author.name}`,
+        title: `Comment by ${note.author.name || note.author.username}`,
         description: note.body,
         lineContent: '', // We don't have this from the API
         position: {
@@ -287,12 +330,12 @@ const convertDiscussionsToFeedback = (discussions: any[]): ReviewFeedback[] => {
           start_sha: '',
           head_sha: '',
           position_type: 'text',
-          old_path: note.position.old_path || note.position.new_path,
-          new_path: note.position.new_path,
-          new_line: note.position.new_line,
-          old_line: note.position.old_line,
+          old_path: note.position?.old_path || note.position?.new_path || '',
+          new_path: note.position?.new_path || '',
+          new_line: note.position?.new_line,
+          old_line: note.position?.old_line,
         },
-        status: 'submitted',
+        status: 'submitted' as const,
         isExisting: true,
       }))
   );
@@ -306,10 +349,11 @@ export const fetchMrData = async (config: Config, mrUrl: string): Promise<GitLab
   // First get the MR details
   const mr = await gitlabApiFetch(baseUrl, config);
 
-  // Then fetch versions and discussions in parallel
-  const [versions, discussions] = await Promise.all([
+  // Then fetch versions, discussions, and approvals in parallel
+  const [versions, discussions, approvals] = await Promise.all([
     gitlabApiFetch(`${baseUrl}/versions`, config),
     fetchMrDiscussions(config, mr.project_id, mrIid),
+    gitlabApiFetch(`${baseUrl}/approvals`, config).catch(() => null), // Approvals might not be available in all GitLab versions
   ]);
 
   const latestVersion = versions[0];
@@ -332,7 +376,6 @@ export const fetchMrData = async (config: Config, mrUrl: string): Promise<GitLab
   }
 
   const fileContents = new Map<string, { oldContent?: string[]; newContent?: string[] }>();
-  const { diffForPrompt, parsedDiffs } = parseDiffsToHunks(diffs, fileContents);
 
   // Convert existing inline discussions to feedback items (only show inline comments with position)
   const existingFeedback = convertDiscussionsToFeedback(discussions);
@@ -358,6 +401,9 @@ export const fetchMrData = async (config: Config, mrUrl: string): Promise<GitLab
     fileContents.set(diff.new_path, { oldContent, newContent });
   });
   await Promise.all(contentPromises);
+
+  // Parse diffs with expanded context AFTER file contents are available
+  const { diffForPrompt, parsedDiffs } = parseDiffsToHunks(diffs, fileContents);
 
   // Fill in the SHA values for existing feedback positions
   existingFeedback.forEach((feedback: ReviewFeedback) => {
@@ -386,6 +432,7 @@ export const fetchMrData = async (config: Config, mrUrl: string): Promise<GitLab
     fileContents,
     discussions, // Include discussions for reference
     existingFeedback, // Add existing feedback to the returned object
+    approvals, // Include approval information
   };
 };
 
@@ -393,14 +440,12 @@ export const postDiscussion = async (
   config: Config,
   mrDetails: GitLabMRDetails,
   feedback: ReviewFeedback
-): Promise<any> => {
+): Promise<GitLabDiscussion> => {
   const { projectId, mrIid } = mrDetails;
 
   const body = `
 **${feedback.severity}: ${feedback.title}**
-
 ${feedback.description}
-
 *Powered by AI Code Reviewer*
     `;
 

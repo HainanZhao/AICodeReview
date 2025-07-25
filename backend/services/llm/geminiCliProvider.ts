@@ -2,8 +2,10 @@ import { LLMProvider, ReviewRequest, ReviewResponse } from './types.js';
 import { Request, Response } from 'express';
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
+import { ReviewPromptBuilder } from './promptBuilder.js';
 
 const execAsync = promisify(exec);
+
 interface GeminiItem {
   filePath: string;
   lineNumber: number;
@@ -23,27 +25,7 @@ export class GeminiCliProvider implements LLMProvider {
   }
 
   private buildPrompt(diff: string): string {
-    return `Please review the following code changes from a merge request.
-
-\`\`\`diff
-${diff}
-\`\`\`
-
-Analyze the code changes for:
-1. Code quality issues
-2. Performance concerns
-3. Security vulnerabilities
-4. Style and best practices
-5. Potential bugs or errors
-
-Focus on the changes introduced (lines starting with '+'). Format your response as a JSON array of review items, where each item has:
-- filePath: string (must match one of the files in the diff)
-- lineNumber: number (line number in new file, use 0 for general comments)
-- severity: "Critical" | "Warning" | "Suggestion" | "Info"
-- title: string (short, concise title)
-- description: string (detailed explanation and suggestions)
-
-Return an empty array if the code is exemplary. No pleasantries or extra text, just the JSON array.`;
+    return ReviewPromptBuilder.buildPrompt(diff, { modelType: 'gemini' });
   }
 
   public async initializeWithCleanup(): Promise<void> {
@@ -71,7 +53,7 @@ Return an empty array if the code is exemplary. No pleasantries or extra text, j
         return [];
       }
       return parsed;
-    } catch (error) {
+    } catch {
       console.warn('Failed to parse JSON, assuming no recommendations.');
       return [];
     }
@@ -109,6 +91,7 @@ Return an empty array if the code is exemplary. No pleasantries or extra text, j
           })
         );
 
+        // With the simplified approach, line numbers should be accurate from the start
         res.json(validatedResponse);
       } catch (execError) {
         console.error('Error executing gemini:', execError);

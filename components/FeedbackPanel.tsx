@@ -4,12 +4,13 @@ import {
   GitLabMRDetails,
   ParsedFileDiff,
   ParsedDiffLine,
+  ParsedHunk,
   Severity,
 } from '../shared/src/types';
 import { FileDiffCard } from './FileDiffCard';
 import { FeedbackCard } from './FeedbackCard';
 import { Spinner } from './Spinner';
-import { ArrowUpIcon, ArrowDownIcon, ApproveIcon, RefreshIcon } from './icons';
+import { ArrowUpIcon, ArrowDownIcon, ApproveIcon, RefreshIcon, CheckmarkIcon } from './icons';
 
 interface FeedbackPanelProps {
   onRedoReview?: () => void;
@@ -32,7 +33,8 @@ interface FeedbackPanelProps {
   ) => void;
   onToggleIgnoreFeedback: (id: string) => void;
   isAiAnalyzing: boolean;
-  onApproveMR?: () => Promise<void>;
+  onApproveMR?: () => void;
+  onClearError?: () => void;
 }
 
 const InitialState = () => (
@@ -105,6 +107,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
     isAiAnalyzing,
     onApproveMR,
     onRedoReview,
+    onClearError,
     ...handlers
   } = props;
   const [currentCommentIndex, setCurrentCommentIndex] = useState(-1);
@@ -171,7 +174,11 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
 
         if (bestHunk && minDistance > 0) {
           const { hunkIndex } = bestHunk;
-          const direction = comment.lineNumber < bestHunk.hunk.newStartLine ? 'up' : 'down';
+          const direction =
+            comment.lineNumber <
+            (bestHunk as { hunk: ParsedHunk; hunkIndex: number }).hunk.newStartLine
+              ? 'up'
+              : 'down';
           const linesToExpand = Math.min(minDistance + 5, 20); // Expand enough to show the line plus some context, max 20 lines
 
           handlers.onExpandHunkContext(comment.filePath, hunkIndex, direction, linesToExpand);
@@ -184,8 +191,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
     if (!feedback || !mrDetails) return []; // Need mrDetails for file order
 
     const pending = feedback.filter(
-      (f: ReviewFeedback) =>
-        f.status === 'pending' && f.severity !== 'Info' && !f.isEditing && !f.isIgnored
+      (f: ReviewFeedback) => f.status === 'pending' && !f.isEditing && !f.isIgnored
     );
 
     // Sort comments based on their visual order
@@ -238,44 +244,13 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   const activeFeedbackId =
     currentCommentIndex > -1 ? pendingComments[currentCommentIndex]?.id : null;
 
-  const renderContent = () => {
-    if (isLoading && !isAiAnalyzing) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full text-center">
-          <Spinner size="lg" />
-          <p className="mt-4 text-lg text-gray-500 dark:text-brand-subtle">Loading MR details...</p>
-          <p className="text-sm text-gray-500/70 dark:text-brand-subtle/70">
-            Fetching merge request information.
-          </p>
-        </div>
-      );
-    }
-
-    if (isLoading && isAiAnalyzing) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full text-center">
-          <Spinner size="lg" />
-          <p className="mt-4 text-lg text-gray-500 dark:text-brand-subtle">AI is thinking...</p>
-          <p className="text-sm text-gray-500/70 dark:text-brand-subtle/70">
-            Analyzing your merge request for quality and improvements.
-          </p>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="text-center text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 p-4 rounded-lg">
-          <h3 className="font-bold">An Error Occurred</h3>
-          <p>{error}</p>
-        </div>
-      );
-    }
-
+  const renderMainContent = () => {
     if (!mrDetails) {
       return (
-        <div className="flex items-center justify-center h-full">
-          <InitialState />
+        <div className="flex items-center justify-center py-10">
+          <div className="text-gray-500 dark:text-brand-subtle text-center">
+            <p>No MR details available</p>
+          </div>
         </div>
       );
     }
@@ -292,8 +267,8 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
     return (
       <div className="space-y-1.5">
         {pendingComments.length > 0 && (
-          <div className="p-1.5 bg-gray-100/80 dark:bg-brand-primary/50 rounded-lg flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm">
-            <p className="text-xs text-gray-600 dark:text-brand-subtle">
+          <div className="p-3 bg-white/20 dark:bg-gray-900/20 border border-white/30 dark:border-gray-700/30 rounded-xl flex items-center justify-between sticky top-0 z-10 backdrop-blur-md shadow-lg shadow-black/5 dark:shadow-black/20">
+            <p className="text-sm text-orange-800 dark:text-orange-300 font-semibold px-2 py-1">
               {pendingComments.length} comments to post.
             </p>
             <div className="flex items-center space-x-2">
@@ -333,14 +308,14 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
 
         {/* Display general MR comments first */}
         {generalComments.length > 0 && (
-          <div className="space-y-1.5">
-            <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 px-2">
+          <div className="space-y-2 mb-4">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-brand-subtle mb-2">
               General Comments
             </h3>
-            {generalComments.map((comment) => (
+            {generalComments.map((item) => (
               <FeedbackCard
-                key={comment.id}
-                feedback={comment}
+                key={item.id}
+                feedback={item}
                 onPostComment={onPostComment}
                 onUpdateFeedback={handlers.onUpdateFeedback}
                 onDeleteFeedback={handlers.onDeleteFeedback}
@@ -379,6 +354,100 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
     );
   };
 
+  const renderContent = () => {
+    if (isLoading && !isAiAnalyzing) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center">
+          <Spinner size="lg" />
+          <p className="mt-4 text-lg text-gray-500 dark:text-brand-subtle">Loading MR details...</p>
+          <p className="text-sm text-gray-500/70 dark:text-brand-subtle/70">
+            Fetching merge request information.
+          </p>
+        </div>
+      );
+    }
+
+    if (isLoading && isAiAnalyzing) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center">
+          <Spinner size="lg" />
+          <p className="mt-4 text-lg text-gray-500 dark:text-brand-subtle">AI is thinking...</p>
+          <p className="text-sm text-gray-500/70 dark:text-brand-subtle/70">
+            Analyzing your merge request for quality and improvements.
+          </p>
+        </div>
+      );
+    }
+
+    if (error) {
+      // Check if this is an AI review error but MR details are available for manual review
+      const isAiErrorWithManualReview = error.includes('AI Review Error:') && mrDetails;
+      
+      if (isAiErrorWithManualReview) {
+        // Show a dismissible warning but allow manual review to continue
+        return (
+          <div className="space-y-4">
+            <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path
+                      fillRule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-3 flex-1">
+                  <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                    AI Review Unavailable
+                  </h3>
+                  <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">{error}</p>
+                </div>
+                {onClearError && (
+                  <div className="ml-auto pl-3">
+                    <button
+                      onClick={onClearError}
+                      className="inline-flex rounded-md bg-yellow-50 dark:bg-yellow-900/30 p-1.5 text-yellow-400 hover:text-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 focus:ring-offset-yellow-50"
+                      aria-label="Dismiss error"
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path
+                          fillRule="evenodd"
+                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            {renderMainContent()}
+          </div>
+        );
+      }
+      
+      // Critical error - show full error screen
+      return (
+        <div className="text-center text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 p-4 rounded-lg">
+          <h3 className="font-bold">An Error Occurred</h3>
+          <p>{error}</p>
+        </div>
+      );
+    }
+
+    if (!mrDetails) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <InitialState />
+        </div>
+      );
+    }
+
+    return renderMainContent();
+  };
+
   return (
     <div className="bg-white dark:bg-brand-surface rounded-lg shadow-xl h-full flex flex-col">
       <div className="border-b border-gray-200 dark:border-brand-primary flex items-center justify-between px-4 py-2">
@@ -400,16 +469,31 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
               <span className="text-sm font-medium">AI Analyzing...</span>
             </div>
           )}
-          {mrDetails && onApproveMR && (
-            <button
-              onClick={onApproveMR}
-              className="h-[28px] px-2.5 flex items-center bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors"
-              aria-label="Approve merge request"
-            >
-              <ApproveIcon className="w-4 h-4 mr-1.5" />
-              <span>Approve MR</span>
-            </button>
-          )}
+          {mrDetails &&
+            onApproveMR &&
+            (() => {
+              const isApproved = mrDetails.approvals && mrDetails.approvals.approved_by.length > 0;
+
+              if (isApproved) {
+                return (
+                  <div className="h-[28px] px-2.5 flex items-center bg-green-200/80 dark:bg-green-800/40 text-green-900 dark:text-green-200 rounded text-sm font-medium">
+                    <CheckmarkIcon className="w-4 h-4 mr-1.5" />
+                    <span>Approved</span>
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  onClick={onApproveMR}
+                  className="h-[28px] px-2.5 flex items-center bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors"
+                  aria-label="Approve merge request"
+                >
+                  <ApproveIcon className="w-4 h-4 mr-1.5" />
+                  <span>Approve MR</span>
+                </button>
+              );
+            })()}
         </div>
       </div>
       <div

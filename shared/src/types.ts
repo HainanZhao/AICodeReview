@@ -37,10 +37,15 @@ export interface GitLabMRDetails {
   head_sha: string;
   fileDiffs: FileDiff[];
   diffForPrompt: string;
-  parsedDiffs: ParsedDiff[];
+  parsedDiffs: ParsedFileDiff[];
   fileContents: Map<string, { oldContent?: string[]; newContent?: string[] }>;
   discussions: GitLabDiscussion[];
   existingFeedback: ReviewFeedback[];
+  approvals?: {
+    approved_by: Array<{ user: { name: string; username: string } }>;
+    approvals_left: number;
+    approvals_required: number;
+  };
 }
 
 export interface ParsedDiff {
@@ -76,7 +81,7 @@ export interface ReviewFeedback {
   description: string;
   lineContent: string;
   position: GitLabPosition | null;
-  status: 'pending' | 'submitted';
+  status: 'pending' | 'submitted' | 'submitting' | 'error';
   isExisting?: boolean; // Indicates if this is an existing GitLab comment
   isEditing?: boolean;
   isIgnored?: boolean;
@@ -89,11 +94,15 @@ export interface GitLabNote {
   body: string;
   author: {
     username: string;
+    name: string;
   };
   created_at: string;
+  system?: boolean;
   position: {
     new_path: string;
     new_line: number;
+    old_path?: string;
+    old_line?: number;
   } | null;
 }
 
@@ -168,4 +177,19 @@ export interface GitLabMergeRequest {
   source_branch: string;
   target_branch: string;
   project_name?: string; // Manually added after fetching
+}
+
+// Context range for expanded diff hunks
+export interface ContextRange {
+  startLine: number; // 1-based line number
+  endLine: number; // 1-based line number
+  fileStartBoundary: boolean;
+  fileEndBoundary: boolean;
+}
+
+// Enhanced hunk with context lines
+export interface ExpandedHunk extends ParsedHunk {
+  preContext: ParsedDiffLine[]; // Lines before the actual changes
+  postContext: ParsedDiffLine[]; // Lines after the actual changes
+  contextRange: ContextRange;
 }
