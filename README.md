@@ -1,17 +1,41 @@
 # AI Code Reviewer
 
-AI-powered code review tool with web interface supporting multiple LLM providers including Gemini CLI, Google Gemini API, and Anthropic Claude.
+🤖 AI-powered code review tool with modern web interface supporting multiple LLM providers including Gemini CLI, Google Gemini API, and Anthropic Claude.
 
-## 🚀 Quick Start
+[![Version](https://img.shields.io/npm/v/aicodereview-cli)](https://www.npmjs.com/package/aicodereview-cli)
+[![License](https://img.shields.io/npm/l/aicodereview-cli)](https://github.com/HainanZhao/AICodeReview/blob/master/LICENSE)
+[![Node.js](https://img.shields.io/node/v/aicodereview-cli)](https://nodejs.org/)
+
+## ✨ Features
+
+- 🎯 **Advanced Context Analysis**: Enhanced diff expansion file context for comprehensive AI reviews
+- 🤖 **Multiple AI Providers**: Support for Gemini CLI, Google Gemini API, and Anthropic Claude
+- 🌐 **Modern Web Interface**: React-based responsive UI with real-time feedback
+- ⚙️ **Flexible Configuration**: Multiple configuration methods (CLI, files, environment variables)
+- 🚀 **Zero-config Start**: Works out of the box with sensible defaults
+- 🔍 **GitLab Integration**: Direct merge request analysis and review
+- 📊 **Comprehensive Testing**: Full test coverage with Vitest integration
+
+## � Requirements
+
+- **Node.js**: 16.0.0 or higher
+- **npm**: 7.0.0 or higher
+- **Operating System**: macOS, Linux, or Windows
+- **For Gemini CLI**: Google Cloud CLI and authenticated access
+
+## �🚀 Quick Start
 
 ### Installation
 
 ```bash
-# Install globally
+# Install globally (recommended)
 npm install -g aicodereview-cli
 
 # Or run without installing
 npx aicodereview-cli
+
+# Verify installation
+aicodereview --version
 ```
 
 ### Basic Usage
@@ -29,7 +53,7 @@ aicodereview --provider gemini --api-key YOUR_GEMINI_API_KEY
 # Use Gemini CLI with Google Cloud project
 aicodereview --provider gemini-cli --google-cloud-project YOUR_PROJECT_ID
 
-# Interactive setup wizard
+# Interactive setup wizard (recommended for first-time users)
 aicodereview --init
 ```
 
@@ -37,6 +61,7 @@ The tool will:
 - 🌐 Start a web interface (default: http://localhost:5960)
 - 🚀 Automatically open your browser
 - ⚙️ Use Gemini CLI provider by default (no API key needed)
+- 🔍 Provide enhanced context analysis for accurate reviews
 
 ---
 
@@ -173,20 +198,11 @@ aicodereview --provider gemini-cli --google-cloud-project my-project-123
 aicodereview --no-open
 ```
 
-## 🔍 Troubleshooting
 
-### Common Issues Fixed ✅
-
-The following ES module issues have been resolved in the latest version:
-- ✅ `ERR_REQUIRE_ESM` errors when running the CLI
-- ✅ Module resolution issues in global npm installations
-- ✅ Development mode compatibility with ES modules
-- ✅ Static file serving in production builds
-
-### Port Already in Use
+#### Port Already in Use
 The tool automatically finds an available port if the specified port is busy.
 
-### API Key Issues
+#### API Key Issues
 Make sure your API key is valid and has proper permissions for the chosen provider.
 
 ### Gemini CLI Issues
@@ -273,11 +289,29 @@ npm run pack:test
 │   └── services/llm/      # LLM provider implementations
 ├── components/            # React components
 ├── services/              # Frontend services
+├── shared/                # Shared types and utilities
 └── dist/                  # Built files
     ├── public/            # Static web assets
     └── server/            # Compiled server files
 ```
 
+### Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run with coverage
+npm run test:coverage
+```
+
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+**Made with ❤️ for better code reviews**

@@ -130,9 +130,14 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
   }, [feedback.isEditing, feedback.description, feedback.severity]);
 
   useEffect(() => {
-    const handleClickOutside = () => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (isDropdownOpen) {
-        setIsDropdownOpen(false);
+        const target = event.target as Element;
+        // Check if the click is outside the dropdown
+        const dropdownElement = document.querySelector(`[data-dropdown-id="${feedback.id}"]`);
+        if (dropdownElement && !dropdownElement.contains(target)) {
+          setIsDropdownOpen(false);
+        }
       }
     };
 
@@ -143,7 +148,7 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isDropdownOpen]);
+  }, [isDropdownOpen, feedback.id]);
 
   const handleSave = () => {
     onUpdateFeedback(feedback.id, feedback.title, editedDescription, editedSeverity);
@@ -194,7 +199,7 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
               >
                 <TrashIcon />
               </button>
-              <div className="relative">
+              <div className="relative" data-dropdown-id={feedback.id}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center space-x-1 text-xs text-gray-700 dark:text-brand-text font-semibold py-1 px-2 bg-gray-200 dark:bg-brand-primary/80 rounded-md hover:bg-gray-300 dark:hover:bg-brand-primary transition-colors"
@@ -210,7 +215,9 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
                     {Object.entries(SEVERITY_CONFIG).map(([severity, config]) => (
                       <button
                         key={severity}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           setEditedSeverity(severity as Severity);
                           setIsDropdownOpen(false);
                         }}
