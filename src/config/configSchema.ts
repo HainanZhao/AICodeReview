@@ -27,33 +27,33 @@ export const CONFIG_SCHEMA = {
       type: 'object',
       properties: {
         port: { type: 'number', minimum: 1, maximum: 65535 },
-        host: { type: 'string' }
+        host: { type: 'string' },
       },
-      required: ['port', 'host']
+      required: ['port', 'host'],
     },
     llm: {
       type: 'object',
       properties: {
-        provider: { 
-          type: 'string', 
-          enum: ['gemini-cli', 'gemini', 'anthropic'] 
+        provider: {
+          type: 'string',
+          enum: ['gemini-cli', 'gemini', 'anthropic'],
         },
         apiKey: { type: 'string' },
-        googleCloudProject: { type: 'string' }
+        googleCloudProject: { type: 'string' },
       },
-      required: ['provider']
+      required: ['provider'],
     },
     ui: {
       type: 'object',
       properties: {
-        theme: { 
-          type: 'string', 
-          enum: ['light', 'dark', 'auto'] 
+        theme: {
+          type: 'string',
+          enum: ['light', 'dark', 'auto'],
         },
-        autoOpen: { type: 'boolean' }
+        autoOpen: { type: 'boolean' },
       },
-      required: ['theme', 'autoOpen']
-    }
+      required: ['theme', 'autoOpen'],
+    },
   },
-  required: ['server', 'llm', 'ui']
+  required: ['server', 'llm', 'ui'],
 };

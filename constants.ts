@@ -1,4 +1,3 @@
-
 export const SUPPORTED_LANGUAGES = [
   { value: 'javascript', label: 'JavaScript' },
   { value: 'typescript', label: 'TypeScript' },

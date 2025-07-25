@@ -16,7 +16,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   console.log(`📋 Configuration loaded:`);
   console.log(`   • Provider: ${config.llm.provider}`);
   console.log(`   • Host: ${config.server.host}`);
-  
+
   // Find available port
   const availablePort = await findAvailablePort(config.server.port, config.server.host);
   if (availablePort !== config.server.port) {
@@ -40,13 +40,23 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   // Initialize LLM provider - dynamically import from backend
   try {
     console.log('\n🤖 Initializing LLM provider...');
-    
+
     // Import the backend module using dynamic import for ES module compatibility
-    const backendPath = join(__dirname, '..', '..', 'backend', 'dist', 'backend', 'services', 'llm', 'providerFactory.js');
+    const backendPath = join(
+      __dirname,
+      '..',
+      '..',
+      'backend',
+      'dist',
+      'backend',
+      'services',
+      'llm',
+      'providerFactory.js'
+    );
     const { createLLMProvider } = await import(backendPath);
-    
+
     const llmProvider = await createLLMProvider(config.llm.provider, config.llm.apiKey);
-    
+
     // Set up API routes
     app.post('/api/review', llmProvider.reviewCode.bind(llmProvider));
     console.log('✅ LLM provider initialized successfully');
@@ -58,12 +68,12 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   // Serve static files (built frontend)
   const distPath = join(__dirname, '..', 'public');
   app.use(express.static(distPath));
-  
+
   // Handle common browser requests that we expect to fail silently
   app.get('/favicon.ico', (_req, res) => res.status(204).end());
   app.get('/robots.txt', (_req, res) => res.status(204).end());
   app.get('/manifest.json', (_req, res) => res.status(204).end());
-  
+
   // Serve index.html for all non-API routes (SPA routing)
   app.get('/', (_req, res) => {
     res.sendFile(join(distPath, 'index.html'), (err) => {
@@ -72,7 +82,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       }
     });
   });
-  
+
   // Handle all other non-API routes for SPA
   app.get(/^(?!\/api).*$/, (_req, res) => {
     res.sendFile(join(distPath, 'index.html'), (err) => {
@@ -89,7 +99,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       res.status(404).end();
       return;
     }
-    
+
     // Log other errors
     console.error('Server error:', err);
     res.status(500).end();
@@ -98,7 +108,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   // Start server
   const server = app.listen(availablePort, config.server.host, async () => {
     const url = `http://${config.server.host}:${availablePort}`;
-    
+
     console.log('\n✅ AI Code Review is ready!');
     console.log(`   🌐 Web interface: ${url}`);
     console.log(`   🛑 Press Ctrl+C to stop\n`);

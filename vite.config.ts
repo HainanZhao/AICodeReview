@@ -1,30 +1,36 @@
 import path from 'path';
 import { defineConfig } from 'vite';
 
+import path from 'path';
+import { defineConfig } from 'vite';
+
 export default defineConfig({
-    build: {
-        outDir: 'dist/public',
-        emptyOutDir: true,
-        rollupOptions: {
-            output: {
-                manualChunks: undefined
-            }
-        }
+  build: {
+    outDir: 'dist/public',
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
     },
-    server: {
-        port: 5960,
-        proxy: {
-            '/api': {
-                target: 'http://localhost:5959',
-                changeOrigin: true,
-                secure: false,
-                rewrite: (path) => path.replace(/^\/api/, '/api'),
-            },
-        },
+  },
+  server: {
+    port: 5960,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5959',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
+      },
     },
-    resolve: {
-        alias: {
-            '@': path.resolve(__dirname, '.'),
-        }
-    }
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, '.'),
+    },
+  },
+  test: {
+    globals: true,
+  },
 });

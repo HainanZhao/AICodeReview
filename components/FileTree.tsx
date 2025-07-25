@@ -4,20 +4,28 @@ import { ParsedFileDiff } from '../types';
 // Expand/Collapse icons
 const ExpandAllIcon = () => (
   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+      clipRule="evenodd"
+    />
   </svg>
 );
 
 const CollapseAllIcon = () => (
   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h8a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h4a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h8a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h4a1 1 0 110 2H4a1 1 0 01-1-1z"
+      clipRule="evenodd"
+    />
   </svg>
 );
 
 // File type icons
 const FileIcon = ({ fileName }: { fileName: string }) => {
   const extension = fileName.split('.').pop()?.toLowerCase() || '';
-  
+
   // Different colors for different file types
   const getFileTypeColor = (ext: string) => {
     switch (ext) {
@@ -43,26 +51,30 @@ const FileIcon = ({ fileName }: { fileName: string }) => {
   };
 
   return (
-    <svg 
+    <svg
       className={`w-3 h-3 ${getFileTypeColor(extension)}`}
-      fill="currentColor" 
+      fill="currentColor"
       viewBox="0 0 20 20"
     >
-      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+      <path
+        fillRule="evenodd"
+        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+        clipRule="evenodd"
+      />
     </svg>
   );
 };
 
 const FolderIcon = ({ isOpen }: { isOpen: boolean }) => (
-  <svg 
-    className="w-3 h-3 text-blue-500 dark:text-blue-400" 
-    fill="currentColor" 
-    viewBox="0 0 20 20"
-  >
+  <svg className="w-3 h-3 text-blue-500 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
     {isOpen ? (
       <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v5a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
     ) : (
-      <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v5a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+      <path
+        fillRule="evenodd"
+        d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v5a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+        clipRule="evenodd"
+      />
     )}
   </svg>
 );
@@ -101,7 +113,7 @@ export const FileTree: React.FC<FileTreeProps> = ({ fileDiffs, onFileClick }) =>
     if (!node.isFile && node.name) {
       paths.push(node.path);
     }
-    node.children.forEach(child => {
+    node.children.forEach((child) => {
       getAllFolderPaths(child, paths);
     });
     return paths;
@@ -125,10 +137,10 @@ export const FileTree: React.FC<FileTreeProps> = ({ fileDiffs, onFileClick }) =>
       name: '',
       path: '',
       isFile: false,
-      children: new Map()
+      children: new Map(),
     };
 
-    fileDiffs.forEach(fileDiff => {
+    fileDiffs.forEach((fileDiff) => {
       const pathParts = fileDiff.filePath.split('/');
       let currentNode = root;
       let currentPath = '';
@@ -143,7 +155,7 @@ export const FileTree: React.FC<FileTreeProps> = ({ fileDiffs, onFileClick }) =>
             path: currentPath,
             isFile: isLastPart,
             fileDiff: isLastPart ? fileDiff : undefined,
-            children: new Map()
+            children: new Map(),
           });
         }
 
@@ -186,7 +198,7 @@ export const FileTree: React.FC<FileTreeProps> = ({ fileDiffs, onFileClick }) =>
     // Folder node
     const isExpanded = expandedFolders.has(node.path);
     const children = Array.from(node.children.values());
-    
+
     if (children.length === 0) return null;
 
     return (
@@ -203,7 +215,7 @@ export const FileTree: React.FC<FileTreeProps> = ({ fileDiffs, onFileClick }) =>
               {node.name}
             </span>
             <span className="text-gray-400 dark:text-gray-500 text-xs">
-              ({children.filter(child => child.isFile).length})
+              ({children.filter((child) => child.isFile).length})
             </span>
           </div>
         )}
@@ -216,7 +228,7 @@ export const FileTree: React.FC<FileTreeProps> = ({ fileDiffs, onFileClick }) =>
                 if (a.isFile && !b.isFile) return 1;
                 return a.name.localeCompare(b.name);
               })
-              .map(child => renderNode(child, depth + 1))}
+              .map((child) => renderNode(child, depth + 1))}
           </div>
         )}
       </div>
@@ -224,7 +236,7 @@ export const FileTree: React.FC<FileTreeProps> = ({ fileDiffs, onFileClick }) =>
   };
 
   const tree = buildTree(fileDiffs);
-  
+
   // Auto-expand all folders by default, then switch to selective expansion for large trees
   React.useEffect(() => {
     const allPaths = getAllFolderPaths(tree);
@@ -233,10 +245,10 @@ export const FileTree: React.FC<FileTreeProps> = ({ fileDiffs, onFileClick }) =>
   }, [fileDiffs]);
 
   const totalFiles = fileDiffs.length;
-  const addedFiles = fileDiffs.filter(f => f.isNew).length;
-  const modifiedFiles = fileDiffs.filter(f => !f.isNew && !f.isDeleted && !f.isRenamed).length;
-  const deletedFiles = fileDiffs.filter(f => f.isDeleted).length;
-  const renamedFiles = fileDiffs.filter(f => f.isRenamed).length;
+  const addedFiles = fileDiffs.filter((f) => f.isNew).length;
+  const modifiedFiles = fileDiffs.filter((f) => !f.isNew && !f.isDeleted && !f.isRenamed).length;
+  const deletedFiles = fileDiffs.filter((f) => f.isDeleted).length;
+  const renamedFiles = fileDiffs.filter((f) => f.isRenamed).length;
 
   return (
     <div className="space-y-2">
@@ -263,7 +275,7 @@ export const FileTree: React.FC<FileTreeProps> = ({ fileDiffs, onFileClick }) =>
           </button>
         </div>
       </div>
-      
+
       {/* File stats */}
       <div className="flex flex-wrap gap-1 text-xs">
         {addedFiles > 0 && (

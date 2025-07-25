@@ -10,7 +10,12 @@ interface ConfigModalProps {
   initialConfig: Config | null;
 }
 
-export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, onSave, initialConfig }) => {
+export const ConfigModal: React.FC<ConfigModalProps> = ({
+  isOpen,
+  onClose,
+  onSave,
+  initialConfig,
+}) => {
   const [gitlabUrl, setGitlabUrl] = useState('');
   const [accessToken, setAccessToken] = useState('');
 
@@ -26,24 +31,38 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, onSav
   }
 
   const handleSave = () => {
-    const newConfig = { gitlabUrl: gitlabUrl.trim().replace(/\/$/, ''), accessToken: accessToken.trim() };
+    const newConfig = {
+      gitlabUrl: gitlabUrl.trim().replace(/\/$/, ''),
+      accessToken: accessToken.trim(),
+    };
     saveConfig(newConfig);
     onSave(newConfig);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center" aria-modal="true" role="dialog">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center"
+      aria-modal="true"
+      role="dialog"
+    >
       <div className="bg-white dark:bg-brand-surface rounded-lg shadow-2xl w-full max-w-md m-4 transform transition-all">
         <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-brand-primary">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Configuration</h2>
-          <button onClick={onClose} className="text-gray-500 dark:text-brand-subtle hover:text-gray-900 dark:hover:text-white transition-colors" aria-label="Close settings">
+          <button
+            onClick={onClose}
+            className="text-gray-500 dark:text-brand-subtle hover:text-gray-900 dark:hover:text-white transition-colors"
+            aria-label="Close settings"
+          >
             <CloseIcon />
           </button>
         </div>
         <div className="p-6 space-y-6">
           <div>
-            <label htmlFor="gitlab-url" className="block text-sm font-medium text-gray-600 dark:text-brand-subtle mb-2">
+            <label
+              htmlFor="gitlab-url"
+              className="block text-sm font-medium text-gray-600 dark:text-brand-subtle mb-2"
+            >
               GitLab URL
             </label>
             <input
@@ -54,10 +73,15 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, onSav
               placeholder="https://gitlab.com"
               className="w-full p-3 bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text font-mono text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary"
             />
-            <p className="text-xs text-gray-500 dark:text-brand-subtle mt-1">The base URL of your GitLab instance.</p>
+            <p className="text-xs text-gray-500 dark:text-brand-subtle mt-1">
+              The base URL of your GitLab instance.
+            </p>
           </div>
           <div>
-            <label htmlFor="access-token" className="block text-sm font-medium text-gray-600 dark:text-brand-subtle mb-2">
+            <label
+              htmlFor="access-token"
+              className="block text-sm font-medium text-gray-600 dark:text-brand-subtle mb-2"
+            >
               Personal Access Token
             </label>
             <input
@@ -69,7 +93,8 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, onSav
               className="w-full p-3 bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text font-mono text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary"
             />
             <p className="text-xs text-gray-500 dark:text-brand-subtle mt-1">
-              Requires 'api' and 'read_api' scopes. Your token is stored in your browser's local storage.
+              Requires &apos;api&apos; and &apos;read_api&apos; scopes. Your token is stored in your
+              browser&apos;s local storage.
             </p>
           </div>
         </div>

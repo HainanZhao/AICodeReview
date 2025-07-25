@@ -3,16 +3,16 @@ import { Request, Response } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 
 export class AnthropicProvider implements LLMProvider {
-    private client: Anthropic;
+  private client: Anthropic;
 
-    constructor(apiKey: string) {
-        this.client = new Anthropic({
-            apiKey
-        });
-    }
+  constructor(apiKey: string) {
+    this.client = new Anthropic({
+      apiKey,
+    });
+  }
 
-    private buildPrompt(diff: string): string {
-        return `Please review the following code changes from a merge request.
+  private buildPrompt(diff: string): string {
+    return `Please review the following code changes from a merge request.
 
 \`\`\`diff
 ${diff}
@@ -33,50 +33,51 @@ Focus on the changes introduced (lines starting with '+'). Format your response 
 - description: string (detailed explanation and suggestions)
 
 Return an empty array if the code is exemplary. No pleasantries or extra text, just the JSON array.`;
+  }
+
+  public async reviewCode(req: Request, res: Response): Promise<void> {
+    const { diffForPrompt } = req.body as ReviewRequest;
+
+    if (!diffForPrompt) {
+      res.status(400).json({ error: 'Missing diffForPrompt in request body.' });
+      return;
     }
 
-    public async reviewCode(req: Request, res: Response): Promise<void> {
-        const { diffForPrompt } = req.body as ReviewRequest;
+    try {
+      const message = await this.client.messages.create({
+        model: 'claude-3-sonnet-20240229',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: this.buildPrompt(diffForPrompt) }],
+      });
 
-        if (!diffForPrompt) {
-            res.status(400).json({ error: "Missing diffForPrompt in request body." });
-            return;
-        }
+      const text = message.content[0].text.trim();
 
-        try {
-            const message = await this.client.messages.create({
-                model: "claude-3-sonnet-20240229",
-                max_tokens: 4000,
-                messages: [{ role: "user", content: this.buildPrompt(diffForPrompt) }]
-            });
-            
-            const text = message.content[0].text.trim();
-            
-            if (!text) {
-                res.json([]);
-                return;
-            }
+      if (!text) {
+        res.json([]);
+        return;
+      }
 
-            const parsedResponse = JSON.parse(text);
-            if (!Array.isArray(parsedResponse)) {
-                console.warn("Unexpected JSON structure from API:", parsedResponse);
-                res.status(500).json({ error: "Unexpected response format from LLM API." });
-                return;
-            }
+      const parsedResponse = JSON.parse(text);
+      if (!Array.isArray(parsedResponse)) {
+        console.warn('Unexpected JSON structure from API:', parsedResponse);
+        res.status(500).json({ error: 'Unexpected response format from LLM API.' });
+        return;
+      }
 
-            const validatedResponse = parsedResponse.map((item: any): ReviewResponse => ({
-                filePath: String(item.filePath),
-                lineNumber: Number(item.lineNumber),
-                severity: item.severity as ReviewResponse['severity'],
-                title: String(item.title),
-                description: String(item.description)
-            }));
+      const validatedResponse = parsedResponse.map(
+        (item: ReviewResponse): ReviewResponse => ({
+          filePath: String(item.filePath),
+          lineNumber: Number(item.lineNumber),
+          severity: item.severity as ReviewResponse['severity'],
+          title: String(item.title),
+          description: String(item.description),
+        })
+      );
 
-            res.json(validatedResponse);
-
-        } catch (error) {
-            console.error("Error calling LLM API:", error);
-            res.status(500).json({ error: "Failed to get review from LLM API." });
-        }
+      res.json(validatedResponse);
+    } catch (error) {
+      console.error('Error calling LLM API:', error);
+      res.status(500).json({ error: 'Failed to get review from LLM API.' });
     }
+  }
 }

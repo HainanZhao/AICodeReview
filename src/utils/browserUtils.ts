@@ -6,11 +6,11 @@ export function openBrowser(url: string): Promise<void> {
     const commands = {
       darwin: `open "${url}"`,
       win32: `start "" "${url}"`,
-      linux: `xdg-open "${url}"`
+      linux: `xdg-open "${url}"`,
     };
 
     const command = commands[platform() as keyof typeof commands];
-    
+
     if (!command) {
       console.log(`Please open your browser and navigate to: ${url}`);
       resolve();

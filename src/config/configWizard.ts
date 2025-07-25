@@ -7,7 +7,7 @@ import { AppConfig } from './configSchema.js';
 export async function createConfigInteractively(): Promise<void> {
   const rl = createInterface({
     input: process.stdin,
-    output: process.stdout
+    output: process.stdout,
   });
 
   const question = (prompt: string): Promise<string> => {
@@ -21,8 +21,8 @@ export async function createConfigInteractively(): Promise<void> {
   try {
     // Server configuration
     console.log('📡 Server Configuration:');
-    const port = await question('Port (5960): ') || '5960';
-    const host = await question('Host (localhost): ') || 'localhost';
+    const port = (await question('Port (5960): ')) || '5960';
+    const host = (await question('Host (localhost): ')) || 'localhost';
 
     // LLM provider configuration
     console.log('\n🤖 LLM Provider Configuration:');
@@ -30,9 +30,9 @@ export async function createConfigInteractively(): Promise<void> {
     console.log('  1. gemini-cli (uses local gemini command, recommended)');
     console.log('  2. gemini (Google Gemini API)');
     console.log('  3. anthropic (Claude API)');
-    
-    const providerChoice = await question('Choose provider (1-3, default: 1): ') || '1';
-    
+
+    const providerChoice = (await question('Choose provider (1-3, default: 1): ')) || '1';
+
     let provider: string;
     let apiKey: string | undefined;
     let googleCloudProject: string | undefined;
@@ -48,31 +48,31 @@ export async function createConfigInteractively(): Promise<void> {
         break;
       default:
         provider = 'gemini-cli';
-        googleCloudProject = await question('Google Cloud Project ID (optional): ') || undefined;
+        googleCloudProject = (await question('Google Cloud Project ID (optional): ')) || undefined;
         break;
     }
 
     // UI configuration
     console.log('\n🎨 UI Configuration:');
-    const theme = await question('Theme (light/dark/auto, default: light): ') || 'light';
-    const autoOpenInput = await question('Auto-open browser? (y/N): ') || 'y';
+    const theme = (await question('Theme (light/dark/auto, default: light): ')) || 'light';
+    const autoOpenInput = (await question('Auto-open browser? (y/N): ')) || 'y';
     const autoOpen = autoOpenInput.toLowerCase() === 'y' || autoOpenInput.toLowerCase() === 'yes';
 
     // Create config object
     const config: AppConfig = {
       server: {
         port: parseInt(port, 10),
-        host
+        host,
       },
       llm: {
         provider: provider as any,
         ...(apiKey && { apiKey }),
-        ...(googleCloudProject && { googleCloudProject })
+        ...(googleCloudProject && { googleCloudProject }),
       },
       ui: {
         theme: theme as any,
-        autoOpen
-      }
+        autoOpen,
+      },
     };
 
     // Save to home directory
@@ -84,10 +84,9 @@ export async function createConfigInteractively(): Promise<void> {
 
     // Write config file
     writeFileSync(configPath, JSON.stringify(config, null, 2));
-    
+
     console.log(`\n✅ Configuration saved to: ${configPath}`);
     console.log('\n🚀 You can now run: aicodereview');
-    
   } finally {
     rl.close();
   }

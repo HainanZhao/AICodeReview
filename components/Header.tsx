@@ -3,7 +3,14 @@ import { SettingsIcon, SunIcon, MoonIcon, ApproveIcon } from './icons';
 import { Spinner } from './Spinner';
 
 const BrainCircuitIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-brand-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-8 w-8 text-brand-secondary"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={1.5}
+  >
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75l6 4.5-6 4.5" />
     <rect x="3" y="3" width="18" height="18" rx="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
@@ -32,15 +39,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onToggleTheme, c
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <button 
-              onClick={onToggleTheme} 
+            <button
+              onClick={onToggleTheme}
               className="p-2 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-gray-200 dark:hover:bg-brand-primary hover:text-gray-900 dark:hover:text-white transition-colors"
               aria-label="Toggle theme"
             >
               {currentTheme === 'light' ? <MoonIcon /> : <SunIcon />}
             </button>
-            <button 
-              onClick={onOpenSettings} 
+            <button
+              onClick={onOpenSettings}
               className="p-2 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-gray-200 dark:hover:bg-brand-primary hover:text-gray-900 dark:hover:text-white transition-colors"
               aria-label="Open settings"
             >

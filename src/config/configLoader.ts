@@ -110,7 +110,7 @@ export class ConfigLoader {
     return {
       server: { ...base.server, ...override.server },
       llm: { ...base.llm, ...override.llm },
-      ui: { ...base.ui, ...override.ui }
+      ui: { ...base.ui, ...override.ui },
     };
   }
 
@@ -120,8 +120,13 @@ export class ConfigLoader {
       console.warn('⚠ Warning: GOOGLE_CLOUD_PROJECT not set for gemini-cli provider');
     }
 
-    if ((config.llm.provider === 'gemini' || config.llm.provider === 'anthropic') && !config.llm.apiKey) {
-      throw new Error(`API key is required for ${config.llm.provider} provider. Set it via --api-key flag, config file, or LLM_API_KEY environment variable.`);
+    if (
+      (config.llm.provider === 'gemini' || config.llm.provider === 'anthropic') &&
+      !config.llm.apiKey
+    ) {
+      throw new Error(
+        `API key is required for ${config.llm.provider} provider. Set it via --api-key flag, config file, or LLM_API_KEY environment variable.`
+      );
     }
 
     // Validate port range

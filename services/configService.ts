@@ -6,12 +6,11 @@ const PROJECTS_CACHE_KEY = 'ai-code-reviewer-projects-cache';
 const PROJECTS_CACHE_TIMESTAMP_KEY = 'ai-code-reviewer-projects-cache-timestamp';
 const THEME_KEY = 'ai-code-reviewer-theme';
 
-
 export const saveConfig = (config: Config): void => {
   try {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
   } catch (error) {
-    console.error("Failed to save config to localStorage", error);
+    console.error('Failed to save config to localStorage', error);
   }
 };
 
@@ -23,7 +22,7 @@ export const loadConfig = (): Config | null => {
     }
     return JSON.parse(configStr) as Config;
   } catch (error) {
-    console.error("Failed to load config from localStorage", error);
+    console.error('Failed to load config from localStorage', error);
     return null;
   }
 };
@@ -32,7 +31,7 @@ export const saveSelectedProjectIds = (ids: number[]): void => {
   try {
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(ids));
   } catch (error) {
-    console.error("Failed to save selected project IDs", error);
+    console.error('Failed to save selected project IDs', error);
   }
 };
 
@@ -44,7 +43,7 @@ export const loadSelectedProjectIds = (): number[] | null => {
     }
     return JSON.parse(idsStr);
   } catch (error) {
-    console.error("Failed to load selected project IDs", error);
+    console.error('Failed to load selected project IDs', error);
     return null;
   }
 };
@@ -53,7 +52,7 @@ export const saveTheme = (theme: 'light' | 'dark'): void => {
   try {
     localStorage.setItem(THEME_KEY, theme);
   } catch (error) {
-    console.error("Failed to save theme to localStorage", error);
+    console.error('Failed to save theme to localStorage', error);
   }
 };
 
@@ -65,7 +64,7 @@ export const loadTheme = (): 'light' | 'dark' | null => {
     }
     return null;
   } catch (error) {
-    console.error("Failed to load theme from localStorage", error);
+    console.error('Failed to load theme from localStorage', error);
     return null;
   }
 };
@@ -75,7 +74,7 @@ export const saveProjectsToCache = (projects: GitLabProject[]): void => {
     localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(projects));
     localStorage.setItem(PROJECTS_CACHE_TIMESTAMP_KEY, Date.now().toString());
   } catch (error) {
-    console.error("Failed to save projects to cache", error);
+    console.error('Failed to save projects to cache', error);
   }
 };
 
@@ -97,7 +96,7 @@ export const loadProjectsFromCache = (): GitLabProject[] | null => {
 
     return JSON.parse(projectsStr) as GitLabProject[];
   } catch (error) {
-    console.error("Failed to load projects from cache", error);
+    console.error('Failed to load projects from cache', error);
     return null;
   }
 };

@@ -3,13 +3,13 @@ import { AppConfig } from './configSchema.js';
 export const DEFAULT_CONFIG: AppConfig = {
   server: {
     port: 5960,
-    host: 'localhost'
+    host: 'localhost',
   },
   llm: {
-    provider: 'gemini-cli'
+    provider: 'gemini-cli',
   },
   ui: {
     theme: 'light',
-    autoOpen: true
-  }
+    autoOpen: true,
+  },
 };

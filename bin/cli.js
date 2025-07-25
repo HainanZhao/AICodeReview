@@ -38,7 +38,7 @@ program
       // Check if config exists, if not, run init wizard
       const { ConfigLoader } = await import('../dist/config/configLoader.js');
       const configLoader = new ConfigLoader();
-      
+
       if (!configLoader.hasConfig()) {
         console.log('No configuration found. Running setup wizard...');
         const { createConfigInteractively } = await import('../dist/config/configWizard.js');
