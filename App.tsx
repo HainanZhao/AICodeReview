@@ -126,11 +126,11 @@ function App() {
         try {
           const { feedback: aiReviewResult } = await reviewCode(result.mrDetails, config);
 
-          // Combine existing GitLab comments with new AI review comments
-          const existingFeedback = result.feedback || [];
-          const combinedFeedback = [...existingFeedback, ...aiReviewResult];
-
-          setFeedback(() => combinedFeedback);
+          // Combine all existing feedback (GitLab comments + any manual comments user added) with new AI review comments
+          setFeedback((currentFeedback) => {
+            const existingFeedback = currentFeedback || result.feedback || [];
+            return [...existingFeedback, ...aiReviewResult];
+          });
           setIsAiAnalyzing(false);
         } catch (aiError) {
           console.error('AI Review failed:', aiError);
@@ -258,10 +258,12 @@ function App() {
     try {
       const { feedback: aiReviewResult } = await reviewCode(mrDetails, config);
 
-      // Combine existing GitLab comments with new AI review comments
-      const combinedFeedback = [...(mrDetails.existingFeedback || []), ...aiReviewResult];
-
-      setFeedback(() => combinedFeedback);
+      // Combine all current feedback (including any manual comments) with new AI review comments
+      setFeedback((currentFeedback) => {
+        // Keep all current feedback (manual + existing) and add new AI results
+        const existingFeedback = currentFeedback || mrDetails.existingFeedback || [];
+        return [...existingFeedback, ...aiReviewResult];
+      });
     } catch (error) {
       console.error('Error during redo review:', error);
       const errorMessage = error instanceof Error ? error.message : 'AI review failed';
@@ -287,7 +289,8 @@ function App() {
     (fileDiff: ParsedFileDiff, line: ParsedDiffLine) => {
       if (!mrDetails) return;
 
-      if (line.type === 'remove' || line.type === 'meta') {
+      // Only block meta lines (like diff headers), but allow remove, add, and context lines
+      if (line.type === 'meta') {
         return;
       }
 
@@ -296,11 +299,14 @@ function App() {
 
       if (line.type === 'add' && line.newLine) {
         positionPayload = { new_line: line.newLine };
+      } else if (line.type === 'remove' && line.oldLine) {
+        positionPayload = { old_line: line.oldLine };
       } else if (line.type === 'context' && line.oldLine && line.newLine) {
         positionPayload = { old_line: line.oldLine, new_line: line.newLine };
       }
 
-      if (line.newLine && Object.keys(positionPayload).length > 0) {
+      // Create position if we have valid line references
+      if (Object.keys(positionPayload).length > 0) {
         position = {
           base_sha: mrDetails.base_sha,
           start_sha: mrDetails.start_sha,
@@ -314,9 +320,9 @@ function App() {
 
       const newFeedback: ReviewFeedback = {
         id: uuidv4(),
-        lineNumber: line.newLine || 0,
+        lineNumber: line.newLine || line.oldLine || 0,
         severity: Severity.Suggestion,
-        title: 'Manual Suggestion',
+        title: 'Manual Input',
         description: '',
         filePath: fileDiff.filePath,
         lineContent: line.content,

@@ -445,7 +445,9 @@ export const postDiscussion = async (
 
   const body = `
 **${feedback.severity}: ${feedback.title}**
+
 ${feedback.description}
+
 *Powered by AI Code Reviewer*
     `;
 

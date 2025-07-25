@@ -5,7 +5,9 @@ import { createLLMProvider } from './services/llm/providerFactory';
 dotenv.config();
 
 const app = express();
-app.use(express.json());
+// Increase body size limit to handle large merge requests (default is ~100kb)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const llmType = process.env.LLM_PROVIDER || 'gemini-cli';
 const apiKey = process.env.LLM_API_KEY || process.env.GEMINI_API_KEY; // Support legacy env var

@@ -23,7 +23,7 @@ const getLineClasses = (type: ParsedDiffLine['type']) => {
 export const DiffLine: React.FC<DiffLineProps> = ({ line, onAddComment }) => {
   const lineClasses = getLineClasses(line.type);
   const prefix = line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ';
-  const canComment = line.type === 'add' || line.type === 'context';
+  const canComment = line.type === 'add' || line.type === 'remove' || line.type === 'context';
 
   return (
     <tr className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/10 h-4`}>
@@ -37,11 +37,11 @@ export const DiffLine: React.FC<DiffLineProps> = ({ line, onAddComment }) => {
           title={canComment ? 'Add comment' : ''}
           disabled={!canComment}
           className={`
-                      opacity-0 bg-brand-secondary text-white rounded-full p-[1px] leading-none shadow-lg hover:bg-red-600 transition-opacity duration-150
+                      opacity-0 bg-brand-secondary text-white rounded-full p-[3px] leading-none shadow-lg hover:bg-red-600 transition-opacity duration-150
                       ${canComment ? 'group-hover:opacity-100' : 'pointer-events-none'}
                     `}
         >
-          <PlusIcon className="w-2.5 h-2.5" />
+          <PlusIcon className="w-3 h-3" />
         </button>
       </td>
       <td className="w-10 text-right px-1 select-none opacity-70 align-middle h-4 text-xs">

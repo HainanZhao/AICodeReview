@@ -59,29 +59,45 @@ const InfoIcon = () => (
   </svg>
 );
 
+const ChevronDownIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-4 w-4"
+    viewBox="0 0 20 20"
+    fill="currentColor"
+  >
+    <path
+      fillRule="evenodd"
+      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+      clipRule="evenodd"
+    />
+  </svg>
+);
+
 const SEVERITY_CONFIG = {
   [Severity.Critical]: {
     icon: <BugIcon />,
-    colorClass: 'border-red-500/50 dark:bg-red-900/40 bg-red-50 text-red-800 dark:text-red-300',
-    titleColor: 'text-red-600 dark:text-red-400',
+    colorClass:
+      'border-rose-500/50 dark:bg-rose-900/40 bg-rose-50 text-rose-800 dark:text-rose-300',
+    titleColor: 'text-rose-600 dark:text-rose-400',
   },
   [Severity.Warning]: {
     icon: <WarningIcon />,
     colorClass:
-      'border-yellow-500/50 dark:bg-yellow-900/40 bg-yellow-50 text-yellow-800 dark:text-yellow-300',
-    titleColor: 'text-yellow-600 dark:text-yellow-400',
+      'border-amber-500/50 dark:bg-amber-900/40 bg-amber-50 text-amber-800 dark:text-amber-300',
+    titleColor: 'text-amber-600 dark:text-amber-400',
   },
   [Severity.Suggestion]: {
     icon: <LightbulbIcon />,
     colorClass:
-      'border-blue-500/50 dark:bg-blue-900/40 bg-blue-50 text-blue-800 dark:text-blue-300',
-    titleColor: 'text-blue-600 dark:text-blue-400',
+      'border-indigo-500/50 dark:bg-indigo-900/40 bg-indigo-50 text-indigo-800 dark:text-indigo-300',
+    titleColor: 'text-indigo-600 dark:text-indigo-400',
   },
   [Severity.Info]: {
     icon: <InfoIcon />,
     colorClass:
-      'border-gray-500/50 dark:bg-gray-800/40 bg-gray-100 text-gray-800 dark:text-gray-300',
-    titleColor: 'text-gray-600 dark:text-gray-400',
+      'border-cyan-500/50 dark:bg-cyan-900/40 bg-cyan-50 text-cyan-800 dark:text-cyan-300',
+    titleColor: 'text-cyan-600 dark:text-cyan-400',
   },
 };
 
@@ -103,15 +119,34 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
   onToggleIgnoreFeedback,
 }) => {
   const [editedDescription, setEditedDescription] = useState(feedback.description);
+  const [editedSeverity, setEditedSeverity] = useState(feedback.severity);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (feedback.isEditing) {
       setEditedDescription(feedback.description);
+      setEditedSeverity(feedback.severity);
     }
-  }, [feedback.isEditing, feedback.description]);
+  }, [feedback.isEditing, feedback.description, feedback.severity]);
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (isDropdownOpen) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   const handleSave = () => {
-    onUpdateFeedback(feedback.id, feedback.title, editedDescription, feedback.severity);
+    onUpdateFeedback(feedback.id, feedback.title, editedDescription, editedSeverity);
   };
 
   const handleCancel = () => {
@@ -129,7 +164,7 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
   };
 
   if (feedback.isEditing) {
-    const config = SEVERITY_CONFIG[feedback.severity] || SEVERITY_CONFIG[Severity.Info];
+    const config = SEVERITY_CONFIG[editedSeverity] || SEVERITY_CONFIG[Severity.Info];
     return (
       <div className={`shadow-sm ${config.colorClass} border-l-4 rounded-md`}>
         <div className="p-2">
@@ -149,28 +184,63 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
             autoFocus
           ></textarea>
         </div>
-        <div className="px-2 py-1.5 bg-black/10 dark:bg-black/20 flex items-center justify-between rounded-b-md">
-          <button
-            onClick={() => onDeleteFeedback(feedback.id)}
-            className="p-1 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-red-200 dark:hover:bg-red-800/50 hover:text-red-700 dark:hover:text-red-300 transition-colors"
-            aria-label="Delete comment"
-          >
-            <TrashIcon />
-          </button>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleCancel}
-              className="text-xs text-gray-700 dark:text-brand-subtle font-semibold py-1 px-2 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={!editedDescription.trim()}
-              className="text-xs bg-brand-secondary hover:bg-red-600 disabled:bg-gray-300 dark:disabled:bg-brand-primary disabled:cursor-not-allowed text-white font-bold py-1 px-2 rounded-md transition-all"
-            >
-              Save
-            </button>
+        <div className="px-2 py-1.5 bg-black/10 dark:bg-black/20 rounded-b-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => onDeleteFeedback(feedback.id)}
+                className="p-1 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-red-200 dark:hover:bg-red-800/50 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                aria-label="Delete comment"
+              >
+                <TrashIcon />
+              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center space-x-1 text-xs text-gray-700 dark:text-brand-text font-semibold py-1 px-2 bg-gray-200 dark:bg-brand-primary/80 rounded-md hover:bg-gray-300 dark:hover:bg-brand-primary transition-colors"
+                >
+                  <span className={`${SEVERITY_CONFIG[editedSeverity].titleColor}`}>
+                    {SEVERITY_CONFIG[editedSeverity].icon}
+                  </span>
+                  <span>{editedSeverity}</span>
+                  <ChevronDownIcon />
+                </button>
+                {isDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 rounded-md shadow-lg z-10 min-w-[120px]">
+                    {Object.entries(SEVERITY_CONFIG).map(([severity, config]) => (
+                      <button
+                        key={severity}
+                        onClick={() => {
+                          setEditedSeverity(severity as Severity);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center space-x-2 px-3 py-2 text-xs text-left hover:bg-gray-100 dark:hover:bg-brand-primary/50 transition-colors first:rounded-t-md last:rounded-b-md ${
+                          editedSeverity === severity ? 'bg-gray-100 dark:bg-brand-primary/50' : ''
+                        }`}
+                      >
+                        <span className={config.titleColor}>{config.icon}</span>
+                        <span className="text-gray-800 dark:text-brand-text">{severity}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleCancel}
+                className="text-xs text-gray-700 dark:text-brand-subtle font-semibold py-1 px-2 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!editedDescription.trim()}
+                className="text-xs bg-brand-secondary hover:bg-red-600 disabled:bg-gray-300 dark:disabled:bg-brand-primary disabled:cursor-not-allowed text-white font-bold py-1 px-2 rounded-md transition-all"
+              >
+                Save
+              </button>
+            </div>
           </div>
         </div>
       </div>
