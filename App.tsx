@@ -135,12 +135,10 @@ function App() {
         } catch (aiError) {
           console.error('AI Review failed:', aiError);
           setIsAiAnalyzing(false);
-          
+
           // Set a non-blocking error message that doesn't prevent manual review
           const aiErrorMessage = aiError instanceof Error ? aiError.message : 'AI review failed';
-          setError(
-            `AI Review Error: ${aiErrorMessage}. You can still review the code manually and add comments.`
-          );
+          setError(`AI Review Error: ${aiErrorMessage}`);
 
           // Keep the existing feedback (GitLab comments) and MR details intact
           // This allows users to continue with manual review
@@ -267,9 +265,10 @@ function App() {
     } catch (error) {
       console.error('Error during redo review:', error);
       const errorMessage = error instanceof Error ? error.message : 'AI review failed';
-      setError(
-        `AI Review Error: ${errorMessage}. You can still review the code manually and add comments.`
-      );
+      const fullErrorMessage = `AI Review Error: ${errorMessage}`;
+
+      // Set error state immediately to ensure UI shows the error
+      setError(fullErrorMessage);
 
       // Keep existing feedback intact so user can continue with manual review
       // Don't clear the current feedback - preserve what's already there
@@ -465,6 +464,7 @@ function App() {
           minSizePercent={20}
           maxSizePercent={50}
           className="h-full"
+          storageKey="main-layout"
         >
           <div className="flex flex-col h-full">
             {mrDetails ? (

@@ -89,7 +89,27 @@ export const reviewCode = async (
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.error) {
+          errorMessage = errorData.error;
+          if (errorData.details) {
+            errorMessage += ` - ${errorData.details}`;
+          }
+        }
+      } catch {
+        // If we can't parse JSON, try to read as text
+        try {
+          const errorText = await response.text();
+          if (errorText) {
+            errorMessage += ` - ${errorText}`;
+          }
+        } catch {
+          // If we can't read anything, just use the status
+        }
+      }
+      throw new Error(errorMessage);
     }
 
     const parsedResponse = (await response.json()) as GeminiReviewResponse[];

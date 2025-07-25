@@ -7,7 +7,51 @@ interface ResizablePaneProps {
   maxSizePercent?: number;
   direction?: 'horizontal' | 'vertical';
   className?: string;
+  storageKey?: string; // Unique key for localStorage
 }
+
+// localStorage utility functions
+const STORAGE_PREFIX = 'resizable-pane-';
+
+const saveToLocalStorage = (key: string, value: number): void => {
+  try {
+    localStorage.setItem(`${STORAGE_PREFIX}${key}`, value.toString());
+  } catch (error) {
+    console.warn('Failed to save resizable pane state to localStorage:', error);
+  }
+};
+
+const loadFromLocalStorage = (key: string, defaultValue: number): number => {
+  try {
+    const saved = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
+    if (saved !== null) {
+      const parsed = parseFloat(saved);
+      return isNaN(parsed) ? defaultValue : parsed;
+    }
+  } catch (error) {
+    console.warn('Failed to load resizable pane state from localStorage:', error);
+  }
+  return defaultValue;
+};
+
+// Debounce utility
+const useDebounce = (callback: () => void, delay: number, deps: React.DependencyList) => {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(callback, delay);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, deps);
+};
 
 export const ResizablePane: React.FC<ResizablePaneProps> = ({
   children,
@@ -16,10 +60,32 @@ export const ResizablePane: React.FC<ResizablePaneProps> = ({
   maxSizePercent = 85,
   direction = 'horizontal',
   className = '',
+  storageKey,
 }) => {
-  const [leftSize, setLeftSize] = useState(defaultSizePercent);
+  // Generate a default storage key if none provided
+  const finalStorageKey = storageKey || `${direction}-${defaultSizePercent}-${Date.now()}`;
+
+  // Initialize state with saved value or default
+  const [leftSize, setLeftSize] = useState(() => {
+    if (storageKey) {
+      return loadFromLocalStorage(finalStorageKey, defaultSizePercent);
+    }
+    return defaultSizePercent;
+  });
+
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Debounced save to localStorage
+  useDebounce(
+    () => {
+      if (storageKey) {
+        saveToLocalStorage(finalStorageKey, leftSize);
+      }
+    },
+    300, // 300ms debounce delay
+    [leftSize, finalStorageKey, storageKey]
+  );
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();

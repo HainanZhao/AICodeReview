@@ -49,7 +49,12 @@ export class GeminiController {
       res.json(validatedResponse);
     } catch (error) {
       console.error('Error calling Gemini API:', error);
-      res.status(500).json({ error: 'Failed to get review from Gemini API.' });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({
+        error: 'Failed to get review from Gemini API.',
+        details: errorMessage,
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 }
