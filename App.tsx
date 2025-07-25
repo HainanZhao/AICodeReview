@@ -329,8 +329,8 @@ function App() {
 
       setFeedback((prev) => {
         if (!prev) return [newFeedback];
-        const otherFeedback = prev.filter((f) => f.isEditing === false);
-        return [...otherFeedback, newFeedback];
+        // Add the new feedback while preserving all existing feedback
+        return [...prev, newFeedback];
       });
     },
     [mrDetails]
