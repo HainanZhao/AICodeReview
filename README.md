@@ -304,7 +304,7 @@ npm run pack:test
 ### Project Structure
 ```
 ├── bin/cli.js              # CLI entry point
-├── src/                    # Server-side TypeScript
+├── cli/                    # CLI application code
 │   ├── config/            # Configuration handling
 │   ├── server/            # Express server setup
 │   └── utils/             # Utility functions

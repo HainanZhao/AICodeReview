@@ -69,9 +69,9 @@ When no URL is provided, start the web UI server as usual.
 - [x] **Enhance `--init` command** to include GitLab configuration prompts
 
 ### 1.2 Create CLI Review Workflow ✅ COMPLETED
-- [x] **New file**: `src/cli/reviewCommand.ts` - Main CLI review orchestrator for pure CLI mode
-- [x] **New file**: `src/cli/outputFormatter.ts` - Format review results for console output
-- [x] **New file**: `src/cli/configValidator.ts` - Validate GitLab config for CLI mode
+- [x] **New file**: `cli/cli/reviewCommand.ts` - Main CLI review orchestrator for pure CLI mode
+- [x] **New file**: `cli/cli/outputFormatter.ts` - Format review results for console output
+- [x] **New file**: `cli/cli/configValidator.ts` - Validate GitLab config for CLI mode
 
 ## Phase 2: Share Core Services with UI ✅ COMPLETED
 
@@ -88,7 +88,7 @@ When no URL is provided, start the web UI server as usual.
   - Keep UI state management in `services/aiReviewService.ts`
 
 ### 2.3 Create CLI-Compatible Backend Interface
-- [ ] **New file**: `src/cli/backendClient.ts` - Direct backend service calls without HTTP
+- [ ] **New file**: `cli/cli/backendClient.ts` - Direct backend service calls without HTTP
 - [ ] **Modify**: `backend/services/geminiService.ts` - Export core functions for direct use
 - [ ] **Option 1**: Use backend services directly (recommended)
 - [ ] **Option 2**: Start minimal backend server internally and use HTTP client
@@ -96,16 +96,16 @@ When no URL is provided, start the web UI server as usual.
 ## Phase 3: Configuration Management for CLI ✅ COMPLETED
 
 ### 3.1 Enhanced Configuration Loading ✅ COMPLETED
-- [x] **Extend** `src/config/configLoader.ts`:
+- [x] **Extend** `cli/config/configLoader.ts`:
   - Support GitLab-specific configuration section
   - Load GitLab credentials from environment variables (`GITLAB_URL`, `GITLAB_ACCESS_TOKEN`)
   - Support multiple GitLab instance configurations
   - Validate GitLab configuration on load
   - Provide helpful error messages for missing GitLab config when running CLI review commands
-- [x] **Add GitLab config schema** to `src/config/configSchema.ts`
+- [x] **Add GitLab config schema** to `cli/config/configSchema.ts`
 
 ### 3.2 Configuration Wizard Enhancement ✅ COMPLETED
-- [x] **Extend** `src/config/configWizard.ts`:
+- [x] **Extend** `cli/config/configWizard.ts`:
   - Add GitLab configuration step to existing `--init` wizard
   - Prompt for GitLab instance URL (e.g., `https://gitlab.example.com`)
   - Prompt for GitLab Personal Access Token
@@ -117,7 +117,7 @@ When no URL is provided, start the web UI server as usual.
 ## Phase 4: CLI Review Implementation ✅ COMPLETED
 
 ### 4.1 Core CLI Review Logic ✅ COMPLETED
-- [x] **Implement** `src/cli/reviewCommand.ts` with real AI provider integration
+- [x] **Implement** `cli/cli/reviewCommand.ts` with real AI provider integration
 - [x] **GitLab API integration** working (tested with mock data)
 - [x] **AI provider integration** for Gemini and Anthropic APIs
 - [x] **Console output formatting** implemented
@@ -126,7 +126,7 @@ When no URL is provided, start the web UI server as usual.
 - [x] **Dry run mode** with mock responses for testing
 
 ### 4.2 AI Provider Integration ✅ COMPLETED
-- [x] **New file**: `src/cli/aiProvider.ts` - Direct AI API integration
+- [x] **New file**: `cli/cli/aiProvider.ts` - Direct AI API integration
 - [x] **Gemini API support** using @google/generative-ai
 - [x] **Anthropic API support** using @anthropic-ai/sdk
 - [x] **Provider validation** and error handling

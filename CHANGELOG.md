@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolved issue where large merge requests (>100KB) would fail with "request entity too large" error
 
 ### Technical Changes
-- Updated `src/server/standalone.ts` to include proper Express JSON and URL-encoded body size limits
+- Updated `cli/server/standalone.ts` to include proper Express JSON and URL-encoded body size limits
 - Added consistent 50MB payload limits across both backend and standalone servers
 
 ## [1.1.0] - 2025-07-26

@@ -28,6 +28,8 @@
     "bin/",
     "dist/",
     "backend/dist/",
+    "shared/dist/",
+    "shared/package.json",
     "README.md",
     "LICENSE"
   ],
@@ -40,19 +42,29 @@
     "shared"
   ],
   "scripts": {
+    "postinstall": "npm run build:shared",
     "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
     "start:frontend": "vite",
     "start:backend": "cd backend && npm run start",
-    "build": "npm run build:src && npm run build:frontend && npm run build:backend",
-    "build:src": "tsc -p src/tsconfig.json",
+    "build": "npm run build:shared && npm run build:cli && npm run build:frontend && npm run build:backend",
+    "build:shared": "cd shared && npm run build",
+    "build:cli": "tsc -p cli/tsconfig.json",
     "build:frontend": "vite build",
     "build:backend": "cd backend && npm run build",
+    "clean": "npm run clean:shared && npm run clean:cli && npm run clean:frontend && npm run clean:backend",
+    "clean:shared": "cd shared && rm -rf dist",
+    "clean:cli": "rm -rf dist",
+    "clean:frontend": "rm -rf dist/public",
+    "clean:backend": "cd backend && npm run clean",
+    "dev": "npm run build:shared && concurrently \"npm run dev:shared\" \"npm run start:frontend\" \"npm run start:backend\"",
+    "dev:shared": "cd shared && npm run watch",
     "preview": "vite preview",
     "test": "vitest",
     "lint": "eslint . --ext ts,tsx,js,jsx",
     "lint:fix": "eslint . --ext ts,tsx,js,jsx --fix",
+    "prebuild": "npm run clean",
     "prepublishOnly": "npm run build",
-    "pack:test": "npm pack && npm install -g ./aicodereview-cli-1.0.0.tgz"
+    "pack:test": "npm pack --dry-run"
   },
   "dependencies": {
     "@aireview/shared": "workspace:*",
