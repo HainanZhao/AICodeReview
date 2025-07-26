@@ -27,6 +27,7 @@ program
   .option('--api-key <key>', 'API key for the LLM provider')
   .option('--google-cloud-project <project>', 'Google Cloud project ID for gemini-cli')
   .option('--no-open', 'do not automatically open browser')
+  .option('--api-only', 'run server in API-only mode (no web interface)')
   .option('--init', 'create a configuration file interactively')
   .option('--dry-run', 'generate real AI review but do not post comments to GitLab (CLI mode only)')
   .option('--mock', 'use mock AI responses for testing without API calls (CLI mode only)')
@@ -75,8 +76,14 @@ program
           console.log('Configuration created. Starting AI Code Review...\n');
         }
 
+        // If --api-only is specified and no port was explicitly set, use port 5959
+        const serverOptions = { ...options, apiOnly: options.apiOnly };
+        if (options.apiOnly && !options.port) {
+          serverOptions.port = '5959';
+        }
+
         const { startServer } = await import('../dist/server/standalone.js');
-        await startServer(options);
+        await startServer(serverOptions);
       }
     } catch (error) {
       console.error('Error:', error.message);

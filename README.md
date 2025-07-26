@@ -78,6 +78,48 @@ Options:
   --api-key <key>                   API key for the LLM provider
   --google-cloud-project <project>  Google Cloud project ID for gemini-cli
   --no-open                         Do not automatically open browser
+  --api-only                        Run server in API-only mode (no web interface)
+  --init                            Create a configuration file interactively
+  --dry-run                         Generate AI review but do not post comments (CLI mode only)
+  --mock                            Use mock AI responses for testing (CLI mode only)
+  --verbose                         Detailed operation logs (CLI mode only)
+```
+
+### Server Modes
+
+The tool supports two server modes to fit different deployment scenarios:
+
+#### **Standalone Mode (Default)**
+```bash
+# Full web interface with API endpoints
+aicodereview
+aicodereview --port 8080
+```
+- ✅ **Web Interface**: Modern React-based UI
+- ✅ **API Endpoints**: Full REST API available
+- ✅ **Browser Auto-open**: Automatically opens web interface
+- ✅ **Static File Serving**: Serves frontend assets
+- 🎯 **Best for**: Local development, desktop usage, interactive reviews
+
+#### **API-Only Mode**
+```bash
+# API endpoints only, no web interface
+aicodereview --api-only
+aicodereview --api-only --port 8080
+
+# Via environment variable
+AI_CODEREVIEW_MODE=api-only aicodereview
+```
+- ✅ **REST API**: All review and configuration endpoints
+- ❌ **No Web UI**: Headless operation
+- ❌ **No Browser**: No automatic browser opening
+- ⚡ **Lightweight**: Reduced memory footprint
+- 🎯 **Best for**: Docker containers, CI/CD, microservices, custom frontends
+
+#### **Available API Endpoints**
+Both modes provide these REST endpoints:
+- `POST /api/review` - Code review endpoint
+- `POST /api/config` - Configuration endpoint
   --init                            Create a configuration file interactively
   -h, --help                        Display help
   -V, --version                     Show version

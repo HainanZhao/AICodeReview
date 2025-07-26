@@ -11,6 +11,7 @@ export interface CLIOptions {
   apiKey?: string;
   googleCloudProject?: string;
   open?: boolean;
+  apiOnly?: boolean;
 }
 
 export class ConfigLoader {
@@ -54,7 +55,7 @@ export class ConfigLoader {
     const envConfig = { ...config };
 
     if (process.env.LLM_PROVIDER) {
-      envConfig.llm.provider = process.env.LLM_PROVIDER as any;
+      envConfig.llm.provider = process.env.LLM_PROVIDER as 'gemini-cli' | 'gemini' | 'anthropic';
     }
 
     if (process.env.LLM_API_KEY || process.env.GEMINI_API_KEY) {
@@ -101,7 +102,7 @@ export class ConfigLoader {
     }
 
     if (options.provider) {
-      newConfig.llm.provider = options.provider as any;
+      newConfig.llm.provider = options.provider as 'gemini-cli' | 'gemini' | 'anthropic';
     }
 
     if (options.apiKey) {

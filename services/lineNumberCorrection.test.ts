@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
-import { DiffLineMapper } from '../../../cli/services/llm/diffLineMapper.js';
-import { ReviewResponseProcessor } from '../../../cli/services/llm/reviewResponseProcessor.js';
-import type { ReviewResponse } from '../../../cli/services/llm/types.js';
+import { DiffLineMapper } from '../cli/services/llm/diffLineMapper.js';
+import { ReviewResponseProcessor } from '../cli/services/llm/reviewResponseProcessor.js';
+import type { ReviewResponse } from '../cli/services/llm/types.js';
 
 describe('Line Number Correction', () => {
   const expandedDiff = `--- a/test.js

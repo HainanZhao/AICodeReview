@@ -1,21 +1,25 @@
 import express from 'express';
 import { join, dirname } from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
+import { fileURLToPath } from 'url';
 import { ConfigLoader, CLIOptions } from '../config/configLoader.js';
 import { findAvailablePort } from '../utils/portUtils.js';
 import { openBrowser } from '../utils/browserUtils.js';
+import { createConfigService } from '../../shared/dist/services/configService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
-  console.log('🚀 Starting AI Code Review...\n');
+  const isApiOnly = cliOptions.apiOnly || process.env.AI_CODEREVIEW_MODE === 'api-only';
+  
+  console.log(`🚀 Starting AI Code Review in ${isApiOnly ? 'API-only' : 'standalone'} mode...\n`);
 
   // Load configuration
   const config = ConfigLoader.loadConfig(cliOptions);
   console.log(`📋 Configuration loaded:`);
   console.log(`   • Provider: ${config.llm.provider}`);
   console.log(`   • Host: ${config.server.host}`);
+  console.log(`   • Mode: ${isApiOnly ? 'API-only' : 'Standalone with Web UI'}`);
 
   // Find available port
   const availablePort = await findAvailablePort(config.server.port, config.server.host);
@@ -39,48 +43,18 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     process.env.GOOGLE_CLOUD_PROJECT = config.llm.googleCloudProject;
   }
 
-  // Add GitLab configuration endpoint
-  app.post('/api/config', (req, res) => {
-    const response: {
-      gitlabUrl: string;
-      hasGitlabUrl: boolean;
-      hasAccessToken: boolean;
-      configSource: string;
-      accessToken?: string;
-    } = {
-      gitlabUrl: config.gitlab?.url || '',
-      hasGitlabUrl: Boolean(config.gitlab?.url),
-      hasAccessToken: Boolean(config.gitlab?.accessToken),
-      configSource: 'cli-config',
-    };
+  // Create shared configuration service for API endpoints
+  const configService = createConfigService({ isStandalone: true });
 
-    // Include access token since it comes from CLI config
-    if (config.gitlab?.accessToken) {
-      response.accessToken = config.gitlab.accessToken;
-    }
+  // Add GitLab configuration endpoint using shared service
+  app.post('/api/config', configService.getConfigHandler());
 
-    res.json(response);
-  });
-
-  // Initialize LLM provider - dynamically import from backend
+  // Initialize LLM provider - import from local services
   try {
     console.log('\n🤖 Initializing LLM provider...');
 
-    // Import the backend module using dynamic import for ES module compatibility
-    const backendPath = join(
-      __dirname,
-      '..',
-      '..',
-      'backend',
-      'dist',
-      'backend',
-      'services',
-      'llm',
-      'providerFactory.js'
-    );
-    // Convert file path to file:// URL for ES module import
-    const backendURL = pathToFileURL(backendPath).href;
-    const { createLLMProvider } = await import(backendURL);
+    // Import the LLM provider factory from local services
+    const { createLLMProvider } = await import('../services/llm/providerFactory.js');
 
     const llmProvider = await createLLMProvider(config.llm.provider, config.llm.apiKey);
 
@@ -92,32 +66,35 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     process.exit(1);
   }
 
-  // Serve static files (built frontend)
-  const distPath = join(__dirname, '..', 'public');
-  app.use(express.static(distPath));
+  // Conditionally serve frontend based on mode
+  if (!isApiOnly) {
+    // Serve static files (built frontend)
+    const distPath = join(__dirname, '..', 'public');
+    app.use(express.static(distPath));
 
-  // Handle common browser requests that we expect to fail silently
-  app.get('/favicon.ico', (_req, res) => res.status(204).end());
-  app.get('/robots.txt', (_req, res) => res.status(204).end());
-  app.get('/manifest.json', (_req, res) => res.status(204).end());
+    // Handle common browser requests that we expect to fail silently
+    app.get('/favicon.ico', (_req, res) => res.status(204).end());
+    app.get('/robots.txt', (_req, res) => res.status(204).end());
+    app.get('/manifest.json', (_req, res) => res.status(204).end());
 
-  // Serve index.html for all non-API routes (SPA routing)
-  app.get('/', (_req, res) => {
-    res.sendFile(join(distPath, 'index.html'), (err) => {
-      if (err) {
-        res.status(404).end();
-      }
+    // Serve index.html for all non-API routes (SPA routing)
+    app.get('/', (_req, res) => {
+      res.sendFile(join(distPath, 'index.html'), (err) => {
+        if (err) {
+          res.status(404).end();
+        }
+      });
     });
-  });
 
-  // Handle all other non-API routes for SPA
-  app.get(/^(?!\/api).*$/, (_req, res) => {
-    res.sendFile(join(distPath, 'index.html'), (err) => {
-      if (err) {
-        res.status(404).end();
-      }
+    // Handle all other non-API routes for SPA
+    app.get(/^(?!\/api).*$/, (_req, res) => {
+      res.sendFile(join(distPath, 'index.html'), (err) => {
+        if (err) {
+          res.status(404).end();
+        }
+      });
     });
-  });
+  }
 
   // Global error handler to suppress common 404 errors
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -136,17 +113,27 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   const server = app.listen(availablePort, config.server.host, async () => {
     const url = `http://${config.server.host}:${availablePort}`;
 
-    console.log('\n✅ AI Code Review is ready!');
-    console.log(`   🌐 Web interface: ${url}`);
-    console.log(`   🛑 Press Ctrl+C to stop\n`);
+    if (isApiOnly) {
+      console.log('\n✅ AI Code Review API Server is ready!');
+      console.log(`   🔗 API Base URL: ${url}`);
+      console.log(`   📋 Available endpoints:`);
+      console.log(`   • POST ${url}/api/review - Code review endpoint`);
+      console.log(`   • POST ${url}/api/config - Configuration endpoint`);
+      console.log(`   🛑 Press Ctrl+C to stop\n`);
+    } else {
+      console.log('\n✅ AI Code Review is ready!');
+      console.log(`   🌐 Web interface: ${url}`);
+      console.log(`   🔗 API Base URL: ${url}`);
+      console.log(`   🛑 Press Ctrl+C to stop\n`);
 
-    // Auto-open browser
-    if (config.ui.autoOpen) {
-      try {
-        await openBrowser(url);
-      } catch {
-        // Browser opening is optional, don't fail the server start
-        console.log('Could not automatically open browser');
+      // Auto-open browser only in standalone mode
+      if (config.ui.autoOpen) {
+        try {
+          await openBrowser(url);
+        } catch {
+          // Browser opening is optional, don't fail the server start
+          console.log('Could not automatically open browser');
+        }
       }
     }
   });
