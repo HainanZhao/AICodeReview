@@ -44,7 +44,7 @@ Transform the CLI to support direct merge request review without needing the UI.
 
 **Pure CLI Mode (no UI):**
 ```bash
-aicodereview https://gitlab.p.ghpr.asia/gt/js/jsgh-lib/-/merge_requests/564
+aicodereview https://gitlab.example.com/project/-/merge_requests/123
 ```
 When a MR URL is provided, run in pure CLI mode - fetch, review, and post comments directly without starting the web UI.
 
@@ -107,7 +107,7 @@ When no URL is provided, start the web UI server as usual.
 ### 3.2 Configuration Wizard Enhancement ✅ COMPLETED
 - [x] **Extend** `src/config/configWizard.ts`:
   - Add GitLab configuration step to existing `--init` wizard
-  - Prompt for GitLab instance URL (e.g., `https://gitlab.p.ghpr.asia`)
+  - Prompt for GitLab instance URL (e.g., `https://gitlab.example.com`)
   - Prompt for GitLab Personal Access Token
   - Test GitLab connection during setup (validate token and URL)
   - Optionally save frequently used project paths
@@ -192,7 +192,7 @@ aicodereview --init
 # 4. Default preferences
 
 # Pure CLI mode - review MR and post comments (no web UI)
-aicodereview https://gitlab.p.ghpr.asia/gt/js/jsgh-lib/-/merge_requests/564
+aicodereview https://gitlab.example.com/project/-/merge_requests/123
 
 # CLI mode with dry run (preview only)
 aicodereview https://gitlab.example.com/project/-/merge_requests/123 --dry-run
@@ -207,7 +207,7 @@ aicodereview
 aicodereview --port 8080
 
 # Use environment variables for GitLab config
-GITLAB_URL=https://gitlab.p.ghpr.asia GITLAB_ACCESS_TOKEN=glpat-xyz aicodereview <url>
+GITLAB_URL=https://gitlab.example.com GITLAB_ACCESS_TOKEN=glpat-xyz aicodereview <url>
 ```
 ```
 

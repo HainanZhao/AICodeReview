@@ -76,7 +76,7 @@ To use CLI review mode, you need to configure:
    - Or set environment variables: LLM_PROVIDER and LLM_API_KEY (if needed)
 
 Example:
-  export GITLAB_URL=https://gitlab.p.ghpr.asia
+  export GITLAB_URL=https://gitlab.example.com
   export GITLAB_ACCESS_TOKEN=glpat-your-token-here
   export LLM_PROVIDER=gemini
   export LLM_API_KEY=your-api-key-here
