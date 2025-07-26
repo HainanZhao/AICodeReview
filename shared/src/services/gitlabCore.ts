@@ -416,10 +416,20 @@ ${feedback.description}
     body: body.trim(),
   };
 
-  // For inline comments, include position
-  if (feedback.position) {
+  // For inline comments, include position only if we have complete and valid data
+  // GitLab requires all SHA values and at least one line number for inline comments
+  if (
+    feedback.position &&
+    feedback.position.base_sha &&
+    feedback.position.start_sha &&
+    feedback.position.head_sha &&
+    feedback.position.old_path &&
+    feedback.position.new_path &&
+    (feedback.position.new_line || feedback.position.old_line)
+  ) {
     payload.position = feedback.position;
   }
+  // If any required position data is missing, post as a general comment instead
 
   return gitlabApiFetch(url, config, {
     method: 'POST',

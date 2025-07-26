@@ -156,3 +156,74 @@ This document outlines the requirements and architecture of the Gemini Code Revi
 *   The Gemini API key is no longer present in the client-side bundle or network requests initiated by the frontend.
 *   Both frontend and backend services start successfully via the `entrypoint.sh` script.
 *   No new critical security vulnerabilities are introduced.
+
+## 7. Common Troubleshooting
+
+### 7.1. Backend Module Path Issues
+
+**Problem:** After restructuring the project, the CLI fails to start with errors like:
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '.../backend/dist/services/llm/providerFactory.js'
+```
+
+**Root Cause:** The standalone server (`cli/server/standalone.ts`) constructs a path to import the backend module dynamically. When the project structure changes or TypeScript compilation changes the output directory structure, this path becomes invalid.
+
+**Solution Steps:**
+
+1. **Check the actual backend build output:**
+   ```bash
+   ls -la backend/dist/
+   # Look for the actual location of providerFactory.js
+   ```
+
+2. **Update the backend path in `cli/server/standalone.ts`:**
+   ```typescript
+   // Current path construction in standalone.ts
+   const backendPath = join(
+     __dirname,
+     '..',
+     '..',
+     'backend',
+     'dist',
+     'backend',      // ← This extra 'backend' folder is often the issue
+     'services',
+     'llm',
+     'providerFactory.js'
+   );
+   ```
+
+3. **Common path variations:**
+   - If backend builds to `backend/dist/services/...`: Remove the extra `'backend'` folder
+   - If backend builds to `backend/dist/backend/services/...`: Keep the extra `'backend'` folder
+   - Check the TypeScript `outDir` configuration in `backend/tsconfig.json`
+
+4. **Rebuild and reinstall:**
+   ```bash
+   npm run build
+   npm pack
+   npm i -g ./aicodereview-cli-1.1.3.tgz
+   ```
+
+**Prevention:**
+- Always verify the backend build output structure after project restructuring
+- Consider using a more robust module resolution approach (e.g., package exports)
+- Add automated tests that verify the CLI can start successfully
+- Document the expected directory structure in comments
+
+### 7.2. Browser Module Resolution Issues
+
+**Problem:** Frontend fails to load with errors like:
+```
+Failed to resolve module specifier "child_process"
+```
+
+**Root Cause:** Node.js-specific modules are being imported in browser code, usually through shared packages.
+
+**Solution:**
+- Move shared types to a root `types.ts` file
+- Update imports to use the root types instead of shared packages
+- Remove Node.js-specific modules from browser bundles
+
+**Prevention:**
+- Keep types separate from implementation code
+- Use separate entry points for browser vs Node.js environments
