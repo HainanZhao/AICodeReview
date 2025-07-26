@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { ConfigLoader, CLIOptions } from '../config/configLoader.js';
 import { findAvailablePort } from '../utils/portUtils.js';
 import { openBrowser } from '../utils/browserUtils.js';
-import { createConfigService } from '../../shared/dist/services/configService.js';
+import { createConfigService } from '../shared/services/configService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

@@ -89,13 +89,13 @@ export class AIProviderCore {
    * Validate and normalize AI response items
    */
   public static validateAndNormalizeResponse(
-    responses: any[],
+    responses: unknown[],
     options: ResponseValidationOptions = {}
   ): AIProviderResponse[] {
     const { normalizePaths = true, validateTypes = true } = options;
 
     return responses
-      .filter((item) => {
+      .filter((item): item is Record<string, unknown> => {
         // Basic validation
         if (!item || typeof item !== 'object') {
           console.warn('Skipping invalid response item:', item);
@@ -103,12 +103,13 @@ export class AIProviderCore {
         }
 
         if (validateTypes) {
+          const obj = item as Record<string, unknown>;
           const hasRequired =
-            typeof item.title === 'string' &&
-            typeof item.description === 'string' &&
-            (typeof item.filePath === 'string' ||
-              item.filePath === null ||
-              item.filePath === undefined);
+            typeof obj.title === 'string' &&
+            typeof obj.description === 'string' &&
+            (typeof obj.filePath === 'string' ||
+              obj.filePath === null ||
+              obj.filePath === undefined);
 
           if (!hasRequired) {
             console.warn('Skipping response item missing required fields:', item);
@@ -134,7 +135,7 @@ export class AIProviderCore {
   /**
    * Create a Gemini API client instance
    */
-  public static async createGeminiClient(apiKey: string): Promise<any> {
+  public static async createGeminiClient(apiKey: string): Promise<unknown> {
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
     return new GoogleGenerativeAI(apiKey);
   }
@@ -142,7 +143,7 @@ export class AIProviderCore {
   /**
    * Create an Anthropic API client instance
    */
-  public static async createAnthropicClient(apiKey: string): Promise<any> {
+  public static async createAnthropicClient(apiKey: string): Promise<unknown> {
     const { Anthropic } = await import('@anthropic-ai/sdk');
     return new Anthropic({ apiKey });
   }
@@ -157,7 +158,8 @@ export class AIProviderCore {
   ): Promise<AIProviderResponse[]> {
     return this.retryWithCondition(async () => {
       try {
-        const client = await this.createGeminiClient(apiKey);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const client = (await this.createGeminiClient(apiKey)) as any;
         const model = client.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
         const result = await model.generateContent(prompt);
@@ -184,7 +186,8 @@ export class AIProviderCore {
   ): Promise<AIProviderResponse[]> {
     return this.retryWithCondition(async () => {
       try {
-        const client = await this.createAnthropicClient(apiKey);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const client = (await this.createAnthropicClient(apiKey)) as any;
 
         const response = await client.messages.create({
           model: 'claude-3-5-sonnet-20241010',
@@ -225,7 +228,7 @@ export class AIProviderCore {
   /**
    * Handle common API error scenarios
    */
-  public static handleAPIError(error: any, providerName: string): never {
+  public static handleAPIError(error: unknown, providerName: string): never {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
     // Rate limiting

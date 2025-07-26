@@ -1,6 +1,6 @@
 import { AppConfig } from '../config/configSchema.js';
 import { ConfigLoader } from '../config/configLoader.js';
-import { testGitLabConnection } from 'aicodereview-shared';
+import { testGitLabConnection } from '../shared/index.js';
 
 /**
  * Validates configuration for CLI review mode

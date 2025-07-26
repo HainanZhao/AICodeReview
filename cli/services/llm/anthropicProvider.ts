@@ -1,6 +1,6 @@
 import { LLMProvider, ReviewRequest, ReviewResponse } from './types.js';
 import { Request, Response } from 'express';
-import { AIProviderCore } from 'aicodereview-shared';
+import { AIProviderCore } from '../../shared/index.js';
 import { ReviewPromptBuilder } from './promptBuilder.js';
 import { ReviewResponseProcessor } from './reviewResponseProcessor.js';
 

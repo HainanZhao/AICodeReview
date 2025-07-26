@@ -28,8 +28,6 @@
     "bin/",
     "dist/",
     "frontend/package.json",
-    "shared/dist/",
-    "shared/package.json",
     "README.md",
     "LICENSE"
   ],
@@ -38,23 +36,19 @@
   },
   "type": "module",
   "workspaces": [
-    "backend",
     "frontend"
   ],
   "scripts": {
     "start": "concurrently \"npm run start:standalone\" \"npm run start:frontend\"",
     "start:frontend": "cd frontend && npm run dev",
     "start:standalone": "node bin/cli.js --api-only --port 5959",
-    "build": "npm run build:shared && npm run build:cli && npm run build:frontend",
-    "build:shared": "cd shared && npm run build",
+    "build": "npm run build:cli && npm run build:frontend",
     "build:cli": "tsc -p cli/tsconfig.json",
     "build:frontend": "cd frontend && npm run build",
-    "clean": "npm run clean:shared && npm run clean:cli && npm run clean:frontend",
-    "clean:shared": "cd shared && rm -rf dist",
+    "clean": "npm run clean:cli && npm run clean:frontend",
     "clean:cli": "rm -rf dist",
     "clean:frontend": "cd frontend && npm run clean",
-    "dev": "npm run build:shared && concurrently \"npm run dev:shared\" \"npm run start:frontend\" \"npm run start:standalone\"",
-    "dev:shared": "cd shared && npm run watch",
+    "dev": "concurrently \"npm run start:frontend\" \"npm run start:standalone\"",
     "test": "vitest",
     "lint": "eslint . --ext ts,tsx,js,jsx",
     "lint:fix": "eslint . --ext ts,tsx,js,jsx --fix",
@@ -65,7 +59,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.17.1",
     "@google/generative-ai": "^0.24.1",
-    "aicodereview-shared": "^1.0.0",
     "commander": "^12.1.0",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",

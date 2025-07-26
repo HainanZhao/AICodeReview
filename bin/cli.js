@@ -76,9 +76,14 @@ program
           console.log('Configuration created. Starting AI Code Review...\n');
         }
 
-        // If --api-only is specified and no port was explicitly set, use port 5959
+        // If --api-only is specified and no port was explicitly set via CLI, use port 5959
         const serverOptions = { ...options, apiOnly: options.apiOnly };
-        if (options.apiOnly && !options.port) {
+        
+        // Check if port was explicitly provided via CLI (options.port would be set)
+        // vs. coming from config file (where we want to override to 5959 for API-only mode)
+        const hasExplicitPortFromCLI =
+          process.argv.includes('--port') || process.argv.includes('-p');
+        if (options.apiOnly && !hasExplicitPortFromCLI) {
           serverOptions.port = '5959';
         }
 

@@ -12,7 +12,7 @@ import {
   type AIReviewResponse,
   type ReviewFeedback,
   postDiscussion,
-} from 'aicodereview-shared';
+} from '../shared/index.js';
 
 /**
  * Main CLI review command orchestrator
