@@ -13,7 +13,6 @@ import {
   type ReviewFeedback,
   postDiscussion,
 } from '@aireview/shared';
-import inquirer from 'inquirer';
 
 /**
  * Main CLI review command orchestrator
@@ -137,7 +136,7 @@ export class CLIReviewCommand {
       );
 
       // Populate position for new feedback items
-      filteredFeedback = filteredFeedback.map((feedback) => {
+      filteredFeedback = filteredFeedback.map((feedback: ReviewFeedback) => {
         if (!feedback.position) {
           return {
             ...feedback,
