@@ -6,6 +6,8 @@ import {
   type AIReviewRequest,
   type AIReviewResponse,
 } from '@aireview/shared';
+import { GeminiCliExecutor, GeminiCliItem } from '../shared/geminiCliExecutor.js';
+import { spawn } from 'child_process';
 
 /**
  * AI provider integration for CLI mode
@@ -95,80 +97,117 @@ export class CLIAIProvider {
   }
 
   /**
-   * Generates review using Gemini CLI (Google Cloud Vertex AI)
+   * Generates review using Gemini CLI tool
    */
   private async generateGeminiCliReview(prompt: string): Promise<AIReviewResponse> {
     try {
-      // Use the exec command to call gcloud vertex-ai
-      const { exec } = await import('child_process');
-      const { promisify } = await import('util');
-      const execAsync = promisify(exec);
-
-      // Create a temporary file for the prompt
-      const { writeFileSync, unlinkSync } = await import('fs');
-      const { join } = await import('path');
-      const { tmpdir } = await import('os');
+      console.log('Calling gemini CLI with --yolo flag...');
       
-      const tempFile = join(tmpdir(), `prompt-${Date.now()}.txt`);
-      writeFileSync(tempFile, prompt);
-
-      const projectId = this.config.llm.googleCloudProject;
-      const region = 'us-central1'; // Default region
-      const model = 'gemini-1.5-pro';
-
-      // Build the gcloud command
-      const gcloudCommand = [
-        'gcloud', 'ai', 'models', 'predict',
-        `projects/${projectId}/locations/${region}/models/${model}`,
-        '--json-request', `'{"instances":[{"content":"$(cat ${tempFile})"}]}'`,
-        '--format', 'json'
-      ].join(' ');
-
-      console.log('Calling Google Cloud Vertex AI...');
+      // Use the shared GeminiCliExecutor
+      const geminiItems = await GeminiCliExecutor.executeReview(prompt, { verbose: true });
       
-      try {
-        const { stdout, stderr } = await execAsync(gcloudCommand, { 
-          maxBuffer: 1024 * 1024 * 10 // 10MB buffer
-        });
-        
-        if (stderr) {
-          console.warn('gcloud stderr:', stderr);
-        }
+      // Convert to our expected format
+      const feedback = geminiItems.map((item, index) => ({
+        id: `gemini-cli-${Date.now()}-${index}`,
+        filePath: String(item.filePath || '').replace(/\\/g, '/'),
+        lineNumber: Number(item.lineNumber || 0),
+        severity: item.severity === 'error' ? Severity.Critical : (item.severity === 'warning' ? Severity.Warning : (item.severity === 'info' ? Severity.Info : Severity.Suggestion)),
+        title: String(item.title || 'Code Review Comment'),
+        description: String(item.description || ''),
+        lineContent: '',
+        position: null,
+        status: 'pending' as const,
+        isExisting: false,
+      }));
 
-        // Clean up temp file
-        unlinkSync(tempFile);
-
-        // Parse the response
-        const response = JSON.parse(stdout);
-        const generatedText = response.predictions?.[0]?.content || response.predictions?.[0]?.candidates?.[0]?.content || 'No response generated';
-        
-        return parseAIResponse(generatedText);
-      } catch (execError) {
-        // Clean up temp file on error
-        try { unlinkSync(tempFile); } catch {}
-        
-        console.error('gcloud command failed:', execError);
-        
-        // Check if gcloud is installed
-        try {
-          await execAsync('gcloud --version');
-          throw new Error(`Google Cloud CLI command failed: ${execError instanceof Error ? execError.message : 'Unknown error'}. Make sure you're authenticated with 'gcloud auth login' and have the correct project set.`);
-        } catch (versionError) {
-          throw new Error('Google Cloud CLI not found. Please install gcloud CLI and authenticate with your Google Cloud project.');
-        }
-      }
+      return {
+        feedback,
+        summary: `Gemini CLI review completed with ${feedback.length} recommendations.`,
+        overallRating: feedback.length > 0 ? 'comment' : 'approve',
+      };
     } catch (error) {
       console.error('Gemini CLI provider error:', error);
       
-      // Provide more helpful error message
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      if (errorMessage.includes('not found') || errorMessage.includes('command not found')) {
-        throw new Error('Google Cloud CLI not installed. Please install gcloud CLI, authenticate with "gcloud auth login", and set your project with "gcloud config set project YOUR_PROJECT_ID"');
-      } else if (errorMessage.includes('permission') || errorMessage.includes('authentication')) {
-        throw new Error('Google Cloud authentication failed. Please run "gcloud auth login" and ensure you have access to the Vertex AI API.');
+      
+      // Provide a clearer error message
+      if (errorMessage.includes('not found') || errorMessage.includes('command not found') || errorMessage.includes('aliased or linked to "gcloud"') || errorMessage.includes('part of the Google Cloud SDK') || errorMessage.includes('Could not verify the "gemini" CLI')) {
+        throw new Error(
+          'Gemini CLI tool not found or misconfigured. Please ensure it is installed ' +
+            '(npm install -g @google-ai/generative-ai-cli) and that the "gemini" command ' +
+            'is available in your PATH and not conflicting with "gcloud".'
+        );
       } else {
         throw new Error(`Gemini CLI review failed: ${errorMessage}`);
       }
+    }
+  }
+
+  /**
+   * Execute gemini CLI with stdin (same as backend implementation)
+   */
+  private executeGeminiWithStdin(prompt: string): Promise<{ stdout: string; stderr: string }> {
+    return new Promise((resolve, reject) => {
+      const child = spawn('gemini', ['--yolo'], {
+        stdio: 'pipe',
+        shell: process.platform === 'win32',
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout.on('data', (data: Buffer) => {
+        stdout += data.toString();
+      });
+
+      child.stderr.on('data', (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      child.on('close', (code: number | null) => {
+        if (code === 0) {
+          resolve({ stdout, stderr });
+        } else {
+          reject(new Error(`gemini command failed with exit code ${code}: ${stderr}`));
+        }
+      });
+
+      child.on('error', (error: Error) => {
+        reject(error);
+      });
+
+      // Send prompt via stdin
+      child.stdin.write(prompt);
+      child.stdin.end();
+    });
+  }
+
+  /**
+   * Extract JSON from gemini CLI output (same as backend implementation)
+   */
+  private async extractJsonFromGeminiOutput(output: string): Promise<GeminiCliItem[]> {
+    // Log the raw output for debugging
+    console.log('Raw Gemini CLI output received:', output.substring(0, 200) + '...');
+
+    const jsonMatch = output.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      console.warn('No JSON array found in output. Assuming no recommendations.');
+      return [];
+    }
+
+    try {
+      const jsonContent = jsonMatch[0];
+      console.log('Extracted JSON string:', jsonContent.substring(0, 100) + '...');
+
+      const parsed = JSON.parse(jsonContent);
+      if (!Array.isArray(parsed)) {
+        console.warn('Parsed output is not an array. Assuming no recommendations.');
+        return [];
+      }
+      return parsed;
+    } catch {
+      console.warn('Failed to parse JSON, assuming no recommendations.');
+      return [];
     }
   }
 
@@ -178,11 +217,8 @@ export class CLIAIProvider {
   validateConfig(): void {
     switch (this.config.llm.provider) {
       case 'gemini-cli':
-        if (!this.config.llm.googleCloudProject) {
-          throw new Error(
-            'Google Cloud project ID is required for gemini-cli provider. Use --google-cloud-project or set in config.'
-          );
-        }
+        // No additional config required for gemini CLI tool
+        // Just need the gemini CLI tool to be installed and available
         break;
       case 'gemini':
         if (!this.config.llm.apiKey) {
