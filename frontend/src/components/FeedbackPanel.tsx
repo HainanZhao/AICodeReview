@@ -3,10 +3,10 @@ import {
   ReviewFeedback,
   GitLabMRDetails,
   ParsedFileDiff,
-  ParsedDiffLine,
   ParsedHunk,
   Severity,
-} from '../shared/src/types';
+} from 'aicodereview-shared';
+import { ParsedDiffLine } from '../types';
 import { FileDiffCard } from './FileDiffCard';
 import { FeedbackCard } from './FeedbackCard';
 import { Spinner } from './Spinner';

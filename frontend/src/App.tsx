@@ -7,14 +7,13 @@ import { reviewCode, fetchMrDetails } from './services/aiReviewService';
 import { fetchProjects, postDiscussion, approveMergeRequest } from './services/gitlabService';
 import {
   ReviewFeedback,
-  Config,
   GitLabMRDetails,
   GitLabProject,
   ParsedFileDiff,
-  ParsedDiffLine,
   GitLabPosition,
   Severity,
-} from './shared/src/types';
+} from 'aicodereview-shared';
+import { Config, ParsedDiffLine } from './types';
 import { ConfigModal } from './components/ConfigModal';
 import { ResizablePane } from './components/ResizablePane';
 import {

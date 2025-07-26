@@ -1,5 +1,5 @@
-import { parseDiffsToHunks } from './gitlabService';
-import { FileDiff } from '../shared/src/types';
+import { parseGitDiff } from './gitlabService';
+import { FileDiff } from 'aicodereview-shared';
 
 describe('parseDiffsToHunks', () => {
   const mockFileContents = new Map<string, { oldContent?: string[]; newContent?: string[] }>();

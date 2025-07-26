@@ -1,5 +1,4 @@
 import {
-  Config,
   GitLabMRDetails,
   FileDiff,
   ReviewFeedback,
@@ -9,7 +8,8 @@ import {
   ParsedHunk,
   Severity,
   GitLabDiscussion,
-} from '../shared/src/types';
+} from 'aicodereview-shared';
+import { Config } from '../types';
 
 const parseMrUrl = (
   mrUrl: string,

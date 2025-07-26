@@ -1,12 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
-import {
-  ReviewFeedback,
-  Severity,
-  Config,
-  GitLabMRDetails,
-  GitLabPosition,
-} from '../shared/src/types';
-import type { GeminiReviewResponse } from '../shared/src/types';
+import { ReviewFeedback, Severity, GitLabMRDetails, GitLabPosition } from 'aicodereview-shared';
+import type { AIReviewResponse } from 'aicodereview-shared';
+import { Config } from '../types';
 import { fetchMrData } from './gitlabService';
 
 // Helper function to check if two pieces of text are similar
@@ -112,7 +107,7 @@ export const reviewCode = async (
       throw new Error(errorMessage);
     }
 
-    const parsedResponse = (await response.json()) as GeminiReviewResponse[];
+    const parsedResponse = (await response.json()) as ReviewFeedback[];
 
     if (!Array.isArray(parsedResponse)) {
       console.warn('Unexpected JSON structure from API:', parsedResponse);
