@@ -8,7 +8,7 @@ import {
   AIProviderCore,
   GeminiCliCore,
   type GeminiCliItem,
-} from '@aireview/shared';
+} from 'aicodereview-shared';
 
 /**
  * AI provider integration for CLI mode

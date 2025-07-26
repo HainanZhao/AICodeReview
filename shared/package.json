@@ -1,6 +1,19 @@
 {
-  "name": "@aireview/shared",
+  "name": "aicodereview-shared",
   "version": "1.0.0",
+  "description": "Shared types and utilities for AICodeReview",
+  "keywords": ["code-review", "ai", "typescript", "shared"],
+  "author": "HainanZhao",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HainanZhao/AICodeReview.git",
+    "directory": "shared"
+  },
+  "homepage": "https://github.com/HainanZhao/AICodeReview#readme",
+  "bugs": {
+    "url": "https://github.com/HainanZhao/AICodeReview/issues"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,12 +24,21 @@
       "default": "./dist/index.js"
     }
   },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
-    "watch": "tsc -w"
+    "watch": "tsc -w",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {},
   "devDependencies": {
     "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }

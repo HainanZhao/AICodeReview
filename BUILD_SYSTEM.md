@@ -7,7 +7,7 @@ The build system has been improved to properly handle the shared workspace depen
 ## Key Improvements
 
 ### 1. **Proper Build Order**
-- **Before**: `build:src` would fail because `@aireview/shared` wasn't built
+- **Before**: `build:src` would fail because `aicodereview-shared` wasn't built
 - **After**: `build:shared` runs first, ensuring dependencies are available
 
 ### 2. **Automatic Installation**
@@ -82,7 +82,7 @@ npm run prepublishOnly # Runs automatically before publishing
 project/
 ├── package.json           # Main package with workspace configuration
 ├── shared/                # Shared types and utilities
-│   ├── package.json       # @aireview/shared
+│   ├── package.json       # aicodereview-shared
 │   ├── cli/              # CLI source files
 │   └── dist/             # Built files (generated)
 ├── backend/              # Express server
@@ -95,11 +95,11 @@ project/
 ## Package Dependencies
 
 ### Main Package
-- Uses workspace dependency: `"@aireview/shared": "workspace:*"`
+- Uses workspace dependency: `"aicodereview-shared": "workspace:*"`
 - Includes shared dist in published files
 
 ### Backend Package
-- Uses local file dependency: `"@aireview/shared": "file:../shared"`
+- Uses local file dependency: `"aicodereview-shared": "file:../shared"`
 - Ensures TypeScript can resolve types properly
 
 ### Shared Package
@@ -151,7 +151,7 @@ npm start          # Start production servers
 
 ## Troubleshooting
 
-### "Cannot find module '@aireview/shared'"
+### "Cannot find module 'aicodereview-shared'"
 ```bash
 npm run build:shared  # Build the shared module
 # or

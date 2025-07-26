@@ -38,11 +38,9 @@
   },
   "type": "module",
   "workspaces": [
-    "backend",
-    "shared"
+    "backend"
   ],
   "scripts": {
-    "postinstall": "npm run build:shared",
     "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
     "start:frontend": "vite",
     "start:backend": "cd backend && npm run start",
@@ -67,16 +65,16 @@
     "pack:test": "npm pack --dry-run"
   },
   "dependencies": {
-    "@aireview/shared": "workspace:*",
     "@anthropic-ai/sdk": "^0.17.1",
     "@google/generative-ai": "^0.24.1",
+    "aicodereview-shared": "^1.0.0",
     "commander": "^12.1.0",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
+    "inquirer": "^9.2.23",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "uuid": "^9.0.1",
-    "inquirer": "^9.2.23"
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@eslint/compat": "^1.3.1",

@@ -1,6 +1,6 @@
 import { LLMProvider, ReviewRequest, ReviewResponse } from './types.js';
 import { Request, Response } from 'express';
-import { GeminiCliCore, GeminiCliItem } from '@aireview/shared';
+import { GeminiCliCore, GeminiCliItem } from 'aicodereview-shared';
 import { ReviewPromptBuilder } from './promptBuilder.js';
 
 export class GeminiCliProvider implements LLMProvider {

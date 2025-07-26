@@ -15,9 +15,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@aireview/shared": "file:../shared",
     "@anthropic-ai/sdk": "^0.17.1",
     "@google/generative-ai": "^0.24.1",
+    "aicodereview-shared": "^1.0.0",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "ts-node": "^10.9.2",

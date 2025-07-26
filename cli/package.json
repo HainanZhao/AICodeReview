@@ -1,0 +1,24 @@
+{
+  "name": "@aireview/cli",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf ../dist",
+    "dev": "tsc -p tsconfig.json --watch",
+    "lint": "eslint . --ext ts,js",
+    "lint:fix": "eslint . --ext ts,js --fix"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "inquirer": "^9.2.23"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.8",
+    "@types/node": "^22.14.0",
+    "typescript": "~5.7.2"
+  }
+}
