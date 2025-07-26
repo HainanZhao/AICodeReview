@@ -145,7 +145,7 @@ export class GeminiCliExecutor {
         const chunk = data.toString();
         stdout += chunk;
         if (verbose) {
-          process.stdout.write(`[gemini stdout] ${chunk}`);
+          process.stdout.write(chunk);
         }
       });
 

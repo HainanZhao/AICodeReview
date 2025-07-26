@@ -186,6 +186,21 @@ aicodereview --init
 aicodereview --config /path/to/my-config.json
 ```
 
+### Direct Merge Request Review (CLI Mode)
+```bash
+# Review a GitLab Merge Request and post comments
+aicodereview https://gitlab.example.com/your-group/your-project/-/merge_requests/123
+
+# Review with a dry run (AI review generated, but no comments posted)
+aicodereview https://gitlab.example.com/your-group/your-project/-/merge_requests/123 --dry-run
+
+# Review with verbose output for debugging
+aicodereview https://gitlab.example.com/your-group/your-project/-/merge_requests/123 --verbose
+
+# Review using a specific LLM provider and API key
+aicodereview https://gitlab.example.com/your-group/your-project/-/merge_requests/123 --provider gemini --api-key YOUR_GEMINI_API_KEY
+```
+
 ### Advanced Usage
 ```bash
 # Run on different host and port
@@ -199,11 +214,19 @@ aicodereview --no-open
 ```
 
 
-#### Port Already in Use
+## 🐛 Troubleshooting
+
+### Port Already in Use
 The tool automatically finds an available port if the specified port is busy.
 
-#### API Key Issues
+### API Key Issues
 Make sure your API key is valid and has proper permissions for the chosen provider.
+
+### GitLab Connection Issues
+If you encounter issues connecting to GitLab or fetching merge request data:
+- Ensure your `GITLAB_URL` is correct and accessible.
+- Verify your `GITLAB_ACCESS_TOKEN` is valid and has the necessary `api` and `read_api` scopes.
+- You can test your GitLab connection using the `--init` command or by manually checking your token's validity in GitLab.
 
 ### Gemini CLI Issues
 Ensure the `gemini` command is installed and properly configured for your Google Cloud project:

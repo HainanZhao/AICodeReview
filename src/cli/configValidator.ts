@@ -1,5 +1,6 @@
 import { AppConfig } from '../config/configSchema.js';
 import { ConfigLoader } from '../config/configLoader.js';
+import { testGitLabConnection } from '@aireview/shared';
 
 /**
  * Validates configuration for CLI review mode
@@ -8,9 +9,19 @@ export class CLIConfigValidator {
   /**
    * Validates that all required configuration is present for CLI review
    */
-  static validateForReview(config: AppConfig): void {
+  static async validateForReview(config: AppConfig): Promise<void> {
     // Validate GitLab configuration
     ConfigLoader.validateGitLabConfig(config);
+
+    // Test GitLab connection
+    if (config.gitlab?.url && config.gitlab?.accessToken) {
+      const isConnected = await testGitLabConnection(config.gitlab);
+      if (!isConnected) {
+        throw new Error(
+          'Failed to connect to GitLab. Please check your GitLab URL and Personal Access Token.'
+        );
+      }
+    }
 
     // Validate LLM configuration
     this.validateLLMConfig(config);

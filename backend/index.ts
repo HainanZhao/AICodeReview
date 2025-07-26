@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { createLLMProvider } from './services/llm/providerFactory';
+import { GitLabConfig } from '@aireview/shared';
 
 dotenv.config();
 
@@ -11,6 +12,12 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const llmType = process.env.LLM_PROVIDER || 'gemini-cli';
 const apiKey = process.env.LLM_API_KEY || process.env.GEMINI_API_KEY; // Support legacy env var
+
+// Load GitLab configuration
+const gitlabConfig: GitLabConfig = {
+  url: process.env.GITLAB_URL || '',
+  accessToken: process.env.GITLAB_ACCESS_TOKEN || '',
+};
 
 if (llmType === 'gemini-cli' && !process.env.GOOGLE_CLOUD_PROJECT) {
   console.error(
@@ -31,6 +38,14 @@ async function startServer() {
   try {
     const llmProvider = await createLLMProvider(llmType, apiKey);
     app.post('/api/review', llmProvider.reviewCode.bind(llmProvider));
+
+    // New endpoint to expose GitLab configuration
+    app.get('/api/config', (req, res) => {
+      res.json({
+        gitlabUrl: gitlabConfig.url,
+        // Do NOT send accessToken to frontend for security reasons
+      });
+    });
 
     const PORT = process.env.PORT || 5959;
     app.listen(PORT, () => {

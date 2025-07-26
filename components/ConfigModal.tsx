@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Config } from '../types';
-import { saveConfig } from '../services/configService';
+import { saveConfig, fetchBackendConfig } from '../services/configService';
 import { CloseIcon } from './icons';
 
 interface ConfigModalProps {
@@ -18,11 +18,22 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
 }) => {
   const [gitlabUrl, setGitlabUrl] = useState('');
   const [accessToken, setAccessToken] = useState('');
+  const [backendConfigLoaded, setBackendConfigLoaded] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setGitlabUrl(initialConfig?.gitlabUrl || 'https://gitlab.com');
-      setAccessToken(initialConfig?.accessToken || '');
+      const loadInitialConfig = async () => {
+        const backendConfig = await fetchBackendConfig();
+        if (backendConfig?.url) {
+          setGitlabUrl(backendConfig.url);
+          setBackendConfigLoaded(true);
+        } else {
+          setGitlabUrl(initialConfig?.gitlabUrl || 'https://gitlab.com');
+          setBackendConfigLoaded(false);
+        }
+        setAccessToken(initialConfig?.accessToken || '');
+      };
+      loadInitialConfig();
     }
   }, [isOpen, initialConfig]);
 
@@ -72,7 +83,13 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
               onChange={(e) => setGitlabUrl(e.target.value)}
               placeholder="https://gitlab.com"
               className="w-full p-3 bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text font-mono text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+              disabled={backendConfigLoaded} // Disable if loaded from backend
             />
+            {backendConfigLoaded && (
+              <p className="text-xs text-gray-500 dark:text-brand-subtle mt-1">
+                Pre-configured from backend environment variables.
+              </p>
+            )}
             <p className="text-xs text-gray-500 dark:text-brand-subtle mt-1">
               The base URL of your GitLab instance.
             </p>

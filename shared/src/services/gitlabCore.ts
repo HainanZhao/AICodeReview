@@ -17,6 +17,31 @@ import {
 
 const MAX_FILE_LINES = 10000;
 
+// Helper for delay
+const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+// Retry mechanism for network requests
+async function retry<T>(
+  fn: () => Promise<T>,
+  retries: number = 3,
+  delayMs: number = 1000
+): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const isNetworkError = error instanceof TypeError || (error instanceof Error && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')));
+      if (i < retries - 1 && isNetworkError) {
+        console.warn(`Retrying due to network error (${i + 1}/${retries}):`, error.message);
+        await delay(delayMs * (i + 1)); // Exponential backoff
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw new Error('Max retries reached');
+}
+
 /**
  * Parses a GitLab MR URL to extract project and MR information
  */
@@ -545,4 +570,20 @@ export const approveMergeRequest = async (
   await gitlabApiFetch(url, config, {
     method: 'POST',
   });
+};
+
+/**
+ * Tests the GitLab connection and authentication.
+ * Fetches a simple endpoint (e.g., user projects) to verify credentials.
+ */
+export const testGitLabConnection = async (config: GitLabConfig): Promise<boolean> => {
+  try {
+    // Attempt to fetch a non-sensitive endpoint that requires authentication
+    const url = `${config.url}/api/v4/projects?membership=true&per_page=1`;
+    await gitlabApiFetch(url, config);
+    return true;
+  } catch (error) {
+    console.error('GitLab connection test failed:', error);
+    return false;
+  }
 };

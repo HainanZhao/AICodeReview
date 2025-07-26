@@ -1,4 +1,5 @@
 import { Config } from '../types';
+import { GitLabConfig } from '@aireview/shared';
 
 const CONFIG_KEY = 'ai-code-reviewer-config';
 const PROJECTS_KEY = 'ai-code-reviewer-selected-projects';
@@ -23,6 +24,24 @@ export const loadConfig = (): Config | null => {
     return JSON.parse(configStr) as Config;
   } catch (error) {
     console.error('Failed to load config from localStorage', error);
+    return null;
+  }
+};
+
+export const fetchBackendConfig = async (): Promise<Partial<GitLabConfig> | null> => {
+  try {
+    const response = await fetch('/api/config');
+    if (!response.ok) {
+      console.error('Failed to fetch backend config:', response.statusText);
+      return null;
+    }
+    const data = await response.json();
+    return {
+      url: data.gitlabUrl,
+      // accessToken is not sent from backend for security reasons
+    };
+  } catch (error) {
+    console.error('Error fetching backend config:', error);
     return null;
   }
 };

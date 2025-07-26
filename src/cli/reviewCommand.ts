@@ -11,7 +11,9 @@ import {
   type AIReviewRequest,
   type AIReviewResponse,
   type ReviewFeedback,
+  postDiscussion,
 } from '@aireview/shared';
+import inquirer from 'inquirer';
 
 /**
  * Main CLI review command orchestrator
@@ -129,13 +131,33 @@ export class CLIReviewCommand {
       }
       
       // Filter and process feedback
-      const filteredFeedback = filterAndDeduplicateFeedback(
+      let filteredFeedback = filterAndDeduplicateFeedback(
         aiResponse.feedback,
         mrData.existingFeedback
       );
 
-      // Create summary (for future use when implementing comment posting)
-      createReviewSummary(filteredFeedback, aiResponse.overallRating);
+      // Populate position for new feedback items
+      filteredFeedback = filteredFeedback.map((feedback) => {
+        if (!feedback.position) {
+          return {
+            ...feedback,
+            position: {
+              base_sha: mrData.base_sha,
+              start_sha: mrData.start_sha,
+              head_sha: mrData.head_sha,
+              position_type: 'text',
+              old_path: feedback.filePath, // Assuming old_path is same as new_path for new comments
+              new_path: feedback.filePath,
+              new_line: feedback.lineNumber,
+              old_line: undefined, // Not applicable for new comments on new lines
+            },
+          };
+        }
+        return feedback;
+      });
+
+      // Create summary
+      const reviewSummary = createReviewSummary(filteredFeedback, aiResponse.overallRating);
 
       // Format and display results
       const output = CLIOutputFormatter.formatReview(
@@ -146,10 +168,23 @@ export class CLIReviewCommand {
       console.log(output);
 
       if (!options.dryRun && filteredFeedback.length > 0) {
-        console.log(CLIOutputFormatter.formatProgress('Posting comments to GitLab...'));
-        // TODO: Post comments to GitLab using the shared postDiscussion function
-        console.log(CLIOutputFormatter.formatSuccess('Comments posted successfully!'));
+        // Proceed directly with posting comments without confirmation
+        {
+          console.log(CLIOutputFormatter.formatProgress('Posting comments to GitLab...'));
+          for (const feedbackItem of filteredFeedback) {
+            try {
+              await postDiscussion(config.gitlab!, mrData, feedbackItem);
+              console.log(CLIOutputFormatter.formatSuccess(`Posted comment for ${feedbackItem.filePath}:${feedbackItem.lineNumber}`));
+            } catch (postError) {
+              console.error(CLIOutputFormatter.formatError(`Failed to post comment for ${feedbackItem.filePath}:${feedbackItem.lineNumber}: ${postError instanceof Error ? postError.message : String(postError)}`));
+            }
+          }
+          console.log(CLIOutputFormatter.formatSuccess('All comments processed.'));
+        }
       }
+      
+      // Always display the overall summary
+      console.log('\n' + reviewSummary);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
 
