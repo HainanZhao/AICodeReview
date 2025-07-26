@@ -73,13 +73,19 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     app.use(express.static(distPath));
 
     // Handle common browser requests that we expect to fail silently
-    app.get('/favicon.ico', (_req, res) => res.status(204).end());
-    app.get('/robots.txt', (_req, res) => res.status(204).end());
-    app.get('/manifest.json', (_req, res) => res.status(204).end());
+    app.get('/favicon.ico', (_req: express.Request, res: express.Response) =>
+      res.status(204).end()
+    );
+    app.get('/robots.txt', (_req: express.Request, res: express.Response) =>
+      res.status(204).end()
+    );
+    app.get('/manifest.json', (_req: express.Request, res: express.Response) =>
+      res.status(204).end()
+    );
 
     // Serve index.html for all non-API routes (SPA routing)
-    app.get('/', (_req, res) => {
-      res.sendFile(join(distPath, 'index.html'), (err) => {
+    app.get('/', (_req: express.Request, res: express.Response) => {
+      res.sendFile(join(distPath, 'index.html'), (err: NodeJS.ErrnoException | null) => {
         if (err) {
           res.status(404).end();
         }
@@ -87,8 +93,8 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     });
 
     // Handle all other non-API routes for SPA
-    app.get(/^(?!\/api).*$/, (_req, res) => {
-      res.sendFile(join(distPath, 'index.html'), (err) => {
+    app.get(/^(?!\/api).*$/, (_req: express.Request, res: express.Response) => {
+      res.sendFile(join(distPath, 'index.html'), (err: NodeJS.ErrnoException | null) => {
         if (err) {
           res.status(404).end();
         }
