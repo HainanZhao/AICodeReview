@@ -1,4 +1,5 @@
-import { parseGitDiff } from './gitlabService';
+import { describe, it, expect } from 'vitest';
+import { parseDiffsToHunks } from './gitlabService';
 import { FileDiff } from '../../../types';
 
 describe('parseDiffsToHunks', () => {
