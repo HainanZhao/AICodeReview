@@ -11,7 +11,7 @@ const __dirname = dirname(__filename);
 
 export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   const isApiOnly = cliOptions.apiOnly || process.env.AI_CODEREVIEW_MODE === 'api-only';
-  
+
   console.log(`🚀 Starting AI Code Review in ${isApiOnly ? 'API-only' : 'standalone'} mode...\n`);
 
   // Load configuration

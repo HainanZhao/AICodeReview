@@ -78,7 +78,7 @@ program
 
         // If --api-only is specified and no port was explicitly set via CLI, use port 5959
         const serverOptions = { ...options, apiOnly: options.apiOnly };
-        
+
         // Check if port was explicitly provided via CLI (options.port would be set)
         // vs. coming from config file (where we want to override to 5959 for API-only mode)
         const hasExplicitPortFromCLI =

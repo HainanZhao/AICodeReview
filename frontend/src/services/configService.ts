@@ -53,19 +53,19 @@ export const getConfigSource = async (): Promise<ConfigSource> => {
   if (hasLocalConfig) {
     return 'localStorage';
   }
-  
+
   const backendConfig = await fetchBackendConfig();
   if (backendConfig?.url) {
     return 'backend';
   }
-  
+
   return 'none';
 };
 
 export const hasLocalStorageOverride = async (): Promise<boolean> => {
   const hasLocal = hasLocalStorageConfig();
   const backendConfig = await fetchBackendConfig();
-  
+
   return hasLocal && backendConfig?.url !== undefined;
 };
 
@@ -112,12 +112,12 @@ export const fetchBackendConfig = async (
       };
     } catch (error) {
       console.warn(`Failed to fetch backend config (attempt ${attempt}/${retries}):`, error);
-      
+
       if (attempt === retries) {
         console.error('All attempts to fetch backend config failed:', error);
         return null;
       }
-      
+
       // Wait before retrying
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
