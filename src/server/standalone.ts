@@ -1,6 +1,6 @@
 import express from 'express';
 import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { ConfigLoader, CLIOptions } from '../config/configLoader.js';
 import { findAvailablePort } from '../utils/portUtils.js';
 import { openBrowser } from '../utils/browserUtils.js';
@@ -55,7 +55,9 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       'llm',
       'providerFactory.js'
     );
-    const { createLLMProvider } = await import(backendPath);
+    // Convert file path to file:// URL for ES module import
+    const backendURL = pathToFileURL(backendPath).href;
+    const { createLLMProvider } = await import(backendURL);
 
     const llmProvider = await createLLMProvider(config.llm.provider, config.llm.apiKey);
 
