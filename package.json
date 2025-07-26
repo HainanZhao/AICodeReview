@@ -36,7 +36,8 @@
   },
   "type": "module",
   "workspaces": [
-    "backend"
+    "backend",
+    "shared"
   ],
   "scripts": {
     "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
@@ -54,6 +55,7 @@
     "pack:test": "npm pack && npm install -g ./aicodereview-cli-1.0.0.tgz"
   },
   "dependencies": {
+    "@aireview/shared": "workspace:*",
     "@anthropic-ai/sdk": "^0.17.1",
     "@google/generative-ai": "^0.24.1",
     "commander": "^12.1.0",

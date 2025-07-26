@@ -4,6 +4,26 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { AppConfig } from './configSchema.js';
 
+/**
+ * Tests GitLab connection with provided credentials
+ */
+async function testGitLabConnection(url: string, token: string): Promise<void> {
+  const apiUrl = `${url.replace(/\/$/, '')}/api/v4/user`;
+  
+  const response = await fetch(apiUrl, {
+    headers: {
+      'PRIVATE-TOKEN': token,
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Invalid access token');
+    }
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+}
+
 export async function createConfigInteractively(): Promise<void> {
   const rl = createInterface({
     input: process.stdin,
@@ -58,6 +78,46 @@ export async function createConfigInteractively(): Promise<void> {
     const autoOpenInput = (await question('Auto-open browser? (y/N): ')) || 'y';
     const autoOpen = autoOpenInput.toLowerCase() === 'y' || autoOpenInput.toLowerCase() === 'yes';
 
+    // GitLab configuration
+    console.log('\n🦊 GitLab Configuration (for CLI review mode):');
+    console.log('This allows you to review merge requests directly from the command line.');
+    const configureGitlab = await question('Configure GitLab access? (Y/n): ');
+    
+    let gitlabConfig: { url: string; accessToken: string } | undefined;
+    
+    if (configureGitlab.toLowerCase() !== 'n' && configureGitlab.toLowerCase() !== 'no') {
+      const gitlabUrl = await question('GitLab instance URL (e.g., https://gitlab.com): ');
+      
+      if (gitlabUrl) {
+        console.log('\n📋 To create a Personal Access Token:');
+        console.log('  1. Go to your GitLab instance → Settings → Access Tokens');
+        console.log('  2. Create a token with "api" scope');
+        console.log('  3. Copy the token (it will only be shown once)');
+        
+        const accessToken = await question('\nGitLab Personal Access Token: ');
+        
+        if (accessToken) {
+          // Test GitLab connection
+          console.log('\n🔍 Testing GitLab connection...');
+          try {
+            await testGitLabConnection(gitlabUrl, accessToken);
+            console.log('✅ GitLab connection successful!');
+            gitlabConfig = { url: gitlabUrl, accessToken };
+          } catch (error) {
+            console.warn(
+              `⚠️  GitLab connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+            );
+            const continueAnyway = await question(
+              'Continue with this configuration anyway? (y/N): '
+            );
+            if (continueAnyway.toLowerCase() === 'y' || continueAnyway.toLowerCase() === 'yes') {
+              gitlabConfig = { url: gitlabUrl, accessToken };
+            }
+          }
+        }
+      }
+    }
+
     // Create config object
     const config: AppConfig = {
       server: {
@@ -65,14 +125,15 @@ export async function createConfigInteractively(): Promise<void> {
         host,
       },
       llm: {
-        provider: provider as any,
+        provider: provider as 'gemini-cli' | 'gemini' | 'anthropic',
         ...(apiKey && { apiKey }),
         ...(googleCloudProject && { googleCloudProject }),
       },
       ui: {
-        theme: theme as any,
+        theme: theme as 'light' | 'dark' | 'auto',
         autoOpen,
       },
+      ...(gitlabConfig && { gitlab: gitlabConfig }),
     };
 
     // Save to home directory

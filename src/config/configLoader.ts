@@ -73,6 +73,19 @@ export class ConfigLoader {
       envConfig.server.host = process.env.HOST;
     }
 
+    // GitLab environment variables
+    if (process.env.GITLAB_URL || process.env.GITLAB_ACCESS_TOKEN) {
+      if (!envConfig.gitlab) {
+        envConfig.gitlab = { url: '', accessToken: '' };
+      }
+      if (process.env.GITLAB_URL) {
+        envConfig.gitlab.url = process.env.GITLAB_URL;
+      }
+      if (process.env.GITLAB_ACCESS_TOKEN) {
+        envConfig.gitlab.accessToken = process.env.GITLAB_ACCESS_TOKEN;
+      }
+    }
+
     return envConfig;
   }
 
@@ -107,11 +120,24 @@ export class ConfigLoader {
   }
 
   private static mergeConfigs(base: AppConfig, override: Partial<AppConfig>): AppConfig {
-    return {
+    const merged: AppConfig = {
       server: { ...base.server, ...override.server },
       llm: { ...base.llm, ...override.llm },
       ui: { ...base.ui, ...override.ui },
     };
+
+    // Handle optional gitlab config
+    if (override.gitlab && override.gitlab.url && override.gitlab.accessToken) {
+      merged.gitlab = {
+        url: override.gitlab.url,
+        accessToken: override.gitlab.accessToken,
+        defaultProject: override.gitlab.defaultProject,
+      };
+    } else if (base.gitlab) {
+      merged.gitlab = base.gitlab;
+    }
+
+    return merged;
   }
 
   private static validateConfig(config: AppConfig): void {
@@ -132,6 +158,36 @@ export class ConfigLoader {
     // Validate port range
     if (config.server.port < 1 || config.server.port > 65535) {
       throw new Error(`Invalid port number: ${config.server.port}. Must be between 1 and 65535.`);
+    }
+  }
+
+  /**
+   * Validate GitLab configuration is present and valid for CLI review mode
+   */
+  static validateGitLabConfig(config: AppConfig): void {
+    if (!config.gitlab) {
+      throw new Error(
+        'GitLab configuration is missing. Please run `aicodereview --init` to configure GitLab access, or set GITLAB_URL and GITLAB_ACCESS_TOKEN environment variables.'
+      );
+    }
+
+    if (!config.gitlab.url) {
+      throw new Error(
+        'GitLab URL is missing. Please set it via config file or GITLAB_URL environment variable.'
+      );
+    }
+
+    if (!config.gitlab.accessToken) {
+      throw new Error(
+        'GitLab access token is missing. Please set it via config file or GITLAB_ACCESS_TOKEN environment variable.'
+      );
+    }
+
+    // Basic URL validation
+    try {
+      new URL(config.gitlab.url);
+    } catch {
+      throw new Error(`Invalid GitLab URL: ${config.gitlab.url}`);
     }
   }
 }

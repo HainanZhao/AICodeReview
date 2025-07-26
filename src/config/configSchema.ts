@@ -14,10 +14,17 @@ export interface UIConfig {
   autoOpen: boolean;
 }
 
+export interface GitLabConfig {
+  url: string;
+  accessToken: string;
+  defaultProject?: string;
+}
+
 export interface AppConfig {
   server: ServerConfig;
   llm: LLMConfig;
   ui: UIConfig;
+  gitlab?: GitLabConfig; // Optional GitLab section
 }
 
 export const CONFIG_SCHEMA = {
@@ -53,6 +60,15 @@ export const CONFIG_SCHEMA = {
         autoOpen: { type: 'boolean' },
       },
       required: ['theme', 'autoOpen'],
+    },
+    gitlab: {
+      type: 'object',
+      properties: {
+        url: { type: 'string' },
+        accessToken: { type: 'string' },
+        defaultProject: { type: 'string' },
+      },
+      required: ['url', 'accessToken'],
     },
   },
   required: ['server', 'llm', 'ui'],

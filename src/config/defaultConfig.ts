@@ -12,4 +12,5 @@ export const DEFAULT_CONFIG: AppConfig = {
     theme: 'light',
     autoOpen: true,
   },
+  // gitlab config is optional and will be added via --init wizard
 };
