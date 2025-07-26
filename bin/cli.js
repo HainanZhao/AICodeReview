@@ -21,9 +21,9 @@ program
   .argument('[mrUrl]', 'GitLab merge request URL for CLI review mode');
 
 program
-  .option('-p, --port <number>', 'port to run the server on', '5960')
-  .option('--host <host>', 'host to bind the server to', 'localhost')
-  .option('--provider <provider>', 'LLM provider (gemini-cli, gemini, anthropic)', 'gemini-cli')
+  .option('-p, --port <number>', 'port to run the server on')
+  .option('--host <host>', 'host to bind the server to')
+  .option('--provider <provider>', 'LLM provider (gemini-cli, gemini, anthropic)')
   .option('--api-key <key>', 'API key for the LLM provider')
   .option('--google-cloud-project <project>', 'Google Cloud project ID for gemini-cli')
   .option('--no-open', 'do not automatically open browser')
@@ -79,8 +79,7 @@ program
         // If --api-only is specified and no port was explicitly set via CLI, use port 5959
         const serverOptions = { ...options, apiOnly: options.apiOnly };
 
-        // Check if port was explicitly provided via CLI (options.port would be set)
-        // vs. coming from config file (where we want to override to 5959 for API-only mode)
+        // Check if port was explicitly provided via CLI
         const hasExplicitPortFromCLI =
           process.argv.includes('--port') || process.argv.includes('-p');
         if (options.apiOnly && !hasExplicitPortFromCLI) {

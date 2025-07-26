@@ -76,9 +76,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     app.get('/favicon.ico', (_req: express.Request, res: express.Response) =>
       res.status(204).end()
     );
-    app.get('/robots.txt', (_req: express.Request, res: express.Response) =>
-      res.status(204).end()
-    );
+    app.get('/robots.txt', (_req: express.Request, res: express.Response) => res.status(204).end());
     app.get('/manifest.json', (_req: express.Request, res: express.Response) =>
       res.status(204).end()
     );
@@ -153,6 +151,11 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     });
   };
 
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
+  // Remove any existing signal handlers to prevent duplicates
+  process.removeAllListeners('SIGINT');
+  process.removeAllListeners('SIGTERM');
+  
+  // Add our signal handlers
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
 }
