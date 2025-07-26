@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2025-07-26
+
+### Fixed
+- Fixed Windows compatibility for Gemini CLI provider
+- Updated command availability check to use `where` on Windows instead of `command -v`
+- Added `shell: true` option for Windows npm global command execution
+- Resolved "gemini command is not installed" error on Windows systems with proper npm global installation
+
+### Technical Changes
+- Enhanced `GeminiCliProvider.isAvailable()` with cross-platform command detection
+- Improved `executeGeminiWithStdin()` method to properly handle Windows npm global binaries
+- Added proper Windows shell execution support for spawn operations
+
 ## [1.1.1] - 2025-07-26
 
 ### Fixed

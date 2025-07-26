@@ -17,7 +17,9 @@ interface GeminiItem {
 export class GeminiCliProvider implements LLMProvider {
   public static async isAvailable(): Promise<boolean> {
     try {
-      const { stdout } = await execAsync('command -v gemini');
+      // Use cross-platform command to check if gemini is available
+      const command = process.platform === 'win32' ? 'where gemini' : 'command -v gemini';
+      const { stdout } = await execAsync(command);
       return !!stdout;
     } catch {
       return false;
@@ -107,23 +109,25 @@ export class GeminiCliProvider implements LLMProvider {
 
   private executeGeminiWithStdin(prompt: string): Promise<{ stdout: string; stderr: string }> {
     return new Promise((resolve, reject) => {
-      const child = spawn('gemini', ['--yolo'], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        cwd: process.cwd(), // Use current working directory where CLI was invoked
-      });
+      // On Windows, use shell: true to properly resolve npm global commands
+      const spawnOptions = process.platform === 'win32'
+        ? { stdio: ['pipe', 'pipe', 'pipe'], shell: true, cwd: process.cwd() }
+        : { stdio: ['pipe', 'pipe', 'pipe'], cwd: process.cwd() };
+
+      const child = spawn('gemini', ['--yolo'], spawnOptions as any);
 
       let stdout = '';
       let stderr = '';
 
-      child.stdout.on('data', (data) => {
+      child.stdout?.on('data', (data: any) => {
         stdout += data.toString();
       });
 
-      child.stderr.on('data', (data) => {
+      child.stderr?.on('data', (data: any) => {
         stderr += data.toString();
       });
 
-      child.on('close', (code) => {
+      child.on('close', (code: any) => {
         if (code === 0) {
           resolve({ stdout, stderr });
         } else {
@@ -131,13 +135,13 @@ export class GeminiCliProvider implements LLMProvider {
         }
       });
 
-      child.on('error', (error) => {
+      child.on('error', (error: any) => {
         reject(error);
       });
 
       // Send prompt via stdin
-      child.stdin.write(prompt);
-      child.stdin.end();
+      child.stdin?.write(prompt);
+      child.stdin?.end();
     });
   }
 }
