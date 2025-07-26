@@ -176,7 +176,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
           const { hunkIndex } = bestHunk;
           const direction =
             comment.lineNumber <
-              (bestHunk as { hunk: ParsedHunk; hunkIndex: number }).hunk.newStartLine
+            (bestHunk as { hunk: ParsedHunk; hunkIndex: number }).hunk.newStartLine
               ? 'up'
               : 'down';
           const linesToExpand = Math.min(minDistance + 5, 20); // Expand enough to show the line plus some context, max 20 lines

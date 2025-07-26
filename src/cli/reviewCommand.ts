@@ -76,7 +76,7 @@ export class CLIReviewCommand {
 
       // Generate AI review
       console.log(CLIOutputFormatter.formatProgress('Generating AI review...'));
-      
+
       const reviewRequest: AIReviewRequest = {
         title: mrData.title,
         description: `Merge Request: ${mrData.webUrl}`,
@@ -97,7 +97,7 @@ export class CLIReviewCommand {
       }
 
       let aiResponse: AIReviewResponse;
-      
+
       if (options.mock) {
         // Use mock response for testing without AI API calls
         aiResponse = this.generateMockAIResponse(reviewRequest);
@@ -108,7 +108,7 @@ export class CLIReviewCommand {
         try {
           console.log(CLIOutputFormatter.formatProgress('Sending request to AI provider...'));
           aiResponse = await aiProvider.generateReview(reviewRequest);
-          
+
           if (options.dryRun) {
             console.log(
               CLIOutputFormatter.formatProgress(
@@ -128,7 +128,7 @@ export class CLIReviewCommand {
           aiResponse = this.generateMockAIResponse(reviewRequest);
         }
       }
-      
+
       // Filter and process feedback
       let filteredFeedback = filterAndDeduplicateFeedback(
         aiResponse.feedback,
@@ -173,15 +173,23 @@ export class CLIReviewCommand {
           for (const feedbackItem of filteredFeedback) {
             try {
               await postDiscussion(config.gitlab!, mrData, feedbackItem);
-              console.log(CLIOutputFormatter.formatSuccess(`Posted comment for ${feedbackItem.filePath}:${feedbackItem.lineNumber}`));
+              console.log(
+                CLIOutputFormatter.formatSuccess(
+                  `Posted comment for ${feedbackItem.filePath}:${feedbackItem.lineNumber}`
+                )
+              );
             } catch (postError) {
-              console.error(CLIOutputFormatter.formatError(`Failed to post comment for ${feedbackItem.filePath}:${feedbackItem.lineNumber}: ${postError instanceof Error ? postError.message : String(postError)}`));
+              console.error(
+                CLIOutputFormatter.formatError(
+                  `Failed to post comment for ${feedbackItem.filePath}:${feedbackItem.lineNumber}: ${postError instanceof Error ? postError.message : String(postError)}`
+                )
+              );
             }
           }
           console.log(CLIOutputFormatter.formatSuccess('All comments processed.'));
         }
       }
-      
+
       // Always display the overall summary
       console.log('\n' + reviewSummary);
     } catch (error) {
@@ -261,11 +269,11 @@ export class CLIReviewCommand {
    */
   private static generateMockAIResponse(request: AIReviewRequest): AIReviewResponse {
     const feedback: ReviewFeedback[] = [];
-    
+
     // Generate some sample feedback based on the files
     if (request.parsedDiffs.length > 0) {
       const firstFile = request.parsedDiffs[0];
-      
+
       feedback.push({
         id: 'mock-1',
         filePath: firstFile.filePath,

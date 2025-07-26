@@ -9,7 +9,7 @@ import { AppConfig } from './configSchema.js';
  */
 async function testGitLabConnection(url: string, token: string): Promise<void> {
   const apiUrl = `${url.replace(/\/$/, '')}/api/v4/user`;
-  
+
   const response = await fetch(apiUrl, {
     headers: {
       'PRIVATE-TOKEN': token,
@@ -82,20 +82,20 @@ export async function createConfigInteractively(): Promise<void> {
     console.log('\n🦊 GitLab Configuration (for CLI review mode):');
     console.log('This allows you to review merge requests directly from the command line.');
     const configureGitlab = await question('Configure GitLab access? (Y/n): ');
-    
+
     let gitlabConfig: { url: string; accessToken: string } | undefined;
-    
+
     if (configureGitlab.toLowerCase() !== 'n' && configureGitlab.toLowerCase() !== 'no') {
       const gitlabUrl = await question('GitLab instance URL (e.g., https://gitlab.com): ');
-      
+
       if (gitlabUrl) {
         console.log('\n📋 To create a Personal Access Token:');
         console.log('  1. Go to your GitLab instance → Settings → Access Tokens');
         console.log('  2. Create a token with "api" scope');
         console.log('  3. Copy the token (it will only be shown once)');
-        
+
         const accessToken = await question('\nGitLab Personal Access Token: ');
-        
+
         if (accessToken) {
           // Test GitLab connection
           console.log('\n🔍 Testing GitLab connection...');

@@ -43,7 +43,7 @@ program
       if (mrUrl) {
         // CLI Review Mode - no web UI
         const { CLIReviewCommand } = await import('../dist/cli/reviewCommand.js');
-        
+
         // Validate MR URL format
         if (!CLIReviewCommand.validateMrUrl(mrUrl)) {
           console.error('❌ Error: Invalid GitLab merge request URL format.');

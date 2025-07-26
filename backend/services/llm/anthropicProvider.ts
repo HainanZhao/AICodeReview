@@ -1,16 +1,14 @@
 import { LLMProvider, ReviewRequest, ReviewResponse } from './types.js';
 import { Request, Response } from 'express';
-import Anthropic from '@anthropic-ai/sdk';
+import { AIProviderCore } from '@aireview/shared';
 import { ReviewPromptBuilder } from './promptBuilder.js';
 import { ReviewResponseProcessor } from './reviewResponseProcessor.js';
 
 export class AnthropicProvider implements LLMProvider {
-  private client: Anthropic;
+  private apiKey: string;
 
   constructor(apiKey: string) {
-    this.client = new Anthropic({
-      apiKey,
-    });
+    this.apiKey = apiKey;
   }
 
   private buildPrompt(diff: string): string {
@@ -26,37 +24,23 @@ export class AnthropicProvider implements LLMProvider {
     }
 
     try {
-      const message = await this.client.messages.create({
-        model: 'claude-3-sonnet-20240229',
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: this.buildPrompt(diffForPrompt) }],
-      });
+      // Validate API key
+      AIProviderCore.validateApiKey(this.apiKey, 'Anthropic');
 
-      const text = message.content[0].text.trim();
+      // Build prompt and generate review using shared core
+      const prompt = this.buildPrompt(diffForPrompt);
+      const aiResponse = await AIProviderCore.generateAnthropicReview(this.apiKey, prompt);
 
-      if (!text) {
-        res.json([]);
-        return;
-      }
+      // Convert to backend response format
+      const validatedResponse: ReviewResponse[] = aiResponse.map((item) => ({
+        filePath: item.filePath,
+        lineNumber: item.lineNumber,
+        severity: item.severity as ReviewResponse['severity'],
+        title: item.title,
+        description: item.description,
+      }));
 
-      const parsedResponse = JSON.parse(text);
-      if (!Array.isArray(parsedResponse)) {
-        console.warn('Unexpected JSON structure from API:', parsedResponse);
-        res.status(500).json({ error: 'Unexpected response format from LLM API.' });
-        return;
-      }
-
-      const validatedResponse = parsedResponse.map(
-        (item: ReviewResponse): ReviewResponse => ({
-          filePath: String(item.filePath),
-          lineNumber: Number(item.lineNumber),
-          severity: item.severity as ReviewResponse['severity'],
-          title: String(item.title),
-          description: String(item.description),
-        })
-      );
-
-      // Process and correct line numbers based on the diff mapping
+      // Process and correct line numbers based on the diff mapping (Anthropic-specific)
       const correctedResponse = ReviewResponseProcessor.processReviewResponse(
         validatedResponse,
         diffForPrompt
@@ -64,8 +48,18 @@ export class AnthropicProvider implements LLMProvider {
 
       res.json(correctedResponse);
     } catch (error) {
-      console.error('Error calling LLM API:', error);
-      res.status(500).json({ error: 'Failed to get review from LLM API.' });
+      console.error('Error calling Anthropic API:', error);
+
+      try {
+        AIProviderCore.handleAPIError(error, 'Anthropic');
+      } catch (handledError) {
+        res.status(500).json({
+          error:
+            handledError instanceof Error
+              ? handledError.message
+              : 'Failed to get review from Anthropic API.',
+        });
+      }
     }
   }
 }

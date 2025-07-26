@@ -156,7 +156,7 @@ export const parseAIResponse = (responseText: string): AIReviewResponse => {
     };
   } catch (error) {
     console.error('Failed to parse AI response:', error);
-    
+
     // Fallback: create a simple feedback item with the raw response
     return {
       feedback: [
@@ -252,12 +252,12 @@ export const filterAndDeduplicateFeedback = (
   return filtered.sort((a, b) => {
     const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
     if (severityDiff !== 0) return severityDiff;
-    
+
     // If same severity, sort by file path then line number
     if (a.filePath !== b.filePath) {
       return a.filePath.localeCompare(b.filePath);
     }
-    
+
     return a.lineNumber - b.lineNumber;
   });
 };
@@ -279,7 +279,7 @@ export const createReviewSummary = (feedback: ReviewFeedback[], overallRating?: 
   );
 
   const parts: string[] = [];
-  
+
   if (counts[Severity.Critical]) {
     parts.push(
       `${counts[Severity.Critical]} critical issue${counts[Severity.Critical] > 1 ? 's' : ''}`

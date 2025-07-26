@@ -1,13 +1,13 @@
 import { LLMProvider, ReviewRequest, ReviewResponse } from './types.js';
 import { Request, Response } from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { AIProviderCore } from '@aireview/shared';
 import { ReviewPromptBuilder } from './promptBuilder.js';
 
 export class GeminiProvider implements LLMProvider {
-  private ai: GoogleGenerativeAI;
+  private apiKey: string;
 
   constructor(apiKey: string) {
-    this.ai = new GoogleGenerativeAI(apiKey);
+    this.apiKey = apiKey;
   }
 
   private buildPrompt(diff: string): string {
@@ -23,39 +23,36 @@ export class GeminiProvider implements LLMProvider {
     }
 
     try {
-      const model = this.ai.getGenerativeModel({ model: 'gemini-pro' });
-      const result = await model.generateContent(this.buildPrompt(diffForPrompt));
-      const response = await result.response;
-      const text = response.text().trim();
+      // Validate API key
+      AIProviderCore.validateApiKey(this.apiKey, 'Gemini');
 
-      if (!text) {
-        res.json([]);
-        return;
-      }
+      // Build prompt and generate review using shared core
+      const prompt = this.buildPrompt(diffForPrompt);
+      const aiResponse = await AIProviderCore.generateGeminiReview(this.apiKey, prompt);
 
-      const parsedResponse = JSON.parse(text);
-      if (!Array.isArray(parsedResponse)) {
-        console.warn('Unexpected JSON structure from API:', parsedResponse);
-        res.status(500).json({ error: 'Unexpected response format from LLM API.' });
-        return;
-      }
+      // Convert to backend response format
+      const validatedResponse: ReviewResponse[] = aiResponse.map((item) => ({
+        filePath: item.filePath,
+        lineNumber: item.lineNumber,
+        severity: item.severity as ReviewResponse['severity'],
+        title: item.title,
+        description: item.description,
+      }));
 
-      const validatedResponse = parsedResponse.map(
-        (item: ReviewResponse): ReviewResponse => ({
-          filePath: String(item.filePath).replace(/\\/g, '/'), // Normalize path separators
-          lineNumber: Number(item.lineNumber),
-          severity: item.severity as ReviewResponse['severity'],
-          title: String(item.title),
-          description: String(item.description),
-        })
-      );
-
-      // With the simplified approach, line numbers should be accurate from the start
-      // No need for complex line mapping and correction
       res.json(validatedResponse);
     } catch (error) {
-      console.error('Error calling LLM API:', error);
-      res.status(500).json({ error: 'Failed to get review from LLM API.' });
+      console.error('Error calling Gemini API:', error);
+
+      try {
+        AIProviderCore.handleAPIError(error, 'Gemini');
+      } catch (handledError) {
+        res.status(500).json({
+          error:
+            handledError instanceof Error
+              ? handledError.message
+              : 'Failed to get review from Gemini API.',
+        });
+      }
     }
   }
 }

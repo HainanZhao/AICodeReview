@@ -30,7 +30,10 @@ async function retry<T>(
     try {
       return await fn();
     } catch (error) {
-      const isNetworkError = error instanceof TypeError || (error instanceof Error && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')));
+      const isNetworkError =
+        error instanceof TypeError ||
+        (error instanceof Error &&
+          (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')));
       if (i < retries - 1 && isNetworkError) {
         console.warn(`Retrying due to network error (${i + 1}/${retries}):`, error.message);
         await delay(delayMs * (i + 1)); // Exponential backoff
