@@ -1,5 +1,5 @@
 import { Config } from '../types';
-import { GitLabConfig, GitLabProject } from 'aicodereview-shared';
+import { GitLabConfig, GitLabProject } from '../../../types';
 
 const CONFIG_KEY = 'ai-code-reviewer-config';
 const PROJECTS_KEY = 'ai-code-reviewer-selected-projects';

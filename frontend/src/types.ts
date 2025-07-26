@@ -1,4 +1,4 @@
-// Re-export only browser-safe types from shared package
+// Re-export types from root types file
 export type {
   ReviewFeedback,
   GitLabMRDetails,
@@ -11,11 +11,11 @@ export type {
   GitLabDiscussion,
   GitLabConfig,
   AIReviewResponse,
-  AIReviewRequest,
-} from 'aicodereview-shared';
+  ParsedDiffLine,
+} from '../../types';
 
 // Re-export enums that need to be imported as values
-export { Severity } from 'aicodereview-shared';
+export { Severity } from '../../types';
 
 // Frontend-specific types
 export interface Config {
@@ -26,14 +26,4 @@ export interface Config {
   llmApiKey?: string;
   theme: 'light' | 'dark';
   selectedProjectIds: number[];
-}
-
-export interface ParsedDiffLine {
-  type: 'context' | 'addition' | 'deletion' | 'meta' | 'add' | 'remove';
-  content: string;
-  oldLineNumber?: number;
-  newLineNumber?: number;
-  lineNumber: number; // For display purposes
-  oldLine?: number; // alias for oldLineNumber
-  newLine?: number; // alias for newLineNumber
 }

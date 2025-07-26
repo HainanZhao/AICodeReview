@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { createLLMProvider } from './services/llm/providerFactory';
-import { GitLabConfig } from 'aicodereview-shared';
+import { GitLabConfig } from '../types';
 
 dotenv.config();
 

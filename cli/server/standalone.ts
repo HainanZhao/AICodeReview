@@ -50,6 +50,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       '..',
       'backend',
       'dist',
+      'backend',
       'services',
       'llm',
       'providerFactory.js'

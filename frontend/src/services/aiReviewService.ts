@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
-import { ReviewFeedback, Severity, GitLabMRDetails, GitLabPosition } from 'aicodereview-shared';
-import type { AIReviewResponse } from 'aicodereview-shared';
+import { ReviewFeedback, Severity, GitLabMRDetails, GitLabPosition } from '../../../types';
+import type { AIReviewResponse } from '../../../types';
 import { Config } from '../types';
 import { fetchMrData } from './gitlabService';
 

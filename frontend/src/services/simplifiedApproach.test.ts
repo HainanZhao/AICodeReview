@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { parseDiffsToHunks } from './gitlabService';
-import type { FileDiff } from 'aicodereview-shared';
+import type { FileDiff } from '../../../types';
 
 /**
  * Comprehensive test suite for the simplified context building approach

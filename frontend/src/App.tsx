@@ -12,7 +12,7 @@ import {
   ParsedFileDiff,
   GitLabPosition,
   Severity,
-} from 'aicodereview-shared';
+} from '../../types';
 import { Config, ParsedDiffLine } from './types';
 import { ConfigModal } from './components/ConfigModal';
 import { ResizablePane } from './components/ResizablePane';

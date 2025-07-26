@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ReviewFeedback, Severity } from 'aicodereview-shared';
+import { ReviewFeedback, Severity } from '../../../types';
 import { AddCommentIcon, EditIcon, TrashIcon, EyeSlashIcon, CheckmarkIcon } from './icons';
 import { Spinner } from './Spinner';
 

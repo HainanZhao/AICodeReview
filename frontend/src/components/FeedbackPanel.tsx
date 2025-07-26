@@ -5,7 +5,7 @@ import {
   ParsedFileDiff,
   ParsedHunk,
   Severity,
-} from 'aicodereview-shared';
+} from '../../../types';
 import { ParsedDiffLine } from '../types';
 import { FileDiffCard } from './FileDiffCard';
 import { FeedbackCard } from './FeedbackCard';

@@ -8,7 +8,7 @@ import {
   ParsedHunk,
   Severity,
   GitLabDiscussion,
-} from 'aicodereview-shared';
+} from '../../../types';
 import { Config } from '../types';
 
 const parseMrUrl = (

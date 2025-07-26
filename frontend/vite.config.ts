@@ -10,14 +10,6 @@ export default defineConfig({
       output: {
         manualChunks: undefined,
       },
-      external: [
-        // Exclude Node.js modules from browser build
-        'child_process',
-        'util',
-        'fs',
-        'path',
-        'os',
-      ],
     },
   },
   server: {
