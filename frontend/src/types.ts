@@ -20,10 +20,5 @@ export { Severity } from '../../types';
 // Frontend-specific types
 export interface Config {
   gitlabUrl: string;
-  gitlabAccessToken: string;
-  accessToken: string; // alias for gitlabAccessToken
-  llmProvider: 'gemini-cli' | 'gemini' | 'anthropic';
-  llmApiKey?: string;
-  theme: 'light' | 'dark';
-  selectedProjectIds: number[];
+  accessToken: string;
 }

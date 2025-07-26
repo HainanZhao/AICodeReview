@@ -1,11 +1,13 @@
 import { Config } from '../types';
 import { GitLabConfig, GitLabProject } from '../../../types';
 
-const CONFIG_KEY = 'ai-code-reviewer-config';
+const CONFIG_KEY = 'ai-code-reviewer-config-override';
 const PROJECTS_KEY = 'ai-code-reviewer-selected-projects';
 const PROJECTS_CACHE_KEY = 'ai-code-reviewer-projects-cache';
 const PROJECTS_CACHE_TIMESTAMP_KEY = 'ai-code-reviewer-projects-cache-timestamp';
 const THEME_KEY = 'ai-code-reviewer-theme';
+
+export type ConfigSource = 'localStorage' | 'backend' | 'none';
 
 export const saveConfig = (config: Config): void => {
   try {
@@ -28,22 +30,99 @@ export const loadConfig = (): Config | null => {
   }
 };
 
-export const fetchBackendConfig = async (): Promise<Partial<GitLabConfig> | null> => {
+export const hasLocalStorageConfig = (): boolean => {
   try {
-    const response = await fetch('/api/config');
-    if (!response.ok) {
-      console.error('Failed to fetch backend config:', response.statusText);
-      return null;
-    }
-    const data = await response.json();
-    return {
-      url: data.gitlabUrl,
-      // accessToken is not sent from backend for security reasons
-    };
+    const configStr = localStorage.getItem(CONFIG_KEY);
+    return configStr !== null;
   } catch (error) {
-    console.error('Error fetching backend config:', error);
-    return null;
+    console.error('Failed to check localStorage config', error);
+    return false;
   }
+};
+
+export const clearLocalStorageConfig = (): void => {
+  try {
+    localStorage.removeItem(CONFIG_KEY);
+  } catch (error) {
+    console.error('Failed to clear localStorage config', error);
+  }
+};
+
+export const getConfigSource = async (): Promise<ConfigSource> => {
+  const hasLocalConfig = hasLocalStorageConfig();
+  if (hasLocalConfig) {
+    return 'localStorage';
+  }
+  
+  const backendConfig = await fetchBackendConfig();
+  if (backendConfig?.url) {
+    return 'backend';
+  }
+  
+  return 'none';
+};
+
+export const hasLocalStorageOverride = async (): Promise<boolean> => {
+  const hasLocal = hasLocalStorageConfig();
+  const backendConfig = await fetchBackendConfig();
+  
+  return hasLocal && backendConfig?.url !== undefined;
+};
+
+export const resetToBackendConfig = (): void => {
+  clearLocalStorageConfig();
+};
+
+export const createConfigFromBackend = async (accessToken: string): Promise<Config | null> => {
+  const backendConfig = await fetchBackendConfig();
+  if (backendConfig?.url) {
+    return {
+      gitlabUrl: backendConfig.url,
+      accessToken: accessToken,
+    };
+  }
+  return null;
+};
+
+export const fetchBackendConfig = async (
+  retries = 3,
+  delay = 1000
+): Promise<
+  (Partial<GitLabConfig> & { hasAccessToken?: boolean; configSource?: string }) | null
+> => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch('/api/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return {
+        url: data.gitlabUrl,
+        hasAccessToken: data.hasAccessToken,
+        configSource: data.configSource,
+        // Include accessToken if backend provides it (CLI config case)
+        accessToken: data.accessToken,
+      };
+    } catch (error) {
+      console.warn(`Failed to fetch backend config (attempt ${attempt}/${retries}):`, error);
+      
+      if (attempt === retries) {
+        console.error('All attempts to fetch backend config failed:', error);
+        return null;
+      }
+      
+      // Wait before retrying
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  return null;
 };
 
 export const saveSelectedProjectIds = (ids: number[]): void => {

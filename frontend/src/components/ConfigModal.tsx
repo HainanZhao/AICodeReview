@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Config } from '../types';
-import { saveConfig, fetchBackendConfig } from '../services/configService';
+import { saveConfig, resetToBackendConfig } from '../services/configService';
 import { CloseIcon } from './icons';
 
 interface ConfigModalProps {
@@ -8,6 +8,12 @@ interface ConfigModalProps {
   onClose: () => void;
   onSave: (config: Config) => void;
   initialConfig: Config | null;
+  backendConfig?: {
+    url?: string;
+    hasAccessToken?: boolean;
+    configSource?: string;
+  } | null;
+  configSource?: 'localStorage' | 'backend' | 'none';
 }
 
 export const ConfigModal: React.FC<ConfigModalProps> = ({
@@ -15,27 +21,37 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   onClose,
   onSave,
   initialConfig,
+  backendConfig,
+  configSource,
 }) => {
   const [gitlabUrl, setGitlabUrl] = useState('');
   const [accessToken, setAccessToken] = useState('');
-  const [backendConfigLoaded, setBackendConfigLoaded] = useState(false);
+  const [isBackendConfigUsed, setIsBackendConfigUsed] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       const loadInitialConfig = async () => {
-        const backendConfig = await fetchBackendConfig();
-        if (backendConfig?.url) {
+        // Priority: localStorage config > backend config > defaults
+        if (configSource === 'localStorage' && initialConfig) {
+          // User has localStorage config
+          setGitlabUrl(initialConfig.gitlabUrl);
+          setAccessToken(initialConfig.accessToken);
+          setIsBackendConfigUsed(false);
+        } else if (backendConfig?.url) {
+          // Use backend config
           setGitlabUrl(backendConfig.url);
-          setBackendConfigLoaded(true);
+          setAccessToken(initialConfig?.accessToken || '');
+          setIsBackendConfigUsed(true);
         } else {
+          // No config available, use defaults
           setGitlabUrl(initialConfig?.gitlabUrl || 'https://gitlab.com');
-          setBackendConfigLoaded(false);
+          setAccessToken(initialConfig?.accessToken || '');
+          setIsBackendConfigUsed(false);
         }
-        setAccessToken(initialConfig?.accessToken || '');
       };
       loadInitialConfig();
     }
-  }, [isOpen, initialConfig]);
+  }, [isOpen, initialConfig, backendConfig, configSource]);
 
   if (!isOpen) {
     return null;
@@ -59,7 +75,24 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
     >
       <div className="bg-white dark:bg-brand-surface rounded-lg shadow-2xl w-full max-w-md m-4 transform transition-all">
         <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-brand-primary">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Configuration</h2>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Configuration</h2>
+            {configSource === 'localStorage' && (
+              <p className="text-xs text-gray-500 dark:text-brand-subtle">
+                Using your saved configuration
+              </p>
+            )}
+            {configSource === 'backend' && (
+              <p className="text-xs text-gray-500 dark:text-brand-subtle">
+                Backend configuration available
+              </p>
+            )}
+            {configSource === 'none' && (
+              <p className="text-xs text-gray-500 dark:text-brand-subtle">
+                Please configure your GitLab connection
+              </p>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="text-gray-500 dark:text-brand-subtle hover:text-gray-900 dark:hover:text-white transition-colors"
@@ -80,15 +113,31 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
               id="gitlab-url"
               type="text"
               value={gitlabUrl}
-              onChange={(e) => setGitlabUrl(e.target.value)}
+              onChange={(e) => {
+                setGitlabUrl(e.target.value);
+                setIsBackendConfigUsed(false); // User is overriding backend config
+              }}
               placeholder="https://gitlab.com"
               className="w-full p-3 bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text font-mono text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-              disabled={backendConfigLoaded} // Disable if loaded from backend
+              disabled={isBackendConfigUsed} // Disable if loaded from backend
             />
-            {backendConfigLoaded && (
+            {isBackendConfigUsed && (
               <p className="text-xs text-gray-500 dark:text-brand-subtle mt-1">
                 Pre-configured from backend environment variables.
+                {configSource === 'localStorage' && ' You can override this by changing the URL.'}
               </p>
+            )}
+            {!isBackendConfigUsed && backendConfig?.url && (
+              <button
+                type="button"
+                onClick={() => {
+                  setGitlabUrl(backendConfig.url!);
+                  setIsBackendConfigUsed(true);
+                }}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1"
+              >
+                Use backend configuration ({backendConfig.url})
+              </button>
             )}
             <p className="text-xs text-gray-500 dark:text-brand-subtle mt-1">
               The base URL of your GitLab instance.
@@ -115,7 +164,27 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
             </p>
           </div>
         </div>
-        <div className="px-6 py-4 bg-gray-50 dark:bg-brand-bg/50 border-t border-gray-200 dark:border-brand-primary/20 flex justify-end">
+        <div className="px-6 py-4 bg-gray-50 dark:bg-brand-bg/50 border-t border-gray-200 dark:border-brand-primary/20 flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <div className="text-xs text-gray-500 dark:text-brand-subtle">
+              {configSource === 'localStorage' && 'Configuration will be saved to browser'}
+              {configSource === 'backend' && 'Using backend configuration'}
+              {configSource === 'none' && 'New configuration will be saved to browser'}
+            </div>
+            {configSource === 'localStorage' && backendConfig?.url && (
+              <button
+                onClick={() => {
+                  resetToBackendConfig();
+                  setGitlabUrl(backendConfig.url!);
+                  setAccessToken('');
+                  setIsBackendConfigUsed(true);
+                }}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Reset to backend config
+              </button>
+            )}
+          </div>
           <button
             onClick={handleSave}
             disabled={!gitlabUrl.trim() || !accessToken.trim()}

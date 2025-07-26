@@ -39,6 +39,29 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     process.env.GOOGLE_CLOUD_PROJECT = config.llm.googleCloudProject;
   }
 
+  // Add GitLab configuration endpoint
+  app.post('/api/config', (req, res) => {
+    const response: {
+      gitlabUrl: string;
+      hasGitlabUrl: boolean;
+      hasAccessToken: boolean;
+      configSource: string;
+      accessToken?: string;
+    } = {
+      gitlabUrl: config.gitlab?.url || '',
+      hasGitlabUrl: Boolean(config.gitlab?.url),
+      hasAccessToken: Boolean(config.gitlab?.accessToken),
+      configSource: 'cli-config',
+    };
+
+    // Include access token since it comes from CLI config
+    if (config.gitlab?.accessToken) {
+      response.accessToken = config.gitlab.accessToken;
+    }
+
+    res.json(response);
+  });
+
   // Initialize LLM provider - dynamically import from backend
   try {
     console.log('\n🤖 Initializing LLM provider...');
@@ -97,9 +120,9 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   });
 
   // Global error handler to suppress common 404 errors
-  app.use((err: any, req: any, res: any, next: any) => {
+  app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
     // Don't log common browser 404s
-    if (err.status === 404 || err.statusCode === 404) {
+    if ('status' in err && err.status === 404) {
       res.status(404).end();
       return;
     }
@@ -121,7 +144,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     if (config.ui.autoOpen) {
       try {
         await openBrowser(url);
-      } catch (error) {
+      } catch {
         // Browser opening is optional, don't fail the server start
         console.log('Could not automatically open browser');
       }

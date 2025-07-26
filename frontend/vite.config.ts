@@ -32,13 +32,6 @@ export default defineConfig({
     // Define globals for browser compatibility
     global: 'globalThis',
   },
-  optimizeDeps: {
-    exclude: [
-      // Exclude Node.js specific modules from optimization
-      'aicodereview-shared/dist/services/geminiCliCore.js',
-      'aicodereview-shared/dist/services/aiProviderCore.js',
-    ],
-  },
   test: {
     globals: true,
   },

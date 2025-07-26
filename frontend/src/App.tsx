@@ -22,6 +22,8 @@ import {
   saveTheme,
   loadProjectsFromCache,
   saveProjectsToCache,
+  fetchBackendConfig,
+  type ConfigSource,
 } from './services/configService';
 import { MrSummary } from './components/MrSummary';
 
@@ -31,6 +33,12 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<Config | null>(null);
+  const [configSource, setConfigSource] = useState<ConfigSource>('none');
+  const [backendConfig, setBackendConfig] = useState<{
+    url?: string;
+    hasAccessToken?: boolean;
+    configSource?: string;
+  } | null>(null);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [projects, setProjects] = useState<GitLabProject[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
@@ -49,12 +57,58 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const loadedConfig = loadConfig();
-    if (loadedConfig && loadedConfig.gitlabUrl && loadedConfig.accessToken) {
-      setConfig(loadedConfig);
-    } else {
-      setIsConfigModalOpen(true);
-    }
+    const loadConfiguration = async () => {
+      try {
+        // First, check localStorage config (highest priority)
+        const localConfig = loadConfig();
+        
+        if (localConfig && localConfig.gitlabUrl && localConfig.accessToken) {
+          // User has localStorage config - use it (user override)
+          setConfig(localConfig);
+          setConfigSource('localStorage');
+          
+          // Still fetch backend config for comparison/reset functionality
+          try {
+            const fetchedBackendConfig = await fetchBackendConfig();
+            setBackendConfig(fetchedBackendConfig);
+          } catch (error) {
+            console.warn('Failed to fetch backend config for comparison:', error);
+          }
+          return;
+        }
+
+        // No localStorage config, try backend config with retry
+        console.log('Loading backend configuration...');
+        const fetchedBackendConfig = await fetchBackendConfig(3, 1000); // 3 retries, 1 second delay
+        setBackendConfig(fetchedBackendConfig);
+        
+        if (fetchedBackendConfig?.url && fetchedBackendConfig.hasAccessToken) {
+          // Backend has complete config (URL + access token from CLI config)
+          // Create a complete config and don't show modal
+          setConfig({
+            gitlabUrl: fetchedBackendConfig.url,
+            accessToken: fetchedBackendConfig.accessToken || 'backend-managed', // Use actual token if provided
+          });
+          setConfigSource('backend');
+          // Don't open config modal - backend has everything we need
+          console.log('Using complete backend configuration, no user input required');
+        } else if (fetchedBackendConfig?.url) {
+          // Backend has URL but no access token
+          setConfigSource('backend');
+          setIsConfigModalOpen(true);
+        } else {
+          // No config available anywhere
+          setConfigSource('none');
+          setIsConfigModalOpen(true);
+        }
+      } catch (error) {
+        console.error('Error loading configuration:', error);
+        setConfigSource('none');
+        setIsConfigModalOpen(true);
+      }
+    };
+
+    loadConfiguration();
   }, []);
 
   useEffect(() => {
@@ -462,6 +516,8 @@ function App() {
         onClose={() => setIsConfigModalOpen(false)}
         onSave={handleSaveConfig}
         initialConfig={config}
+        backendConfig={backendConfig}
+        configSource={configSource}
       />
       <main className="flex-grow w-full px-2 md:px-4 lg:px-4 py-2 md:py-3 lg:py-3 h-full">
         <ResizablePane
