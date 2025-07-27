@@ -41,8 +41,7 @@ aicodereview https://gitlab.example.com/your-group/your-project/-/merge_requests
 # Review with a dry run (AI review generated, but no comments posted)
 aicodereview https://gitlab.example.com/your-group/your-project/-/merge_requests/123 --dry-run
 
-# Review with verbose output for debugging
-aicodereview https://gitlab.example.com/your-group/your-project/-/merge_requests/123 --verbose
+
 
 # Review using a specific LLM provider and API key
 aicodereview https://gitlab.example.com/your-group/your-project/-/merge_requests/123 --provider gemini --api-key YOUR_GEMINI_API_KEY
@@ -89,8 +88,7 @@ Options:
   --api-only                        Run server in API-only mode (no web interface)
   --init                            Create a configuration file interactively
   --dry-run                         Generate AI review but do not post comments (CLI mode only)
-  --mock                            Use mock AI responses for testing (CLI mode only)
-  --verbose                         Detailed operation logs (CLI mode only)
+  
   -h, --help                        Display help
   -V, --version                     Show version
 ```
