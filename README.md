@@ -1,6 +1,6 @@
 # AI Code Reviewer
 
-🤖 AI-powered code review tool with modern web interface supporting multiple LLM providers including Gemini CLI, Google Gemini API, and Anthropic Claude.
+🤖 AI-powered code review tool with a focus on command-line interface (CLI) usage, supporting multiple LLM providers including Gemini CLI, Google Gemini API, and Anthropic Claude. It also offers a modern web interface for interactive reviews.
 
 [![Version](https://img.shields.io/npm/v/aicodereview-cli)](https://www.npmjs.com/package/aicodereview-cli)
 [![License](https://img.shields.io/npm/l/aicodereview-cli)](https://github.com/HainanZhao/AICodeReview/blob/master/LICENSE)
@@ -8,22 +8,14 @@
 
 ## ✨ Features
 
-- 🎯 **Advanced Context Analysis**: Enhanced diff expansion file context for comprehensive AI reviews
-- 🤖 **Multiple AI Providers**: Support for Gemini CLI, Google Gemini API, and Anthropic Claude
-- 🌐 **Modern Web Interface**: React-based responsive UI with real-time feedback
-- ⚙️ **Flexible Configuration**: Multiple configuration methods (CLI, files, environment variables)
-- 🚀 **Zero-config Start**: Works out of the box with sensible defaults
-- 🔍 **GitLab Integration**: Direct merge request analysis and review
-- 📊 **Comprehensive Testing**: Full test coverage with Vitest integration
+- 🎯 **Automated Code Review**: Leverage AI to analyze code quality, performance, security, and best practices.
+- 🚀 **CLI-First Approach**: Seamless integration into your development workflow for quick reviews.
+- 🤖 **Multiple AI Providers**: Support for Gemini CLI (default), Google Gemini API, and Anthropic Claude.
+- 🌐 **Optional Web Interface**: A React-based UI for interactive review management.
+- ⚙️ **Flexible Configuration**: Configure via CLI arguments, interactive wizard, config files, or environment variables.
+- 🔍 **GitLab Integration**: Direct merge request analysis and comment posting.
 
-## � Requirements
-
-- **Node.js**: 16.0.0 or higher
-- **npm**: 7.0.0 or higher
-- **Operating System**: macOS, Linux, or Windows
-- **For Gemini CLI**: Google Cloud CLI and authenticated access
-
-## �🚀 Quick Start
+## 🚀 Quick Start
 
 ### Installation
 
@@ -38,197 +30,10 @@ npx aicodereview-cli
 aicodereview --version
 ```
 
-### Basic Usage
+### Review a GitLab Merge Request (CLI Mode)
 
-```bash
-# Start with default settings (uses Gemini CLI, opens browser automatically)
-aicodereview
+The most powerful way to use `aicodereview` is directly from your terminal to review GitLab Merge Requests.
 
-# Use with custom port
-aicodereview --port 8080
-
-# Use different LLM provider
-aicodereview --provider gemini --api-key YOUR_GEMINI_API_KEY
-
-# Use Gemini CLI with Google Cloud project
-aicodereview --provider gemini-cli --google-cloud-project YOUR_PROJECT_ID
-
-# Interactive setup wizard (recommended for first-time users)
-aicodereview --init
-```
-
-The tool will:
-- 🌐 Start a web interface (default: http://localhost:5960)
-- 🚀 Automatically open your browser
-- ⚙️ Use Gemini CLI provider by default (no API key needed)
-- 🔍 Provide enhanced context analysis for accurate reviews
-
----
-
-## 📋 Command Reference
-
-```bash
-aicodereview [options]
-
-Options:
-  -c, --config <path>               Path to configuration file
-  -p, --port <number>               Port to run the server on (default: 5960)
-  --host <host>                     Host to bind the server to (default: localhost)
-  --provider <provider>             LLM provider: gemini-cli, gemini, anthropic (default: gemini-cli)
-  --api-key <key>                   API key for the LLM provider
-  --google-cloud-project <project>  Google Cloud project ID for gemini-cli
-  --no-open                         Do not automatically open browser
-  --api-only                        Run server in API-only mode (no web interface)
-  --init                            Create a configuration file interactively
-  --dry-run                         Generate AI review but do not post comments (CLI mode only)
-  --mock                            Use mock AI responses for testing (CLI mode only)
-  --verbose                         Detailed operation logs (CLI mode only)
-```
-
-### Server Modes
-
-The tool supports two server modes to fit different deployment scenarios:
-
-#### **Standalone Mode (Default)**
-```bash
-# Full web interface with API endpoints
-aicodereview
-aicodereview --port 8080
-```
-- ✅ **Web Interface**: Modern React-based UI
-- ✅ **API Endpoints**: Full REST API available
-- ✅ **Browser Auto-open**: Automatically opens web interface
-- ✅ **Static File Serving**: Serves frontend assets
-- 🎯 **Best for**: Local development, desktop usage, interactive reviews
-
-#### **API-Only Mode**
-```bash
-# API endpoints only, no web interface
-aicodereview --api-only
-aicodereview --api-only --port 8080
-
-# Via environment variable
-AI_CODEREVIEW_MODE=api-only aicodereview
-```
-- ✅ **REST API**: All review and configuration endpoints
-- ❌ **No Web UI**: Headless operation
-- ❌ **No Browser**: No automatic browser opening
-- ⚡ **Lightweight**: Reduced memory footprint
-- 🎯 **Best for**: Docker containers, CI/CD, microservices, custom frontends
-
-#### **Available API Endpoints**
-Both modes provide these REST endpoints:
-- `POST /api/review` - Code review endpoint
-- `POST /api/config` - Configuration endpoint
-  --init                            Create a configuration file interactively
-  -h, --help                        Display help
-  -V, --version                     Show version
-```
-
----
-
-### Configuration Methods
-
-#### 1. Command Line Arguments (Quick & Easy)
-```bash
-aicodereview --provider gemini --api-key sk-your-key --port 8080
-```
-
-#### 2. Interactive Configuration (Recommended)
-```bash
-aicodereview --init
-```
-This creates a configuration file with a step-by-step wizard.
-
-#### 3. Configuration File
-The tool looks for configuration files in this order:
-- `./aicodereview.config.json` (current directory)
-- `~/.aicodereview/config.json` (user home directory)
-- Custom path via `--config` flag
-
-Example configuration file:
-```json
-{
-  "server": {
-    "port": 5960,
-    "host": "localhost"
-  },
-  "llm": {
-    "provider": "gemini-cli",
-    "apiKey": "your-api-key-here",
-    "googleCloudProject": "your-project-id"
-  },
-  "ui": {
-    "theme": "light",
-    "autoOpen": true
-  }
-}
-```
-
-#### 4. Environment Variables
-```bash
-export LLM_PROVIDER=gemini
-export LLM_API_KEY=your-api-key
-export GOOGLE_CLOUD_PROJECT=your-project-id
-export PORT=5960
-aicodereview
-```
-
-## 🤖 LLM Providers
-
-### Gemini CLI (Default, Recommended)
-Uses your local `gemini` command installation. No API key required.
-
-**Setup:**
-1. Install Google Cloud CLI and authenticate
-2. Install the gemini command
-3. Set your Google Cloud project ID
-
-**Usage:**
-```bash
-aicodereview --provider gemini-cli --google-cloud-project YOUR_PROJECT_ID
-```
-
-### Google Gemini API
-Uses Google's Gemini API directly.
-
-**Usage:**
-```bash
-aicodereview --provider gemini --api-key YOUR_GEMINI_API_KEY
-```
-
-### Anthropic Claude
-Uses Anthropic's Claude API.
-
-**Usage:**
-```bash
-aicodereview --provider anthropic --api-key YOUR_ANTHROPIC_API_KEY
-```
-
-## � Examples
-
-### Quick Start Examples
-```bash
-# Basic usage with defaults
-aicodereview
-
-# Custom port without browser opening
-aicodereview --port 8080 --no-open
-
-# Use Gemini API
-aicodereview --provider gemini --api-key sk-your-key
-
-# Use Claude API
-aicodereview --provider anthropic --api-key sk-ant-your-key
-
-# Interactive setup (recommended for first-time users)
-aicodereview --init
-
-# Use custom configuration file
-aicodereview --config /path/to/my-config.json
-```
-
-### Direct Merge Request Review (CLI Mode)
 ```bash
 # Review a GitLab Merge Request and post comments
 aicodereview https://gitlab.example.com/your-group/your-project/-/merge_requests/123
@@ -243,18 +48,140 @@ aicodereview https://gitlab.example.com/your-group/your-project/-/merge_requests
 aicodereview https://gitlab.example.com/your-group/your-project/-/merge_requests/123 --provider gemini --api-key YOUR_GEMINI_API_KEY
 ```
 
-### Advanced Usage
+### Interactive Setup (Recommended for first-time users)
+
 ```bash
-# Run on different host and port
-aicodereview --host 0.0.0.0 --port 3000
+aicodereview --init
+```
+This command will guide you through setting up your configuration interactively.
 
-# Use Gemini CLI with specific Google Cloud project
-aicodereview --provider gemini-cli --google-cloud-project my-project-123
+### Basic Web Interface Usage
 
-# Disable auto-browser opening for server environments
-aicodereview --no-open
+If you prefer a web-based interface, simply run:
+
+```bash
+# Start with default settings (uses Gemini CLI, opens browser automatically)
+aicodereview
+
+# Use with custom port
+aicodereview --port 8080
+```
+The tool will:
+- 🌐 Start a web interface (default: http://localhost:5960)
+- 🚀 Automatically open your browser
+- ⚙️ Use Gemini CLI provider by default (no API key needed)
+
+---
+
+## 📋 Command Reference
+
+```bash
+aicodereview [options] [merge-request-url]
+
+Options:
+  -c, --config <path>               Path to configuration file
+  -p, --port <number>               Port to run the server on (default: 5960)
+  --host <host>                     Host to bind the server to (default: localhost)
+  --provider <provider>             LLM provider: gemini-cli, gemini, anthropic (default: gemini-cli)
+  --api-key <key>                   API key for the LLM provider
+  --google-cloud-project <project>  Google Cloud project ID for gemini-cli
+  --no-open                         Do not automatically open browser when running web interface
+  --api-only                        Run server in API-only mode (no web interface)
+  --init                            Create a configuration file interactively
+  --dry-run                         Generate AI review but do not post comments (CLI mode only)
+  --mock                            Use mock AI responses for testing (CLI mode only)
+  --verbose                         Detailed operation logs (CLI mode only)
+  -h, --help                        Display help
+  -V, --version                     Show version
 ```
 
+---
+
+## 🤖 LLM Providers
+
+`aicodereview` supports multiple Large Language Model (LLM) providers.
+
+### Gemini CLI (Default, Recommended)
+
+Uses your local `gemini` command installation. No API key required.
+
+**Setup:**
+1. Install Google Cloud CLI and authenticate.
+2. Install the `gemini` command.
+3. Set your Google Cloud project ID.
+
+**Usage:**
+```bash
+aicodereview --provider gemini-cli --google-cloud-project YOUR_PROJECT_ID
+```
+
+### Google Gemini API
+
+Uses Google's Gemini API directly.
+
+**Usage:**
+```bash
+aicodereview --provider gemini --api-key YOUR_GEMINI_API_KEY
+```
+
+### Anthropic Claude
+
+Uses Anthropic's Claude API.
+
+**Usage:**
+```bash
+aicodereview --provider anthropic --api-key YOUR_ANTHROPIC_API_KEY
+```
+
+---
+
+## ⚙️ Configuration Methods
+
+`aicodereview` offers flexible configuration options, processed in the following order of precedence (CLI arguments > Environment Variables > Config File > Defaults):
+
+1.  **Command Line Arguments (Highest Precedence)**
+    ```bash
+    aicodereview --provider gemini --api-key sk-your-key --port 8080
+    ```
+
+2.  **Environment Variables**
+    ```bash
+    export LLM_PROVIDER=gemini
+    export LLM_API_KEY=your-api-key
+    export GOOGLE_CLOUD_PROJECT=your-project-id
+    export PORT=5960
+    aicodereview
+    ```
+
+3.  **Configuration File**
+    The tool looks for configuration files in this order:
+    - `./aicodereview.config.json` (current directory)
+    - `~/.aicodereview/config.json` (user home directory)
+    - Custom path via `--config` flag
+
+    Example `aicodereview.config.json`:
+    ```json
+    {
+      "server": {
+        "port": 5960,
+        "host": "localhost"
+      },
+      "llm": {
+        "provider": "gemini-cli",
+        "apiKey": "your-api-key-here",
+        "googleCloudProject": "your-project-id"
+      },
+      "ui": {
+        "theme": "light",
+        "autoOpen": true
+      }
+    }
+    ```
+
+4.  **Interactive Configuration (`aicodereview --init`)**
+    As mentioned in Quick Start, this wizard helps you create a configuration file.
+
+---
 
 ## 🐛 Troubleshooting
 
@@ -266,8 +193,8 @@ Make sure your API key is valid and has proper permissions for the chosen provid
 
 ### GitLab Connection Issues
 If you encounter issues connecting to GitLab or fetching merge request data:
-- Ensure your `GITLAB_URL` is correct and accessible.
-- Verify your `GITLAB_ACCESS_TOKEN` is valid and has the necessary `api` and `read_api` scopes.
+- Ensure your GitLab instance URL is correct and accessible.
+- Verify your GitLab access token is valid and has the necessary `api` and `read_api` scopes.
 - You can test your GitLab connection using the `--init` command or by manually checking your token's validity in GitLab.
 
 ### Gemini CLI Issues
@@ -292,18 +219,7 @@ npx aicodereview-cli
 npm cache clean --force
 ```
 
-## 🆘 Getting Help
-
-```bash
-# Show help
-aicodereview --help
-
-# Show version
-aicodereview --version
-
-# Interactive setup wizard
-aicodereview --init
-```
+---
 
 ## 🔧 For Developers
 
