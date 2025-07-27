@@ -38,7 +38,7 @@ export interface ReviewFeedback {
 }
 
 export interface CLIReviewOptions {
-  mrUrl: string;
+  mrUrl: string[];
   dryRun?: boolean;
   mock?: boolean;
   verbose?: boolean;

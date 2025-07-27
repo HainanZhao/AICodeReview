@@ -154,7 +154,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   // Remove any existing signal handlers to prevent duplicates
   process.removeAllListeners('SIGINT');
   process.removeAllListeners('SIGTERM');
-  
+
   // Add our signal handlers
   process.once('SIGINT', shutdown);
   process.once('SIGTERM', shutdown);

@@ -18,7 +18,7 @@ program
   .name('aicodereview')
   .description('AI-powered code review tool with web interface')
   .version(packageJson.version)
-  .argument('[mrUrl]', 'GitLab merge request URL for CLI review mode');
+  .argument('[mrUrls...]', 'GitLab merge request URLs for CLI review mode');
 
 program
   .option('-p, --port <number>', 'port to run the server on')
@@ -32,7 +32,7 @@ program
   .option('--dry-run', 'generate real AI review but do not post comments to GitLab (CLI mode only)')
   .option('--mock', 'use mock AI responses for testing without API calls (CLI mode only)')
   .option('--verbose', 'detailed operation logs (CLI mode only)')
-  .action(async (mrUrl, options) => {
+  .action(async (mrUrls, options) => {
     try {
       if (options.init) {
         const { createConfigInteractively } = await import('../dist/config/configWizard.js');
@@ -40,20 +40,22 @@ program
         return;
       }
 
-      // Dual mode logic: CLI review if MR URL provided, UI server otherwise
-      if (mrUrl) {
+      // Dual mode logic: CLI review if MR URLs provided, UI server otherwise
+      if (mrUrls && mrUrls.length > 0) {
         // CLI Review Mode - no web UI
         const { CLIReviewCommand } = await import('../dist/cli/reviewCommand.js');
 
-        // Validate MR URL format
-        if (!CLIReviewCommand.validateMrUrl(mrUrl)) {
-          console.error('❌ Error: Invalid GitLab merge request URL format.');
-          console.log('Expected format: https://gitlab.example.com/project/-/merge_requests/123');
-          process.exit(1);
+        // Validate MR URL format for each provided URL
+        for (const url of mrUrls) {
+          if (!CLIReviewCommand.validateMrUrl(url)) {
+            console.error(`❌ Error: Invalid GitLab merge request URL format: ${url}`);
+            console.log('Expected format: https://gitlab.example.com/project/-/merge_requests/123');
+            process.exit(1);
+          }
         }
 
         await CLIReviewCommand.executeReview({
-          mrUrl,
+          mrUrl: mrUrls, // Pass the array of URLs
           dryRun: options.dryRun,
           mock: options.mock,
           verbose: options.verbose,
