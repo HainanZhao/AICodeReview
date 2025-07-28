@@ -62,7 +62,7 @@ function App() {
         // First, check localStorage config (highest priority)
         const localConfig = loadConfig();
 
-        if (localConfig && localConfig.gitlabUrl && localConfig.accessToken) {
+        if (localConfig && localConfig.url && localConfig.accessToken) {
           // User has localStorage config - use it (user override)
           setConfig(localConfig);
           setConfigSource('localStorage');
@@ -86,7 +86,7 @@ function App() {
           // Backend has complete config (URL + access token from CLI config)
           // Create a complete config and don't show modal
           setConfig({
-            gitlabUrl: fetchedBackendConfig.url,
+            url: fetchedBackendConfig.url,
             accessToken: fetchedBackendConfig.accessToken || 'backend-managed', // Use actual token if provided
           });
           setConfigSource('backend');

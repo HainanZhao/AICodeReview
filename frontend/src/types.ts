@@ -17,8 +17,5 @@ export type {
 // Re-export enums that need to be imported as values
 export { Severity } from '../../types';
 
-// Frontend-specific types
-export interface Config {
-  gitlabUrl: string;
-  accessToken: string;
-}
+// For backward compatibility, re-export GitLabConfig as Config
+export type { GitLabConfig as Config } from '../../types';

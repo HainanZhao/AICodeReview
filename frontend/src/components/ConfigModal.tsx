@@ -34,7 +34,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         // Priority: localStorage config > backend config > defaults
         if (configSource === 'localStorage' && initialConfig) {
           // User has localStorage config
-          setGitlabUrl(initialConfig.gitlabUrl);
+          setGitlabUrl(initialConfig.url);
           setAccessToken(initialConfig.accessToken);
           setIsBackendConfigUsed(false);
         } else if (backendConfig?.url) {
@@ -44,7 +44,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
           setIsBackendConfigUsed(true);
         } else {
           // No config available, use defaults
-          setGitlabUrl(initialConfig?.gitlabUrl || 'https://gitlab.com');
+          setGitlabUrl(initialConfig?.url || 'https://gitlab.com');
           setAccessToken(initialConfig?.accessToken || '');
           setIsBackendConfigUsed(false);
         }
@@ -59,7 +59,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
 
   const handleSave = () => {
     const newConfig = {
-      gitlabUrl: gitlabUrl.trim().replace(/\/$/, ''),
+      url: gitlabUrl.trim().replace(/\/$/, ''),
       accessToken: accessToken.trim(),
     };
     saveConfig(newConfig);

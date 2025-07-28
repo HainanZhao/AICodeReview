@@ -11,7 +11,7 @@ import { BaseLLMProvider } from './baseLLMProvider.js';
 
 export class AnthropicProvider extends BaseLLMProvider {
   readonly providerName = 'anthropic';
-  
+
   constructor(apiKey: string) {
     super(apiKey);
   }
@@ -90,7 +90,7 @@ export class AnthropicProvider extends BaseLLMProvider {
       if (!this.apiKey) {
         throw new Error('Anthropic API key not provided');
       }
-      
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const client = (await AIProviderCore.createAnthropicClient(this.apiKey)) as any;
 

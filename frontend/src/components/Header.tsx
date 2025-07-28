@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { SettingsIcon, SunIcon, MoonIcon, ApproveIcon } from './icons';
-import { Spinner } from './Spinner';
+import React from 'react';
+import { SettingsIcon, SunIcon, MoonIcon } from './icons';
 
 const BrainCircuitIcon = () => (
   <svg

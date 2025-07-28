@@ -77,7 +77,7 @@ export const createConfigFromBackend = async (accessToken: string): Promise<Conf
   const backendConfig = await fetchBackendConfig();
   if (backendConfig?.url) {
     return {
-      gitlabUrl: backendConfig.url,
+      url: backendConfig.url,
       accessToken: accessToken,
     };
   }

@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { ReviewFeedback, Severity, GitLabMRDetails } from '../../../types';
+import { ReviewFeedback, GitLabMRDetails } from '../../../types';
 import { Config } from '../types';
 
 /**
@@ -9,7 +9,7 @@ export const fetchMrDetailsOnly = async (
   url: string,
   config: Config
 ): Promise<{ mrDetails: GitLabMRDetails; feedback: ReviewFeedback[] }> => {
-  if (!config || !config.gitlabUrl || !config.accessToken) {
+  if (!config || !config.url || !config.accessToken) {
     throw new Error('GitLab configuration is missing. Please set it in the settings.');
   }
 
@@ -30,7 +30,7 @@ export const runAiReview = async (
   url: string,
   config: Config
 ): Promise<{ feedback: ReviewFeedback[]; summary?: string; overallRating?: string }> => {
-  if (!config || !config.gitlabUrl || !config.accessToken) {
+  if (!config || !config.url || !config.accessToken) {
     throw new Error('GitLab configuration is missing. Please set it in the settings.');
   }
 
@@ -46,7 +46,7 @@ export const runAiReview = async (
       body: JSON.stringify({
         mrUrl: url,
         gitlabConfig: {
-          gitlabUrl: config.gitlabUrl,
+          gitlabUrl: config.url,
           accessToken: config.accessToken,
         },
       }),
@@ -67,7 +67,7 @@ export const runAiReview = async (
     }
 
     const result = await response.json();
-    
+
     // Handle different response formats from the API
     let feedbackArray: ReviewFeedback[];
     let summary: string | undefined;
@@ -127,55 +127,13 @@ export const fetchMrDetails = async (
  * @deprecated Use runAiReview() for new unified API. This method is kept for backward compatibility only.
  */
 export const reviewCode = async (
-  mrDetails: GitLabMRDetails,
+  code: string,
   config: Config
-): Promise<{ feedback: ReviewFeedback[] }> => {
-  if (!config || !config.gitlabUrl || !config.accessToken) {
+): Promise<{ feedback: ReviewFeedback[]; summary?: string; overallRating?: string }> => {
+  if (!config || !config.url || !config.accessToken) {
     throw new Error('GitLab configuration is missing. Please set it in the settings.');
   }
 
-  if (mrDetails.diffForPrompt.trim() === '') {
-    return {
-      feedback: [
-        {
-          id: uuidv4(),
-          lineNumber: 0,
-          filePath: 'N/A',
-          severity: Severity.Info,
-          title: 'No Code Changes Found',
-          description: 'This merge request does not contain any code changes to review.',
-          lineContent: '',
-          position: null,
-          status: 'submitted',
-        },
-      ],
-    };
-  }
-
-  // Use the new unified API (requires MR URL)
-  if (!mrDetails.webUrl) {
-    throw new Error('MR URL is required for AI review. Please ensure the merge request details include a web URL.');
-  }
-
-  try {
-    const aiResult = await runAiReview(mrDetails.webUrl, config);
-    return { feedback: aiResult.feedback };
-  } catch (error) {
-    // If the new API fails, return an error feedback item
-    return {
-      feedback: [
-        {
-          id: uuidv4(),
-          lineNumber: 0,
-          filePath: 'N/A',
-          severity: Severity.Info,
-          title: 'AI Review Unavailable',
-          description: `AI review failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again or review manually.`,
-          lineContent: '',
-          position: null,
-          status: 'submitted',
-        },
-      ],
-    };
-  }
+  // This function is deprecated - return empty feedback for compatibility
+  return { feedback: [] };
 };

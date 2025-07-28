@@ -362,7 +362,7 @@ export class CLIReviewCommand {
    */
   private static generateMockReviewResult(mrUrl: string) {
     const mockMrDetails = this._fetchMockMrData(mrUrl, 'mock/project', '123');
-    
+
     const feedback: ReviewFeedback[] = [];
 
     // Simulate no feedback for MR 999

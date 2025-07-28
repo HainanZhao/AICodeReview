@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Spinner } from './Spinner';
 import { Config, GitLabProject, GitLabMergeRequest } from '../types';
 import { fetchMergeRequestsForProjects } from '../services/gitlabService';

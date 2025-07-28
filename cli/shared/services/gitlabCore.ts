@@ -17,34 +17,6 @@ import {
 
 const MAX_FILE_LINES = 10000;
 
-// Helper for delay
-const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
-// Retry mechanism for network requests
-async function retry<T>(
-  fn: () => Promise<T>,
-  retries: number = 3,
-  delayMs: number = 1000
-): Promise<T> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      const isNetworkError =
-        error instanceof TypeError ||
-        (error instanceof Error &&
-          (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')));
-      if (i < retries - 1 && isNetworkError) {
-        console.warn(`Retrying due to network error (${i + 1}/${retries}):`, error.message);
-        await delay(delayMs * (i + 1)); // Exponential backoff
-      } else {
-        throw error;
-      }
-    }
-  }
-  throw new Error('Max retries reached');
-}
-
 /**
  * Parses a GitLab MR URL to extract project and MR information
  */
