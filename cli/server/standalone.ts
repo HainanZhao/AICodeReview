@@ -72,10 +72,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
 
     const llmProvider = await createLLMProvider(config.llm.provider, config.llm.apiKey);
 
-    // Set up API routes
-    app.post('/api/review', llmProvider.reviewCode.bind(llmProvider));
-    
-    // New unified route for MR URL-based reviews
+    // Set up unified API route for MR URL-based reviews
     if (llmProvider.reviewMr) {
       app.post('/api/review-mr', llmProvider.reviewMr.bind(llmProvider));
     }
@@ -140,7 +137,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       console.log('\n✅ AI Code Review API Server is ready!');
       console.log(`   🔗 API Base URL: ${url}`);
       console.log(`   📋 Available endpoints:`);
-      console.log(`   • POST ${url}/api/review - Code review endpoint`);
+      console.log(`   • POST ${url}/api/review-mr - Unified MR review endpoint`);
       console.log(`   • POST ${url}/api/config - Configuration endpoint`);
       console.log(`   🛑 Press Ctrl+C to stop\n`);
     } else {
