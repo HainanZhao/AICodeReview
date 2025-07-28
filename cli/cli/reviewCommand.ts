@@ -1,15 +1,12 @@
 import { CLIReviewOptions } from './types.js';
 import { CLIConfigValidator } from './configValidator.js';
 import { CLIOutputFormatter } from './outputFormatter.js';
-import { CLIAIProvider } from './aiProvider.js';
 import { ConfigLoader } from '../config/configLoader.js';
 import {
-  fetchMrData,
-  filterAndDeduplicateFeedback,
+  MrReviewService,
+  type MrReviewOptions,
   createReviewSummary,
   Severity,
-  type AIReviewRequest,
-  type AIReviewResponse,
   type ReviewFeedback,
   postDiscussion,
   GitLabMRDetails,
@@ -164,82 +161,44 @@ export class CLIReviewCommand {
       );
     }
 
-    // Fetch MR data from GitLab
-    if (options.verbose) {
-      console.log(CLIOutputFormatter.formatProgress('Fetching MR details...'));
-    }
-    const mrData = options.mock
-      ? this._fetchMockMrData(mrUrl, mrInfo.projectPath, mrInfo.mrIid)
-      : await fetchMrData(config.gitlab!, mrUrl);
-
-    if (options.verbose) {
-      console.log(CLIOutputFormatter.formatProgress(`MR Title: ${mrData.title}`));
-      console.log(CLIOutputFormatter.formatProgress(`Author: ${mrData.authorName}`));
-      console.log(CLIOutputFormatter.formatProgress(`Files changed: ${mrData.fileDiffs.length}`));
-      console.log(
-        CLIOutputFormatter.formatProgress(`Existing feedback: ${mrData.existingFeedback.length}`)
-      );
-    }
-
-    // Check if there are changes to review
-    if (mrData.fileDiffs.length === 0) {
-      const warning = CLIOutputFormatter.formatWarning(
-        `No file changes found in merge request ${mrUrl}`
-      );
-      console.log(warning);
-      return { summary: warning };
-    }
-
-    // Generate AI review
-    if (options.verbose) {
-      console.log(CLIOutputFormatter.formatProgress('Generating AI review...'));
-    }
-
-    const reviewRequest: AIReviewRequest = {
-      title: mrData.title,
-      description: `Merge Request: ${mrData.webUrl}`,
-      sourceBranch: mrData.sourceBranch,
-      targetBranch: mrData.targetBranch,
-      diffContent: mrData.diffForPrompt,
-      parsedDiffs: mrData.parsedDiffs,
-      existingFeedback: mrData.existingFeedback,
-      authorName: mrData.authorName,
-    };
-
+    // Fetch MR data and generate AI review using unified service
     if (options.verbose) {
       console.log(
-        CLIOutputFormatter.formatProgress(
-          `Diff content length: ${mrData.diffForPrompt.length} characters`
-        )
+        CLIOutputFormatter.formatProgress('Fetching MR details and generating review...')
       );
     }
 
-    let aiResponse: AIReviewResponse;
+    let reviewResult;
 
     if (options.mock) {
       // Use mock response for testing without AI API calls
-      aiResponse = this.generateMockAIResponse(reviewRequest);
+      reviewResult = this.generateMockReviewResult(mrUrl);
       if (options.verbose) {
-        console.log(CLIOutputFormatter.formatProgress('Using mock AI response (testing mode)'));
+        console.log(CLIOutputFormatter.formatProgress('Using mock response (testing mode)'));
       }
     } else {
-      // Use actual AI provider for both dry-run and live modes
-      const aiProvider = new CLIAIProvider(config);
+      // Use unified MR review service
+      const reviewOptions: MrReviewOptions = {
+        provider: config.llm.provider as 'gemini' | 'anthropic' | 'gemini-cli',
+        apiKey: config.llm.apiKey,
+        verbose: !!options.verbose,
+      };
+
       try {
         if (options.verbose) {
-          console.log(CLIOutputFormatter.formatProgress('Sending request to AI provider...'));
+          console.log(CLIOutputFormatter.formatProgress('Using unified MR review service...'));
         }
-        aiResponse = await aiProvider.generateReview(reviewRequest);
+        reviewResult = await MrReviewService.reviewMr(mrUrl, config.gitlab!, reviewOptions);
 
         if (options.verbose) {
           if (options.dryRun) {
             console.log(
               CLIOutputFormatter.formatProgress(
-                '✅ Received real AI response (dry-run mode - no comments will be posted)'
+                '✅ Received AI response (dry-run mode - no comments will be posted)'
               )
             );
           } else {
-            console.log(CLIOutputFormatter.formatProgress('✅ Received real AI response'));
+            console.log(CLIOutputFormatter.formatProgress('✅ Received AI response'));
           }
         }
       } catch (error) {
@@ -251,38 +210,23 @@ export class CLIReviewCommand {
         if (options.verbose) {
           console.log(CLIOutputFormatter.formatProgress('Falling back to mock response...'));
         }
-        aiResponse = this.generateMockAIResponse(reviewRequest);
+        reviewResult = this.generateMockReviewResult(mrUrl);
       }
     }
 
-    // Filter and process feedback
-    let filteredFeedback = filterAndDeduplicateFeedback(
-      aiResponse.feedback,
-      mrData.existingFeedback
-    );
+    const { feedback: filteredFeedback, mrDetails, overallRating } = reviewResult;
 
-    // Populate position for new feedback items
-    filteredFeedback = filteredFeedback.map((feedback: ReviewFeedback) => {
-      if (!feedback.position) {
-        return {
-          ...feedback,
-          position: {
-            base_sha: mrData.base_sha,
-            start_sha: mrData.start_sha,
-            head_sha: mrData.head_sha,
-            position_type: 'text',
-            old_path: feedback.filePath, // Assuming old_path is same as new_path for new comments
-            new_path: feedback.filePath,
-            new_line: feedback.lineNumber,
-            old_line: undefined, // Not applicable for new comments on new lines
-          },
-        };
-      }
-      return feedback;
-    });
+    // Check if there are changes to review
+    if (mrDetails.fileDiffs.length === 0) {
+      const warning = CLIOutputFormatter.formatWarning(
+        `No file changes found in merge request ${mrUrl}`
+      );
+      console.log(warning);
+      return { summary: warning };
+    }
 
     // Create summary
-    const reviewSummary = createReviewSummary(filteredFeedback, aiResponse.overallRating);
+    const reviewSummary = createReviewSummary(filteredFeedback, overallRating);
 
     // Format and display results for this MR
     const output = CLIOutputFormatter.formatReview(filteredFeedback, mrUrl, !!options.dryRun);
@@ -295,7 +239,7 @@ export class CLIReviewCommand {
         }
         for (const feedbackItem of filteredFeedback) {
           try {
-            await postDiscussion(config.gitlab!, mrData, feedbackItem);
+            await postDiscussion(config.gitlab!, mrDetails, feedbackItem);
             if (options.verbose) {
               console.log(
                 CLIOutputFormatter.formatSuccess(
@@ -337,7 +281,7 @@ export class CLIReviewCommand {
           isExisting: false,
         };
         try {
-          await postDiscussion(config.gitlab!, mrData, allGoodFeedback);
+          await postDiscussion(config.gitlab!, mrDetails, allGoodFeedback);
           console.log(
             CLIOutputFormatter.formatSuccess(`Posted "All looks good" comment to ${mrUrl}.`)
           );
@@ -414,23 +358,26 @@ export class CLIReviewCommand {
   }
 
   /**
-   * Generates a mock AI response for testing purposes
+   * Generates a mock review result for testing purposes
    */
-  private static generateMockAIResponse(request: AIReviewRequest): AIReviewResponse {
+  private static generateMockReviewResult(mrUrl: string) {
+    const mockMrDetails = this._fetchMockMrData(mrUrl, 'mock/project', '123');
+    
     const feedback: ReviewFeedback[] = [];
 
     // Simulate no feedback for MR 999
-    if (request.description.includes('/merge_requests/999')) {
+    if (mrUrl.includes('/merge_requests/999')) {
       return {
         feedback: [],
-        summary: `Mock AI review completed for MR: ${request.title}. No issues found.`,
-        overallRating: 'approve',
+        summary: 'Mock AI review completed. No issues found.',
+        overallRating: 'approve' as const,
+        mrDetails: mockMrDetails,
       };
     }
 
     // Generate some sample feedback based on the files
-    if (request.parsedDiffs.length > 0) {
-      const firstFile = request.parsedDiffs[0];
+    if (mockMrDetails.parsedDiffs.length > 0) {
+      const firstFile = mockMrDetails.parsedDiffs[0];
 
       feedback.push({
         id: 'mock-1',
@@ -446,14 +393,14 @@ export class CLIReviewCommand {
       });
 
       // Add a warning if there are many files changed
-      if (request.parsedDiffs.length > 10) {
+      if (mockMrDetails.parsedDiffs.length > 10) {
         feedback.push({
           id: 'mock-2',
           filePath: '',
           lineNumber: 0,
           severity: Severity.Warning,
           title: 'Large changeset detected',
-          description: `This merge request modifies ${request.parsedDiffs.length} files. Consider breaking this into smaller, more focused changes for easier review and testing.`,
+          description: `This merge request modifies ${mockMrDetails.parsedDiffs.length} files. Consider breaking this into smaller, more focused changes for easier review and testing.`,
           lineContent: '',
           position: null,
           status: 'pending' as const,
@@ -464,8 +411,9 @@ export class CLIReviewCommand {
 
     return {
       feedback,
-      summary: `Mock AI review completed for MR: ${request.title}. This is a simulated response for development/testing.`,
-      overallRating: 'comment',
+      summary: 'Mock AI review completed. This is a simulated response for development/testing.',
+      overallRating: 'comment' as const,
+      mrDetails: mockMrDetails,
     };
   }
 

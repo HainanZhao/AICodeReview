@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Header } from './components/Header';
 import { ReviewDashboard } from './components/CodeEditor';
 import { FeedbackPanel } from './components/FeedbackPanel';
-import { reviewCode, fetchMrDetails } from './services/aiReviewService';
+import { fetchMrDetailsOnly, runAiReview } from './services/aiReviewService';
 import { fetchProjects, postDiscussion, approveMergeRequest } from './services/gitlabService';
 import {
   ReviewFeedback,
@@ -163,8 +163,8 @@ function App() {
       setIsAiAnalyzing(false);
 
       try {
-        // First, fetch MR details and existing comments - this is critical for manual review
-        const result = await fetchMrDetails(url, config);
+        // Step 1: Fetch MR details quickly for immediate display
+        const result = await fetchMrDetailsOnly(url, config);
         if (!result?.mrDetails) {
           throw new Error('Failed to fetch merge request details from GitLab');
         }
@@ -172,17 +172,17 @@ function App() {
         // Set MR details and show existing comments immediately - this enables manual review
         setMrDetails(result.mrDetails);
         setFeedback(result.feedback || []); // Show existing comments right away
-        setIsLoading(false);
+        setIsLoading(false); // User can now see the MR and start manual review
 
-        // Now attempt AI review - if this fails, user can still review manually
+        // Step 2: Run AI review in background using the new unified API
         setIsAiAnalyzing(true);
         try {
-          const { feedback: aiReviewResult } = await reviewCode(result.mrDetails, config);
+          const aiResult = await runAiReview(url, config);
 
-          // Combine all existing feedback (GitLab comments + any manual comments user added) with new AI review comments
+          // Combine existing feedback with new AI review feedback
           setFeedback((currentFeedback) => {
             const existingFeedback = currentFeedback || result.feedback || [];
-            return [...existingFeedback, ...aiReviewResult];
+            return [...existingFeedback, ...aiResult.feedback];
           });
           setIsAiAnalyzing(false);
         } catch (aiError) {
@@ -309,13 +309,14 @@ function App() {
     setError(null);
 
     try {
-      const { feedback: aiReviewResult } = await reviewCode(mrDetails, config);
+      // Use the new unified AI review API
+      const aiResult = await runAiReview(mrDetails.webUrl, config);
 
       // Combine all current feedback (including any manual comments) with new AI review comments
       setFeedback((currentFeedback) => {
         // Keep all current feedback (manual + existing) and add new AI results
         const existingFeedback = currentFeedback || mrDetails.existingFeedback || [];
-        return [...existingFeedback, ...aiReviewResult];
+        return [...existingFeedback, ...aiResult.feedback];
       });
     } catch (error) {
       console.error('Error during redo review:', error);

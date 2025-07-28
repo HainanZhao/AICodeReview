@@ -1,9 +1,19 @@
-import { LLMProvider, ReviewRequest, ReviewResponse } from './types.js';
+import { ReviewRequest, ReviewResponse } from './types.js';
 import { Request, Response } from 'express';
-import { GeminiCliCore, GeminiCliItem } from '../../shared/index.js';
-import { ReviewPromptBuilder } from './promptBuilder.js';
+import {
+  GeminiCliCore,
+  GeminiCliItem,
+  buildReviewPrompt,
+  type AIReviewRequest,
+} from '../../shared/index.js';
+import { BaseLLMProvider } from './baseLLMProvider.js';
 
-export class GeminiCliProvider implements LLMProvider {
+export class GeminiCliProvider extends BaseLLMProvider {
+  readonly providerName = 'gemini-cli';
+
+  constructor() {
+    super(); // No API key needed for CLI provider
+  }
   public static async isAvailable(): Promise<boolean> {
     try {
       return await GeminiCliCore.isAvailable();
@@ -12,8 +22,20 @@ export class GeminiCliProvider implements LLMProvider {
     }
   }
 
-  private buildPrompt(diff: string): string {
-    return ReviewPromptBuilder.buildPrompt(diff, { modelType: 'gemini' });
+  private buildPrompt(request: ReviewRequest): string {
+    // Convert ReviewRequest to AIReviewRequest format
+    const aiRequest: AIReviewRequest = {
+      title: request.title || 'Code Review',
+      description: request.description || '',
+      sourceBranch: request.sourceBranch || 'feature-branch',
+      targetBranch: request.targetBranch || 'main',
+      diffContent: request.diffForPrompt, // This already includes file contents when appropriate
+      parsedDiffs: request.parsedDiffs || [],
+      existingFeedback: request.existingFeedback || [],
+      authorName: request.authorName || 'Unknown',
+    };
+
+    return buildReviewPrompt(aiRequest);
   }
 
   public async initializeWithCleanup(): Promise<void> {
@@ -22,16 +44,16 @@ export class GeminiCliProvider implements LLMProvider {
   }
 
   public async reviewCode(req: Request, res: Response): Promise<void> {
-    const { diffForPrompt } = req.body as ReviewRequest;
+    const requestData = req.body as ReviewRequest;
 
-    if (!diffForPrompt) {
+    if (!requestData.diffForPrompt) {
       res.status(400).json({ error: 'Missing diffForPrompt in request body.' });
       return;
     }
 
     try {
-      // Build the prompt
-      const prompt = this.buildPrompt(diffForPrompt);
+      // Build the prompt using the better prompt builder
+      const prompt = this.buildPrompt(requestData);
 
       try {
         // Use shared core for execution with backend-appropriate options

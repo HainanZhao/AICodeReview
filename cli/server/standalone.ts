@@ -74,6 +74,11 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
 
     // Set up API routes
     app.post('/api/review', llmProvider.reviewCode.bind(llmProvider));
+    
+    // New unified route for MR URL-based reviews
+    if (llmProvider.reviewMr) {
+      app.post('/api/review-mr', llmProvider.reviewMr.bind(llmProvider));
+    }
     console.log('✅ LLM provider initialized successfully');
   } catch (error) {
     console.error('❌ Failed to initialize LLM provider:', error);

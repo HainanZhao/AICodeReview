@@ -24,6 +24,7 @@ export class CLIAIProvider {
    * Generates an AI review using the configured provider
    */
   async generateReview(request: AIReviewRequest): Promise<AIReviewResponse> {
+    // Build a comprehensive prompt that includes original file content
     const prompt = buildReviewPrompt(request);
 
     // Validate configuration first
