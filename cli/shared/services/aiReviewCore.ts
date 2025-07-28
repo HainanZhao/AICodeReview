@@ -98,6 +98,13 @@ Please avoid duplicating these existing comments unless you have additional insi
 7. Verify proper testing coverage for new functionality
 8. Check for consistent coding style and conventions
 
+📁 **CRITICAL FILE PATH INSTRUCTIONS:**
+🔴 EXTREMELY IMPORTANT: You MUST use the EXACT file paths as shown in the section headers.
+- When you see "=== FULL FILE CONTENT: path/to/file.ext ===" or "=== GIT DIFF: path/to/file.ext ===", use EXACTLY that path
+- DO NOT modify, abbreviate, or reconstruct file paths
+- DO NOT add extra directories or change the directory structure
+- COPY the file path EXACTLY as it appears after the colon in the section headers
+
 **CRITICAL LINE NUMBER INSTRUCTIONS:**
 🔴 IMPORTANT: The code changes above include FULL FILE CONTENT with line numbers for context.
 - When you see "=== FULL FILE CONTENT: filename ===" sections, these show the COMPLETE file AFTER all diff changes have been applied
@@ -120,7 +127,7 @@ Please provide your review as a JSON object with the following structure:
   "overallRating": "approve|request_changes|comment",
   "feedback": [
     {
-      "filePath": "path/to/file.ext",
+      "filePath": "exact/path/from/section/headers.ext",
       "lineNumber": 123,
       "severity": "error|warning|info|suggestion",
       "title": "Brief issue title",
@@ -130,13 +137,21 @@ Please provide your review as a JSON object with the following structure:
   ]
 }
 
+**IMPORTANT REMINDERS:**
+- **File Paths**: Use EXACTLY the same file path as shown in the "=== FULL FILE CONTENT:" or "=== GIT DIFF:" section headers
+- **Line Numbers**: Use the exact line numbers from the "FULL FILE CONTENT" sections (these are post-change line numbers)
+- **Quality**: Only include feedback items that add value; avoid obvious or trivial comments
+
 **Severity Guidelines:**
 - "error": Critical issues that must be fixed (security vulnerabilities, bugs, breaking changes)
 - "warning": Important issues that should be addressed (performance problems, bad practices)
 - "info": General observations or minor improvements
 - "suggestion": Optional improvements or alternative approaches
 
-**FINAL REMINDER:** Use the exact line numbers shown in the "FULL FILE CONTENT" sections for accurate line references. These line numbers represent the final state of the file AFTER the merge request changes have been applied. Only include feedback items that add value. If the code looks good, provide a positive summary with an "approve" rating and an empty feedback array.`;
+**FINAL REMINDER:** 
+- **File Paths**: Copy EXACTLY from section headers like "=== FULL FILE CONTENT: src/app/vdb-fmd/vdb.component.ts ===" → use "src/app/vdb-fmd/vdb.component.ts"
+- **Line Numbers**: Use exact line numbers from "FULL FILE CONTENT" sections (post-change line numbers)
+- **Quality**: Only include valuable feedback; approve with empty feedback array if code looks good.`;
 
   return prompt;
 };

@@ -89,75 +89,41 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
         if (fb.lineNumber === 0) {
           // Explicit file-level comments
           fileLevel.push(fb);
-        } else if (fb.position) {
-          // Check if this position actually exists in the diff
-          const positionExists = fileDiff.hunks.some((hunk) =>
-            hunk.lines.some((line) => {
-              const matchesNewLine = fb.position?.new_line && line.newLine === fb.position.new_line;
-              const matchesOldLine = fb.position?.old_line && line.oldLine === fb.position.old_line;
-              return matchesNewLine || matchesOldLine;
-            })
+        } else if (fb.position?.new_line) {
+          // Use new_line as the key since backend consistently uses new_line
+          const key = fb.position.new_line.toString();
+          
+          // Check if this new_line exists in the diff
+          const lineExists = fileDiff.hunks.some((hunk) =>
+            hunk.lines.some((line) => line.newLine === fb.position?.new_line)
           );
 
-          if (positionExists) {
-            // Position is valid, show as inline comment
-            // Handle cases where old_line or new_line might be missing
-            let key = `${fb.position.old_line || ''}_${fb.position.new_line || ''}`;
-
-            // If we only have new_line, try to find the corresponding old_line in the hunks
-            if (!fb.position.old_line && fb.position.new_line) {
-              const matchingLine = fileDiff.hunks
-                .flatMap((hunk) => hunk.lines)
-                .find((line) => line.newLine === fb.position?.new_line);
-
-              if (matchingLine && matchingLine.oldLine) {
-                key = `${matchingLine.oldLine}_${fb.position.new_line}`;
-              }
-            }
-
-            // If we only have old_line, try to find the corresponding new_line in the hunks
-            if (fb.position.old_line && !fb.position.new_line) {
-              const matchingLine = fileDiff.hunks
-                .flatMap((hunk) => hunk.lines)
-                .find((line) => line.oldLine === fb.position?.old_line);
-
-              if (matchingLine && matchingLine.newLine) {
-                key = `${fb.position.old_line}_${matchingLine.newLine}`;
-              }
-            }
-
+          if (lineExists) {
             const existing = lineLevel.get(key) || [];
             existing.push(fb);
             lineLevel.set(key, existing);
           } else {
-            // Position not found in diff, but let's try to find a nearby line based on lineNumber
-            // This handles cases where AI line numbers are slightly off
-            const nearbyLine = fileDiff.hunks
-              .flatMap((hunk) => hunk.lines)
-              .find((line) => {
-                // Try to match by line number with a small tolerance
-                const lineNum = fb.lineNumber;
-                return (
-                  (line.newLine && Math.abs(line.newLine - lineNum) <= 1) ||
-                  (line.oldLine && Math.abs(line.oldLine - lineNum) <= 1)
-                );
-              });
+            // Line not found in diff, treat as file-level comment
+            fileLevel.push(fb);
+          }
+        } else if (fb.lineNumber > 0) {
+          // Has lineNumber but no position - try to find matching line in diff
+          const matchingLine = fileDiff.hunks
+            .flatMap((hunk) => hunk.lines)
+            .find((line) => line.newLine === fb.lineNumber);
 
-            if (nearbyLine) {
-              // Use the nearby line's position
-              const key = `${nearbyLine.oldLine || ''}_${nearbyLine.newLine || ''}`;
-              const existing = lineLevel.get(key) || [];
-              existing.push(fb);
-              lineLevel.set(key, existing);
-            } else {
-              // Position not found in diff, treat as file-level comment
-              // This handles cases where the AI suggested a line that doesn't exist in the actual diff
-              fileLevel.push(fb);
-            }
+          if (matchingLine) {
+            // Found matching line, use as inline comment
+            const key = fb.lineNumber.toString();
+            const existing = lineLevel.get(key) || [];
+            existing.push(fb);
+            lineLevel.set(key, existing);
+          } else {
+            // No matching line found, treat as file-level comment
+            fileLevel.push(fb);
           }
         } else {
-          // Has lineNumber but no position - treat as file-level comment
-          // This handles cases where inline posting failed and was posted as general comment
+          // No position and lineNumber is 0 or negative - treat as file-level comment
           fileLevel.push(fb);
         }
       }
@@ -236,7 +202,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
         hunk.lines
           .filter((l) => l.type !== 'meta')
           .forEach((line, lineIndex) => {
-            const key = `${line.oldLine || ''}_${line.newLine || ''}`;
+            const key = line.newLine?.toString() || '';
             const feedbackItems = lineLevelFeedbackMap.get(key) || [];
             // Show all feedback items (both pending and submitted/existing)
             const allFeedbackItems = feedbackItems;
