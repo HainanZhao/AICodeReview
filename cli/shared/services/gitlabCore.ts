@@ -142,7 +142,7 @@ export const parseDiffsToHunks = (
     let newLineOffset = 0;
 
     const diffLines = file.diff.split('\n');
-    const newFileContent = fileContents.get(file.new_path)?.newContent;
+    const oldFileContent = fileContents.get(file.new_path)?.oldContent;
 
     // Parse original hunks
     for (const line of diffLines) {
@@ -283,15 +283,15 @@ export const parseDiffsToHunks = (
 
     // Check if we should include full file content (for small files with meaningful code)
     const shouldIncludeFullFile =
-      newFileContent &&
-      newFileContent.length <= MAX_FILE_LINES &&
+      oldFileContent &&
+      oldFileContent.length <= MAX_FILE_LINES &&
       !file.deleted_file &&
       !isNonMeaningfulFile(file.new_path);
 
     if (shouldIncludeFullFile) {
       // Include full file content with line numbers
       promptParts.push(`\n=== FULL FILE CONTENT: ${file.new_path} ===`);
-      newFileContent.forEach((line, index) => {
+      oldFileContent.forEach((line: string, index: number) => {
         promptParts.push(`${(index + 1).toString().padStart(4, ' ')}: ${line}`);
       });
       promptParts.push(`=== END FILE CONTENT ===\n`);
@@ -454,25 +454,17 @@ export const fetchMrData = async (
   // Convert existing inline discussions to feedback items (only show inline comments with position)
   const existingFeedback = convertDiscussionsToFeedback(discussions);
   const contentPromises = diffs.map(async (diff) => {
-    const [oldContent, newContent] = await Promise.all([
-      !diff.new_file
-        ? fetchFileContentAsLines(
-            config,
-            mr.project_id,
-            diff.old_path,
-            latestVersion.base_commit_sha
-          )
-        : Promise.resolve(undefined),
-      !diff.deleted_file
-        ? fetchFileContentAsLines(
-            config,
-            mr.project_id,
-            diff.new_path,
-            latestVersion.head_commit_sha
-          )
-        : Promise.resolve(undefined),
-    ]);
-    fileContents.set(diff.new_path, { oldContent, newContent });
+    // Only fetch old file content to simplify logic
+    const oldContent = !diff.new_file
+      ? await fetchFileContentAsLines(
+          config,
+          mr.project_id,
+          diff.old_path,
+          latestVersion.base_commit_sha
+        )
+      : undefined;
+    
+    fileContents.set(diff.new_path, { oldContent });
   });
   await Promise.all(contentPromises);
 
