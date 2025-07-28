@@ -34,6 +34,12 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+  // Set security header for Private Network Access
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    next();
+  });
+
   // Set up environment variables for backend compatibility
   process.env.LLM_PROVIDER = config.llm.provider;
   if (config.llm.apiKey) {
