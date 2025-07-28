@@ -170,7 +170,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
                   content: nearbyLine.content.substring(0, 50),
                 },
               });
-              
+
               // Use the nearby line's position
               const key = `${nearbyLine.oldLine || ''}_${nearbyLine.newLine || ''}`;
               const existing = lineLevel.get(key) || [];

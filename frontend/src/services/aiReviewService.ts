@@ -16,7 +16,7 @@ export const loadMrDetails = async (
 
   // Use GitLab service directly to get MR details fast
   const mrDetailsRaw = await fetchMrData(config, url);
-  
+
   // Type assertion to handle minor type differences between CLI and frontend types
   const mrDetails = mrDetailsRaw as GitLabMRDetails;
 
@@ -39,7 +39,7 @@ export const fetchMrDetailsOnly = async (
 
   // Use GitLab service directly to get MR details fast
   const mrDetailsRaw = await fetchMrData(config, url);
-  
+
   // Type assertion to handle minor type differences between CLI and frontend types
   const mrDetails = mrDetailsRaw as GitLabMRDetails;
 
