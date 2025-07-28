@@ -239,11 +239,12 @@ export class CLIReviewCommand {
         }
         for (const feedbackItem of filteredFeedback) {
           try {
-            await postDiscussion(config.gitlab!, mrDetails, feedbackItem);
+            const result = await postDiscussion(config.gitlab!, mrDetails, feedbackItem);
             if (options.verbose) {
+              const postingMode = result.postedAsInline === false ? ' (as general comment)' : '';
               console.log(
                 CLIOutputFormatter.formatSuccess(
-                  `Posted comment for ${feedbackItem.filePath}:${feedbackItem.lineNumber}`
+                  `Posted comment for ${feedbackItem.filePath}:${feedbackItem.lineNumber}${postingMode}`
                 )
               );
             } else {

@@ -2,6 +2,12 @@ import { ReviewFeedback, Severity, ParsedFileDiff } from '../types/gitlab.js';
 
 /**
  * Core AI review service functions that can be shared between UI and CLI
+ *
+ * Comment Posting Strategy:
+ * - First attempts to post comments as inline comments at specific line positions
+ * - If inline posting fails (due to wrong line numbers or other position issues),
+ *   automatically falls back to posting as general MR comments with file/line info
+ * - This ensures all AI feedback is captured even when line positioning is imperfect
  */
 
 export interface AIReviewItem {
@@ -94,14 +100,17 @@ Please avoid duplicating these existing comments unless you have additional insi
 
 **CRITICAL LINE NUMBER INSTRUCTIONS:**
 🔴 IMPORTANT: The code changes above include FULL FILE CONTENT with line numbers for context.
-- When you see "=== FULL FILE CONTENT: filename ===" sections, these show the COMPLETE file with accurate line numbers
-- Use these EXACT line numbers in your feedback - they correspond to the actual file lines
+- When you see "=== FULL FILE CONTENT: filename ===" sections, these show the COMPLETE file AFTER all diff changes have been applied
+- This is the LATEST VERSION of the file with the most current line numbers
+- Use these EXACT line numbers in your feedback - they correspond to the actual file lines in the final state
+- The git diff sections show what changed, but the FULL FILE CONTENT shows the final result
 
 🎯 REVIEW FOCUS:
 - ONLY review lines that are actual changes (marked with + or - in the git diff sections)
 - Use the full file content for context and to understand the broader code structure
-- Reference the exact line numbers as shown in the full file content sections
+- Reference the exact line numbers as shown in the full file content sections (post-change line numbers)
 - When you identify an issue, find that exact line in the "FULL FILE CONTENT" section to get the correct line number
+- Remember: The full file content represents the state AFTER the merge request changes are applied
 
 **Response Format:**
 Please provide your review as a JSON object with the following structure:
@@ -127,7 +136,7 @@ Please provide your review as a JSON object with the following structure:
 - "info": General observations or minor improvements
 - "suggestion": Optional improvements or alternative approaches
 
-**FINAL REMINDER:** Use the exact line numbers shown in the "FULL FILE CONTENT" sections for accurate line references. Only include feedback items that add value. If the code looks good, provide a positive summary with an "approve" rating and an empty feedback array.`;
+**FINAL REMINDER:** Use the exact line numbers shown in the "FULL FILE CONTENT" sections for accurate line references. These line numbers represent the final state of the file AFTER the merge request changes have been applied. Only include feedback items that add value. If the code looks good, provide a positive summary with an "approve" rating and an empty feedback array.`;
 
   return prompt;
 };

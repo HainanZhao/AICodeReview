@@ -379,7 +379,7 @@ export const convertDiscussionsToFeedback = (discussions: GitLabDiscussion[]): R
 };
 
 /**
- * Posts a review comment to GitLab
+ * Posts a review comment to GitLab with fallback to general comment if inline posting fails
  */
 export const postDiscussion = async (
   config: GitLabConfig,
@@ -388,7 +388,7 @@ export const postDiscussion = async (
 ): Promise<GitLabDiscussion> => {
   const { projectId, mrIid } = mrDetails;
 
-  const body = `
+  const baseBody = `
 **${feedback.severity}: ${feedback.title}**
 
 ${feedback.description}
@@ -399,29 +399,69 @@ ${feedback.description}
   // Use discussions endpoint for all comments (both inline and general)
   const url = `${config.url}/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions`;
 
-  const payload: { body: string; position?: ReviewFeedback['position'] } = {
-    body: body.trim(),
-  };
-
-  // For inline comments, include position only if we have complete and valid data
-  // GitLab requires all SHA values and at least one line number for inline comments
-  if (
+  // First, try to post as an inline comment if we have position data
+  const hasValidPosition =
     feedback.position &&
     feedback.position.base_sha &&
     feedback.position.start_sha &&
     feedback.position.head_sha &&
     feedback.position.old_path &&
     feedback.position.new_path &&
-    (feedback.position.new_line || feedback.position.old_line)
-  ) {
-    payload.position = feedback.position;
-  }
-  // If any required position data is missing, post as a general comment instead
+    (feedback.position.new_line || feedback.position.old_line);
 
-  return gitlabApiFetch(url, config, {
+  if (hasValidPosition) {
+    try {
+      const inlinePayload = {
+        body: baseBody.trim(),
+        position: feedback.position,
+      };
+
+      const result = await gitlabApiFetch(url, config, {
+        method: 'POST',
+        body: JSON.stringify(inlinePayload),
+      });
+
+      // Mark as successfully posted inline
+      return { ...result, postedAsInline: true };
+    } catch (error) {
+      // If inline comment fails, log the error and fallback to general comment
+      console.warn(
+        `Failed to post inline comment for ${feedback.filePath}:${feedback.lineNumber}. ` +
+          `Retrying as general comment. Error: ${error instanceof Error ? error.message : String(error)}`
+      );
+
+      // Continue to fallback logic below
+    }
+  }
+
+  // Fallback: Post as a general comment with file and line information in the body
+  const fallbackBody =
+    feedback.filePath && feedback.lineNumber > 0
+      ? `
+**${feedback.severity}: ${feedback.title}**
+
+📍 **File:** \`${feedback.filePath}\` (line ${feedback.lineNumber})
+
+${feedback.description}
+
+*Note: Posted as general comment due to line positioning issues*
+
+*Powered by AI Code Reviewer*
+    `
+      : baseBody;
+
+  const generalPayload = {
+    body: fallbackBody.trim(),
+    // No position for general comments
+  };
+
+  const result = await gitlabApiFetch(url, config, {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(generalPayload),
   });
+
+  // Mark as posted as general comment (fallback)
+  return { ...result, postedAsInline: false };
 };
 
 /**
