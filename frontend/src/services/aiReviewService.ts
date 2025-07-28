@@ -1,6 +1,30 @@
 import { v4 as uuidv4 } from 'uuid';
-import { ReviewFeedback, GitLabMRDetails } from '../../../types';
-import { Config } from '../types';
+import { ReviewFeedback } from '../../../types';
+import { Config, GitLabMRDetails } from '../types';
+import { fetchMrData } from './gitlabService';
+
+/**
+ * Loads MR details and existing feedback from GitLab
+ */
+export const loadMrDetails = async (
+  url: string,
+  config: Config
+): Promise<{ mrDetails: GitLabMRDetails; feedback: ReviewFeedback[] }> => {
+  if (!config || !config.url || !config.accessToken) {
+    throw new Error('GitLab configuration is missing. Please set it in the settings.');
+  }
+
+  // Use GitLab service directly to get MR details fast
+  const mrDetailsRaw = await fetchMrData(config, url);
+  
+  // Type assertion to handle minor type differences between CLI and frontend types
+  const mrDetails = mrDetailsRaw as GitLabMRDetails;
+
+  // Return existing feedback from GitLab discussions
+  const existingFeedback = mrDetails.existingFeedback || [];
+
+  return { mrDetails, feedback: existingFeedback };
+};
 
 /**
  * Fetches MR details quickly for immediate display (no AI review)
@@ -14,8 +38,10 @@ export const fetchMrDetailsOnly = async (
   }
 
   // Use GitLab service directly to get MR details fast
-  const { fetchMrData } = await import('./gitlabService');
-  const mrDetails = await fetchMrData(config, url);
+  const mrDetailsRaw = await fetchMrData(config, url);
+  
+  // Type assertion to handle minor type differences between CLI and frontend types
+  const mrDetails = mrDetailsRaw as GitLabMRDetails;
 
   // Return existing feedback from GitLab discussions
   const existingFeedback = mrDetails.existingFeedback || [];

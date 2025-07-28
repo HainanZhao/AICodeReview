@@ -127,6 +127,71 @@ export const fetchFileContentAsLines = async (
 };
 
 /**
+ * Parses a single diff string into structured hunks
+ */
+const parseDiffs = (diffString: string): ParsedHunk[] => {
+  const hunks: ParsedHunk[] = [];
+  let oldLineOffset = 0;
+  let newLineOffset = 0;
+
+  const diffLines = diffString.split('\n');
+
+  for (const line of diffLines) {
+    if (line.startsWith('@@')) {
+      const match = line.match(/@@ -(\d+)(,(\d+))? \+(\d+)(,(\d+))? @@/);
+      if (match) {
+        const oldStartLine = parseInt(match[1], 10);
+        const oldLineCount = match[3] ? parseInt(match[3], 10) : 1;
+        const newStartLine = parseInt(match[4], 10);
+        const newLineCount = match[6] ? parseInt(match[6], 10) : 1;
+
+        const currentHunk: ParsedHunk = {
+          header: line,
+          oldStartLine,
+          oldLineCount,
+          newStartLine,
+          newLineCount,
+          lines: [],
+          isCollapsed: false,
+        };
+        hunks.push(currentHunk);
+        oldLineOffset = 0;
+        newLineOffset = 0;
+      }
+    } else if (hunks.length > 0) {
+      const currentHunk = hunks[hunks.length - 1];
+
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        currentHunk.lines.push({
+          type: 'add',
+          newLine: currentHunk.newStartLine + newLineOffset,
+          content: line.substring(1),
+        });
+        newLineOffset++;
+      } else if (line.startsWith('-') && !line.startsWith('---')) {
+        currentHunk.lines.push({
+          type: 'remove',
+          oldLine: currentHunk.oldStartLine + oldLineOffset,
+          content: line.substring(1),
+        });
+        oldLineOffset++;
+      } else if (line.startsWith(' ')) {
+        currentHunk.lines.push({
+          type: 'context',
+          oldLine: currentHunk.oldStartLine + oldLineOffset,
+          newLine: currentHunk.newStartLine + newLineOffset,
+          content: line.substring(1),
+        });
+        oldLineOffset++;
+        newLineOffset++;
+      }
+    }
+  }
+
+  return hunks;
+};
+
+/**
  * Parses Git diffs into structured hunks with file content context
  */
 export const parseDiffsToHunks = (
@@ -135,67 +200,13 @@ export const parseDiffsToHunks = (
 ): { diffForPrompt: string; parsedDiffs: ParsedFileDiff[] } => {
   const parsedDiffs: ParsedFileDiff[] = [];
   const allDiffsForPrompt: string[] = [];
+  const processedFiles = new Set<string>(); // Track files for which we've already included full content
 
   diffs.forEach((file) => {
-    const hunks: ParsedHunk[] = [];
-    let oldLineOffset = 0;
-    let newLineOffset = 0;
+    const newFileContent = fileContents.get(file.new_path)?.newContent;
 
-    const diffLines = file.diff.split('\n');
-    const oldFileContent = fileContents.get(file.new_path)?.oldContent;
-
-    // Parse original hunks
-    for (const line of diffLines) {
-      if (line.startsWith('@@')) {
-        const match = line.match(/@@ -(\d+)(,(\d+))? \+(\d+)(,(\d+))? @@/);
-        if (match) {
-          const oldStartLine = parseInt(match[1], 10);
-          const oldLineCount = match[3] ? parseInt(match[3], 10) : 1;
-          const newStartLine = parseInt(match[4], 10);
-          const newLineCount = match[6] ? parseInt(match[6], 10) : 1;
-
-          const currentHunk: ParsedHunk = {
-            header: line,
-            oldStartLine,
-            oldLineCount,
-            newStartLine,
-            newLineCount,
-            lines: [],
-            isCollapsed: false,
-          };
-          hunks.push(currentHunk);
-          oldLineOffset = 0;
-          newLineOffset = 0;
-        }
-      } else if (hunks.length > 0) {
-        const currentHunk = hunks[hunks.length - 1];
-
-        if (line.startsWith('+') && !line.startsWith('+++')) {
-          currentHunk.lines.push({
-            type: 'add',
-            newLine: currentHunk.newStartLine + newLineOffset,
-            content: line.substring(1),
-          });
-          newLineOffset++;
-        } else if (line.startsWith('-') && !line.startsWith('---')) {
-          currentHunk.lines.push({
-            type: 'remove',
-            oldLine: currentHunk.oldStartLine + oldLineOffset,
-            content: line.substring(1),
-          });
-          oldLineOffset++;
-        } else if (line.startsWith(' ')) {
-          currentHunk.lines.push({
-            type: 'context',
-            oldLine: currentHunk.oldStartLine + oldLineOffset,
-            newLine: currentHunk.newStartLine + newLineOffset,
-            content: line.substring(1),
-          });
-          oldLineOffset++;
-          newLineOffset++;
-        }
-      }
-    }
+    // Parse the diff into structured hunks
+    const hunks = parseDiffs(file.diff);
 
     // Generate simplified prompt content
     const promptParts: string[] = [];
@@ -282,19 +293,22 @@ export const parseDiffsToHunks = (
     };
 
     // Check if we should include full file content (for small files with meaningful code)
+    // Use new file content for accurate line numbers
     const shouldIncludeFullFile =
-      oldFileContent &&
-      oldFileContent.length <= MAX_FILE_LINES &&
+      newFileContent &&
+      newFileContent.length <= MAX_FILE_LINES &&
       !file.deleted_file &&
-      !isNonMeaningfulFile(file.new_path);
+      !isNonMeaningfulFile(file.new_path) &&
+      !processedFiles.has(file.new_path); // Only include once per file
 
     if (shouldIncludeFullFile) {
-      // Include full file content with line numbers
+      // Include full file content with line numbers (use new file content for accurate line numbers)
       promptParts.push(`\n=== FULL FILE CONTENT: ${file.new_path} ===`);
-      oldFileContent.forEach((line: string, index: number) => {
-        promptParts.push(`${(index + 1).toString().padStart(4, ' ')}: ${line}`);
+      newFileContent.forEach((line: string, index: number) => {
+        promptParts.push(`${(index + 1).toString()}: ${line}`);
       });
       promptParts.push(`=== END FILE CONTENT ===\n`);
+      processedFiles.add(file.new_path); // Mark this file as processed
     }
 
     // Always include the git diff
@@ -314,8 +328,10 @@ export const parseDiffsToHunks = (
     });
   });
 
+  const diffForPrompt = allDiffsForPrompt.join('\n');
+  console.log(diffForPrompt);
   return {
-    diffForPrompt: allDiffsForPrompt.join('\n'),
+    diffForPrompt,
     parsedDiffs,
   };
 };
@@ -453,18 +469,31 @@ export const fetchMrData = async (
 
   // Convert existing inline discussions to feedback items (only show inline comments with position)
   const existingFeedback = convertDiscussionsToFeedback(discussions);
-  const contentPromises = diffs.map(async (diff) => {
-    // Only fetch old file content to simplify logic
-    const oldContent = !diff.new_file
+  
+  // Get unique file paths to avoid fetching the same file multiple times
+  // (GitLab can have multiple diff entries for the same file in complex MRs)
+  const uniqueFiles = new Map<string, { new_path: string; deleted_file: boolean }>();
+  diffs.forEach((diff) => {
+    if (!uniqueFiles.has(diff.new_path)) {
+      uniqueFiles.set(diff.new_path, {
+        new_path: diff.new_path,
+        deleted_file: diff.deleted_file,
+      });
+    }
+  });
+
+  const contentPromises = Array.from(uniqueFiles.values()).map(async (file) => {
+    // Fetch new file content for accurate line number mapping
+    const newContent = !file.deleted_file
       ? await fetchFileContentAsLines(
           config,
           mr.project_id,
-          diff.old_path,
-          latestVersion.base_commit_sha
+          file.new_path,
+          latestVersion.head_commit_sha
         )
       : undefined;
-    
-    fileContents.set(diff.new_path, { oldContent });
+
+    fileContents.set(file.new_path, { newContent });
   });
   await Promise.all(contentPromises);
 

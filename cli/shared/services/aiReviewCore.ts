@@ -92,6 +92,21 @@ Please avoid duplicating these existing comments unless you have additional insi
 7. Verify proper testing coverage for new functionality
 8. Check for consistent coding style and conventions
 
+**CRITICAL LINE NUMBER INSTRUCTIONS:**
+🔴 IMPORTANT: The code changes above include FULL FILE CONTENT with line numbers for context.
+- When you see "=== FULL FILE CONTENT: filename ===" sections, these show the COMPLETE file with accurate line numbers
+- Use these EXACT line numbers in your feedback - they correspond to the actual file lines
+- Do NOT use diff line numbers or relative positions from the git diff
+- All line numbers are 1-indexed (starting from 1)
+- Example: If you see "  42: const result = getData();" in the full file content, use lineNumber: 42 in your response
+- CRITICAL: Always cross-reference the line content with the full file content to get the correct line number
+
+🎯 REVIEW FOCUS:
+- ONLY review lines that are actual changes (marked with + or - in the git diff sections)
+- Use the full file content for context and to understand the broader code structure
+- Reference the exact line numbers as shown in the full file content sections
+- When you identify an issue, find that exact line in the "FULL FILE CONTENT" section to get the correct line number
+
 **Response Format:**
 Please provide your review as a JSON object with the following structure:
 
@@ -116,8 +131,7 @@ Please provide your review as a JSON object with the following structure:
 - "info": General observations or minor improvements
 - "suggestion": Optional improvements or alternative approaches
 
-Only include feedback items that add value. If the code looks good, provide a positive summary with an "approve" rating and an empty feedback array.
-`;
+**FINAL REMINDER:** Use the exact line numbers shown in the "FULL FILE CONTENT" sections for accurate line references. Only include feedback items that add value. If the code looks good, provide a positive summary with an "approve" rating and an empty feedback array.`;
 
   return prompt;
 };
