@@ -37,6 +37,14 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   // Set security header for Private Network Access
   app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    // Allow all origins for development/testing. In production, restrict to specific origins.
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(204);
+    }
     next();
   });
 
