@@ -329,7 +329,6 @@ export const parseDiffsToHunks = (
   });
 
   const diffForPrompt = allDiffsForPrompt.join('\n');
-  console.log(diffForPrompt);
   return {
     diffForPrompt,
     parsedDiffs,

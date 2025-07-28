@@ -96,10 +96,6 @@ Please avoid duplicating these existing comments unless you have additional insi
 🔴 IMPORTANT: The code changes above include FULL FILE CONTENT with line numbers for context.
 - When you see "=== FULL FILE CONTENT: filename ===" sections, these show the COMPLETE file with accurate line numbers
 - Use these EXACT line numbers in your feedback - they correspond to the actual file lines
-- Do NOT use diff line numbers or relative positions from the git diff
-- All line numbers are 1-indexed (starting from 1)
-- Example: If you see "  42: const result = getData();" in the full file content, use lineNumber: 42 in your response
-- CRITICAL: Always cross-reference the line content with the full file content to get the correct line number
 
 🎯 REVIEW FOCUS:
 - ONLY review lines that are actual changes (marked with + or - in the git diff sections)

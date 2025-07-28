@@ -267,6 +267,7 @@ export class MrReviewService {
       }
 
       // Create position for inline comment
+      // Trust the line number from AI since it comes from full file content
       return {
         ...item,
         position: {
