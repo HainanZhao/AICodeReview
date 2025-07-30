@@ -297,6 +297,7 @@ export const parseDiffsToHunks = (
     const shouldIncludeFullFile =
       newFileContent &&
       newFileContent.length <= MAX_FILE_LINES &&
+      !file.new_file &&
       !file.deleted_file &&
       !isNonMeaningfulFile(file.new_path) &&
       !processedFiles.has(file.new_path); // Only include once per file
