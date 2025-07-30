@@ -51,9 +51,9 @@ export const MrSummary: React.FC<MrSummaryProps> = ({ mrDetails, onNewReview }) 
           Reviewing MR !{mrDetails.mrIid}
         </h2>
       </div>
-      <div className="p-4 space-y-3 flex-grow flex flex-col">
-        <div className="flex-grow space-y-3 overflow-y-auto">
-          <div>
+      <div className="p-4 flex-grow flex flex-col min-h-0">
+        <div className="flex-grow flex flex-col min-h-0 space-y-3">
+          <div className="flex-shrink-0">
             <h3 className="font-semibold text-gray-900 dark:text-brand-text break-words text-sm">
               {mrDetails.title}
             </h3>
@@ -61,7 +61,7 @@ export const MrSummary: React.FC<MrSummaryProps> = ({ mrDetails, onNewReview }) 
               by {mrDetails.authorName}
             </p>
           </div>
-          <div className="flex items-center text-xs font-mono bg-gray-100 dark:bg-brand-primary/50 p-2 rounded-md">
+          <div className="flex items-center text-xs font-mono bg-gray-100 dark:bg-brand-primary/50 p-2 rounded-md flex-shrink-0">
             <span className="bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 px-1.5 py-0.5 rounded-full truncate">
               {mrDetails.sourceBranch}
             </span>
@@ -71,20 +71,20 @@ export const MrSummary: React.FC<MrSummaryProps> = ({ mrDetails, onNewReview }) 
             </span>
           </div>
 
-          {/* File Tree Component */}
+          {/* File Tree Component - Now takes remaining space */}
           <FileTree fileDiffs={mrDetails.parsedDiffs} onFileClick={scrollToFile} />
 
           <a
             href={mrDetails.webUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full text-center bg-gray-100 dark:bg-brand-primary hover:bg-gray-200 dark:hover:bg-brand-primary/70 text-gray-600 dark:text-brand-subtle font-semibold py-1.5 px-3 rounded-md transition-colors text-xs"
+            className="block w-full text-center bg-gray-100 dark:bg-brand-primary hover:bg-gray-200 dark:hover:bg-brand-primary/70 text-gray-600 dark:text-brand-subtle font-semibold py-1.5 px-3 rounded-md transition-colors text-xs flex-shrink-0"
           >
             View on GitLab
           </a>
         </div>
 
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 pt-3">
           <button
             onClick={onNewReview}
             className="w-full flex items-center justify-center bg-brand-secondary hover:bg-red-600 text-white font-semibold py-1.5 px-3 rounded-md transition-colors text-xs"

@@ -251,8 +251,8 @@ export const FileTree: React.FC<FileTreeProps> = ({ fileDiffs, onFileClick }) =>
   const renamedFiles = fileDiffs.filter((f) => f.isRenamed).length;
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
+    <div className="space-y-2 flex flex-col flex-1 min-h-0">
+      <div className="flex items-center justify-between flex-shrink-0">
         <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300">
           Files Changed ({totalFiles})
         </h3>
@@ -277,7 +277,7 @@ export const FileTree: React.FC<FileTreeProps> = ({ fileDiffs, onFileClick }) =>
       </div>
 
       {/* File stats */}
-      <div className="flex flex-wrap gap-1 text-xs">
+      <div className="flex flex-wrap gap-1 text-xs flex-shrink-0">
         {addedFiles > 0 && (
           <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded">
             +{addedFiles}
@@ -301,7 +301,10 @@ export const FileTree: React.FC<FileTreeProps> = ({ fileDiffs, onFileClick }) =>
       </div>
 
       {/* File tree */}
-      <div className="max-h-80 overflow-y-auto border border-gray-200 dark:border-brand-primary/30 bg-gray-50/50 dark:bg-brand-primary/10 rounded p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+      <div
+        className="flex-1 min-h-0 overflow-y-auto border border-gray-200 dark:border-brand-primary/30 bg-gray-50/50 dark:bg-brand-primary/10 rounded p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600"
+        style={{ maxHeight: 'calc(100vh - 410px)' }}
+      >
         {totalFiles === 0 ? (
           <div className="text-xs text-gray-500 dark:text-gray-400 p-2 text-center">
             No files changed

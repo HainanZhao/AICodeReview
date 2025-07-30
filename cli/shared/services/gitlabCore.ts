@@ -445,8 +445,6 @@ ${feedback.description}
 
 ${feedback.description}
 
-*Note: Posted as general comment due to line positioning issues*
-
 *Powered by AI Code Reviewer*
     `
       : baseBody;
@@ -509,7 +507,6 @@ export const fetchMrData = async (
 
   // Convert existing inline discussions to feedback items (only show inline comments with position)
   const existingFeedback = convertDiscussionsToFeedback(discussions);
-  
   // Get unique file paths to avoid fetching the same file multiple times
   // (GitLab can have multiple diff entries for the same file in complex MRs)
   const uniqueFiles = new Map<string, { new_path: string; deleted_file: boolean }>();
