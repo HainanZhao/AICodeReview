@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
+import checkForUpdates from '../dist/services/updateNotifier.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -34,6 +35,8 @@ program
   .option('--verbose', 'detailed operation logs (CLI mode only)')
   .action(async (mrUrls, options) => {
     try {
+      await checkForUpdates(packageJson.version);
+
       if (options.init) {
         const { createConfigInteractively } = await import('../dist/config/configWizard.js');
         await createConfigInteractively();

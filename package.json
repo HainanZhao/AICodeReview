@@ -1,7 +1,7 @@
 {
   "name": "aicodereview-cli",
   "private": false,
-  "version": "1.1.11",
+  "version": "1.1.10",
   "description": "AI-powered code review tool with web interface",
   "keywords": [
     "code-review",
@@ -71,6 +71,7 @@
     "@types/express": "^4.17.21",
     "@types/inquirer": "^9.0.8",
     "@types/node": "^22.14.0",
+    "@types/semver": "^7.7.0",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
     "concurrently": "^9.2.0",
