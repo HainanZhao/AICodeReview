@@ -390,11 +390,9 @@ export const postDiscussion = async (
   const { projectId, mrIid } = mrDetails;
 
   const baseBody = `
-**${feedback.severity}: ${feedback.title}**
+**[AI] ${feedback.severity}: ${feedback.title}**
 
 ${feedback.description}
-
-*Powered by AI Code Reviewer*
     `;
 
   // Use discussions endpoint for all comments (both inline and general)
