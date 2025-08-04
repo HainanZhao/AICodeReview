@@ -16,6 +16,7 @@ export interface GitLabPosition {
   new_path: string;
   new_line?: number;
   old_line?: number;
+  line_code?: string; // Generated when posting comments
 }
 
 export interface FileDiff {

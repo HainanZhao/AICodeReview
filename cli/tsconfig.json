@@ -10,6 +10,9 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "declaration": true,
+    "sourceMap": true,
+    "inlineSourceMap": false,
+    "inlineSources": true,
     "outDir": "../dist",
     "rootDir": "."
   },
