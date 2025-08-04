@@ -141,7 +141,12 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
     ? `${fileDiff.oldPath} → ${fileDiff.filePath}`
     : fileDiff.filePath;
 
-  const fileContents = mrDetails.fileContents.get(fileDiff.filePath);
+  const fileContents =
+    mrDetails.fileContents instanceof Map
+      ? mrDetails.fileContents.get(fileDiff.filePath)
+      : (
+          mrDetails.fileContents as Record<string, { oldContent?: string[]; newContent?: string[] }>
+        )[fileDiff.filePath];
   const newFileContentLines = fileContents?.newContent || [];
 
   const handleExpandGap = (startLine: number, endLine: number) => {
