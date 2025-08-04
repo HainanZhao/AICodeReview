@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest';
 import { LineMapping, ParsedFileDiff } from '../types/gitlab.js';
 import {
-    buildCompleteLineMapping,
-    buildLineMapping,
-    getNewLineFromOldLine,
-    getOldLineFromNewLine,
+  buildCompleteLineMapping,
+  buildLineMapping,
+  getNewLineFromOldLine,
+  getOldLineFromNewLine,
 } from './gitlabCore.js';
 
 describe('Line Mapping Functions', () => {
