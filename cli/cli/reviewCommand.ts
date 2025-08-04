@@ -1,18 +1,18 @@
-import { CLIReviewOptions } from './types.js';
-import { CLIConfigValidator } from './configValidator.js';
-import { CLIOutputFormatter } from './outputFormatter.js';
 import { ConfigLoader } from '../config/configLoader.js';
 import {
-  MrReviewService,
-  type MrReviewOptions,
   createReviewSummary,
-  Severity,
-  type ReviewFeedback,
-  postDiscussion,
-  GitLabMRDetails,
   FileDiff,
+  GitLabMRDetails,
+  MrReviewService,
   ParsedFileDiff,
+  postDiscussion,
+  Severity,
+  type MrReviewOptions,
+  type ReviewFeedback,
 } from '../shared/index.js';
+import { CLIConfigValidator } from './configValidator.js';
+import { CLIOutputFormatter } from './outputFormatter.js';
+import { CLIReviewOptions } from './types.js';
 
 /**
  * Main CLI review command orchestrator
@@ -489,26 +489,24 @@ export class CLIReviewCommand {
       fileDiffs: [mockFileDiff],
       diffForPrompt: mockFileDiff.diff,
       parsedDiffs: [mockParsedDiff],
-      fileContents: new Map([
-        [
-          'src/main.ts',
-          {
-            oldContent: [
-              'class MyClass {',
-              '  constructor() {',
-              '    console.log("Hello, world!");',
-              '  }',
-            ],
-            newContent: [
-              'class MyClass {',
-              '  constructor() {',
-              '    console.log("Hello, world!");',
-              '    // Added a new line',
-              '  }',
-            ],
-          },
-        ],
-      ]),
+      fileContents: {
+        'src/main.ts': {
+          oldContent: [
+            'class MyClass {',
+            '  constructor() {',
+            '    console.log("Hello, world!");',
+            '  }',
+          ],
+          newContent: [
+            'class MyClass {',
+            '  constructor() {',
+            '    console.log("Hello, world!");',
+            '    // Added a new line',
+            '  }',
+          ],
+        },
+      },
+      lineMappings: {}, // Empty for mock
       discussions: [],
       existingFeedback: [],
       approvals: undefined,

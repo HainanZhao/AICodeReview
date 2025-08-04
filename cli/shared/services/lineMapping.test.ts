@@ -1,11 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { ParsedFileDiff } from '../types/gitlab.js';
+import { LineMapping, ParsedFileDiff } from '../types/gitlab.js';
 import {
-  buildCompleteLineMapping,
-  buildLineMapping,
-  getNewLineFromOldLine,
-  getOldLineFromNewLine,
-  LineMapping,
+    buildCompleteLineMapping,
+    buildLineMapping,
+    getNewLineFromOldLine,
+    getOldLineFromNewLine,
 } from './gitlabCore.js';
 
 describe('Line Mapping Functions', () => {
@@ -41,20 +40,20 @@ describe('Line Mapping Functions', () => {
       const mapping = buildLineMapping(parsedDiff);
 
       // Context lines should be mapped
-      expect(mapping.newToOld.get(10)).toBe(10);
-      expect(mapping.newToOld.get(11)).toBe(11);
-      expect(mapping.newToOld.get(14)).toBe(13);
-      expect(mapping.newToOld.get(15)).toBe(14);
+      expect(mapping.newToOld[10]).toBe(10);
+      expect(mapping.newToOld[11]).toBe(11);
+      expect(mapping.newToOld[14]).toBe(13);
+      expect(mapping.newToOld[15]).toBe(14);
 
-      expect(mapping.oldToNew.get(10)).toBe(10);
-      expect(mapping.oldToNew.get(11)).toBe(11);
-      expect(mapping.oldToNew.get(13)).toBe(14);
-      expect(mapping.oldToNew.get(14)).toBe(15);
+      expect(mapping.oldToNew[10]).toBe(10);
+      expect(mapping.oldToNew[11]).toBe(11);
+      expect(mapping.oldToNew[13]).toBe(14);
+      expect(mapping.oldToNew[14]).toBe(15);
 
       // Added/removed lines should not be mapped
-      expect(mapping.newToOld.get(12)).toBeUndefined(); // Added line
-      expect(mapping.newToOld.get(13)).toBeUndefined(); // Added line
-      expect(mapping.oldToNew.get(12)).toBeUndefined(); // Removed line
+      expect(mapping.newToOld[12]).toBeUndefined(); // Added line
+      expect(mapping.newToOld[13]).toBeUndefined(); // Added line
+      expect(mapping.oldToNew[12]).toBeUndefined(); // Removed line
     });
 
     test('should handle multiple hunks correctly', () => {
@@ -100,18 +99,18 @@ describe('Line Mapping Functions', () => {
       const mapping = buildLineMapping(parsedDiff);
 
       // First hunk mappings
-      expect(mapping.newToOld.get(1)).toBe(1);
-      expect(mapping.newToOld.get(3)).toBe(3);
-      expect(mapping.oldToNew.get(1)).toBe(1);
-      expect(mapping.oldToNew.get(3)).toBe(3);
+      expect(mapping.newToOld[1]).toBe(1);
+      expect(mapping.newToOld[3]).toBe(3);
+      expect(mapping.oldToNew[1]).toBe(1);
+      expect(mapping.oldToNew[3]).toBe(3);
 
       // Second hunk mappings
-      expect(mapping.newToOld.get(20)).toBe(20);
-      expect(mapping.newToOld.get(21)).toBe(21);
-      expect(mapping.newToOld.get(23)).toBe(22);
-      expect(mapping.oldToNew.get(20)).toBe(20);
-      expect(mapping.oldToNew.get(21)).toBe(21);
-      expect(mapping.oldToNew.get(22)).toBe(23);
+      expect(mapping.newToOld[20]).toBe(20);
+      expect(mapping.newToOld[21]).toBe(21);
+      expect(mapping.newToOld[23]).toBe(22);
+      expect(mapping.oldToNew[20]).toBe(20);
+      expect(mapping.oldToNew[21]).toBe(21);
+      expect(mapping.oldToNew[22]).toBe(23);
     });
 
     test('should handle empty diff (no changes)', () => {
@@ -126,22 +125,22 @@ describe('Line Mapping Functions', () => {
 
       const mapping = buildLineMapping(parsedDiff);
 
-      expect(mapping.newToOld.size).toBe(0);
-      expect(mapping.oldToNew.size).toBe(0);
+      expect(Object.keys(mapping.newToOld).length).toBe(0);
+      expect(Object.keys(mapping.oldToNew).length).toBe(0);
     });
   });
 
   describe('getOldLineFromNewLine', () => {
     test('should return correct old line number for mapped new line', () => {
       const mapping: LineMapping = {
-        newToOld: new Map([
-          [10, 15],
-          [20, 25],
-        ]),
-        oldToNew: new Map([
-          [15, 10],
-          [25, 20],
-        ]),
+        newToOld: {
+          10: 15,
+          20: 25,
+        },
+        oldToNew: {
+          15: 10,
+          25: 20,
+        },
       };
 
       expect(getOldLineFromNewLine(10, mapping)).toBe(15);
@@ -153,14 +152,14 @@ describe('Line Mapping Functions', () => {
   describe('getNewLineFromOldLine', () => {
     test('should return correct new line number for mapped old line', () => {
       const mapping: LineMapping = {
-        newToOld: new Map([
-          [10, 15],
-          [20, 25],
-        ]),
-        oldToNew: new Map([
-          [15, 10],
-          [25, 20],
-        ]),
+        newToOld: {
+          10: 15,
+          20: 25,
+        },
+        oldToNew: {
+          15: 10,
+          25: 20,
+        },
       };
 
       expect(getNewLineFromOldLine(15, mapping)).toBe(10);
@@ -205,27 +204,27 @@ describe('Line Mapping Functions', () => {
       const mapping = buildCompleteLineMapping(parsedDiff, 15, 14);
 
       // Untouched lines before the diff (1-5)
-      expect(mapping.newToOld.get(1)).toBe(1);
-      expect(mapping.newToOld.get(2)).toBe(2);
-      expect(mapping.newToOld.get(3)).toBe(3);
-      expect(mapping.newToOld.get(4)).toBe(4);
-      expect(mapping.newToOld.get(5)).toBe(5);
+      expect(mapping.newToOld[1]).toBe(1);
+      expect(mapping.newToOld[2]).toBe(2);
+      expect(mapping.newToOld[3]).toBe(3);
+      expect(mapping.newToOld[4]).toBe(4);
+      expect(mapping.newToOld[5]).toBe(5);
 
       // Context lines in the diff
-      expect(mapping.newToOld.get(6)).toBe(6);
-      expect(mapping.newToOld.get(9)).toBe(8);
-      expect(mapping.newToOld.get(10)).toBe(9);
-      expect(mapping.newToOld.get(11)).toBe(10);
+      expect(mapping.newToOld[6]).toBe(6);
+      expect(mapping.newToOld[9]).toBe(8);
+      expect(mapping.newToOld[10]).toBe(9);
+      expect(mapping.newToOld[11]).toBe(10);
 
       // Untouched lines after the diff (12-15 in new file map to 11-14 in old file)
-      expect(mapping.newToOld.get(12)).toBe(11);
-      expect(mapping.newToOld.get(13)).toBe(12);
-      expect(mapping.newToOld.get(14)).toBe(13);
-      expect(mapping.newToOld.get(15)).toBe(14);
+      expect(mapping.newToOld[12]).toBe(11);
+      expect(mapping.newToOld[13]).toBe(12);
+      expect(mapping.newToOld[14]).toBe(13);
+      expect(mapping.newToOld[15]).toBe(14);
 
       // Added lines should not have old line mapping
-      expect(mapping.newToOld.get(7)).toBeUndefined(); // Added line
-      expect(mapping.newToOld.get(8)).toBeUndefined(); // Added line
+      expect(mapping.newToOld[7]).toBeUndefined(); // Added line
+      expect(mapping.newToOld[8]).toBeUndefined(); // Added line
     });
 
     test('should handle file with only deletions', () => {
@@ -257,20 +256,20 @@ describe('Line Mapping Functions', () => {
       const mapping = buildCompleteLineMapping(parsedDiff, 10, 12);
 
       // Lines before the diff
-      expect(mapping.newToOld.get(1)).toBe(1);
-      expect(mapping.newToOld.get(2)).toBe(2);
-      expect(mapping.newToOld.get(3)).toBe(3);
-      expect(mapping.newToOld.get(4)).toBe(4);
+      expect(mapping.newToOld[1]).toBe(1);
+      expect(mapping.newToOld[2]).toBe(2);
+      expect(mapping.newToOld[3]).toBe(3);
+      expect(mapping.newToOld[4]).toBe(4);
 
       // Context lines in the diff
-      expect(mapping.newToOld.get(5)).toBe(5);
-      expect(mapping.newToOld.get(6)).toBe(8);
-      expect(mapping.newToOld.get(7)).toBe(9);
+      expect(mapping.newToOld[5]).toBe(5);
+      expect(mapping.newToOld[6]).toBe(8);
+      expect(mapping.newToOld[7]).toBe(9);
 
       // Lines after the diff
-      expect(mapping.newToOld.get(8)).toBe(10);
-      expect(mapping.newToOld.get(9)).toBe(11);
-      expect(mapping.newToOld.get(10)).toBe(12);
+      expect(mapping.newToOld[8]).toBe(10);
+      expect(mapping.newToOld[9]).toBe(11);
+      expect(mapping.newToOld[10]).toBe(12);
     });
 
     test('should handle file with only additions', () => {
@@ -302,22 +301,22 @@ describe('Line Mapping Functions', () => {
       const mapping = buildCompleteLineMapping(parsedDiff, 10, 8);
 
       // Lines before the diff
-      expect(mapping.newToOld.get(1)).toBe(1);
-      expect(mapping.newToOld.get(2)).toBe(2);
+      expect(mapping.newToOld[1]).toBe(1);
+      expect(mapping.newToOld[2]).toBe(2);
 
       // Context lines in the diff
-      expect(mapping.newToOld.get(3)).toBe(3);
-      expect(mapping.newToOld.get(6)).toBe(4);
-      expect(mapping.newToOld.get(7)).toBe(5);
+      expect(mapping.newToOld[3]).toBe(3);
+      expect(mapping.newToOld[6]).toBe(4);
+      expect(mapping.newToOld[7]).toBe(5);
 
       // Lines after the diff
-      expect(mapping.newToOld.get(8)).toBe(6);
-      expect(mapping.newToOld.get(9)).toBe(7);
-      expect(mapping.newToOld.get(10)).toBe(8);
+      expect(mapping.newToOld[8]).toBe(6);
+      expect(mapping.newToOld[9]).toBe(7);
+      expect(mapping.newToOld[10]).toBe(8);
 
       // Added lines should not have old line mapping
-      expect(mapping.newToOld.get(4)).toBeUndefined();
-      expect(mapping.newToOld.get(5)).toBeUndefined();
+      expect(mapping.newToOld[4]).toBeUndefined();
+      expect(mapping.newToOld[5]).toBeUndefined();
     });
 
     test('should handle multiple hunks with gaps', () => {
@@ -360,24 +359,24 @@ describe('Line Mapping Functions', () => {
       const mapping = buildCompleteLineMapping(parsedDiff, 12, 11);
 
       // Line 1 (before first hunk)
-      expect(mapping.newToOld.get(1)).toBe(1);
+      expect(mapping.newToOld[1]).toBe(1);
 
       // First hunk context
-      expect(mapping.newToOld.get(3)).toBe(3);
+      expect(mapping.newToOld[3]).toBe(3);
 
       // Gap between hunks (lines 4-7 map to 4-7)
-      expect(mapping.newToOld.get(4)).toBe(4);
-      expect(mapping.newToOld.get(5)).toBe(5);
-      expect(mapping.newToOld.get(6)).toBe(6);
-      expect(mapping.newToOld.get(7)).toBe(7);
+      expect(mapping.newToOld[4]).toBe(4);
+      expect(mapping.newToOld[5]).toBe(5);
+      expect(mapping.newToOld[6]).toBe(6);
+      expect(mapping.newToOld[7]).toBe(7);
 
       // Second hunk context
-      expect(mapping.newToOld.get(8)).toBe(8);
-      expect(mapping.newToOld.get(10)).toBe(9);
+      expect(mapping.newToOld[8]).toBe(8);
+      expect(mapping.newToOld[10]).toBe(9);
 
       // Lines after second hunk
-      expect(mapping.newToOld.get(11)).toBe(10);
-      expect(mapping.newToOld.get(12)).toBe(11);
+      expect(mapping.newToOld[11]).toBe(10);
+      expect(mapping.newToOld[12]).toBe(11);
     });
 
     test('should handle empty diff (complete 1:1 mapping)', () => {
@@ -393,17 +392,17 @@ describe('Line Mapping Functions', () => {
       const mapping = buildCompleteLineMapping(parsedDiff, 5, 5);
 
       // Should have 1:1 mapping for all lines
-      expect(mapping.newToOld.get(1)).toBe(1);
-      expect(mapping.newToOld.get(2)).toBe(2);
-      expect(mapping.newToOld.get(3)).toBe(3);
-      expect(mapping.newToOld.get(4)).toBe(4);
-      expect(mapping.newToOld.get(5)).toBe(5);
+      expect(mapping.newToOld[1]).toBe(1);
+      expect(mapping.newToOld[2]).toBe(2);
+      expect(mapping.newToOld[3]).toBe(3);
+      expect(mapping.newToOld[4]).toBe(4);
+      expect(mapping.newToOld[5]).toBe(5);
 
-      expect(mapping.oldToNew.get(1)).toBe(1);
-      expect(mapping.oldToNew.get(2)).toBe(2);
-      expect(mapping.oldToNew.get(3)).toBe(3);
-      expect(mapping.oldToNew.get(4)).toBe(4);
-      expect(mapping.oldToNew.get(5)).toBe(5);
+      expect(mapping.oldToNew[1]).toBe(1);
+      expect(mapping.oldToNew[2]).toBe(2);
+      expect(mapping.oldToNew[3]).toBe(3);
+      expect(mapping.oldToNew[4]).toBe(4);
+      expect(mapping.oldToNew[5]).toBe(5);
     });
   });
 });

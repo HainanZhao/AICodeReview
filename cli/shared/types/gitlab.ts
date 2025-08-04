@@ -2,6 +2,15 @@
  * Shared types for GitLab integration
  */
 
+/**
+ * Line mapping interface to track old/new line number relationships
+ * Using plain objects for serialization compatibility
+ */
+export interface LineMapping {
+  newToOld: Record<number, number>; // Map new line numbers to old line numbers
+  oldToNew: Record<number, number>; // Map old line numbers to new line numbers
+}
+
 export interface GitLabConfig {
   url: string;
   accessToken: string;
@@ -109,7 +118,8 @@ export interface GitLabMRDetails {
   fileDiffs: FileDiff[];
   diffForPrompt: string;
   parsedDiffs: ParsedFileDiff[];
-  fileContents: Map<string, { oldContent?: string[]; newContent?: string[] }>;
+  fileContents: Record<string, { oldContent?: string[]; newContent?: string[] }>; // Serializable object instead of Map
+  lineMappings: Record<string, LineMapping>; // Pre-computed line mappings for each file, serializable
   discussions: GitLabDiscussion[];
   existingFeedback: ReviewFeedback[];
   approvals?: {
