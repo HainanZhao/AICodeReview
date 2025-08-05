@@ -1,10 +1,14 @@
 import React from 'react';
+import { explainLine } from '../services/aiReviewService';
 import { ParsedDiffLine } from '../types';
-import { PlusIcon } from './icons';
+import { ExplanationPopup } from './ExplanationPopup';
+import { AIExplainIcon, PlusIcon } from './icons';
 
 interface DiffLineProps {
   line: ParsedDiffLine;
   onAddComment: () => void;
+  filePath?: string;
+  fileContent?: string;
 }
 
 const getLineClasses = (type: ParsedDiffLine['type']) => {
@@ -20,40 +24,141 @@ const getLineClasses = (type: ParsedDiffLine['type']) => {
   }
 };
 
-export const DiffLine: React.FC<DiffLineProps> = ({ line, onAddComment }) => {
+export const DiffLine: React.FC<DiffLineProps> = ({
+  line,
+  onAddComment,
+  filePath = 'unknown',
+  fileContent,
+}) => {
   const lineClasses = getLineClasses(line.type);
   const prefix = line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ';
   const canComment = line.type === 'add' || line.type === 'remove' || line.type === 'context';
+  const canExplain = line.type !== 'meta' && line.content.trim().length > 0;
+
+  // AI Explain state
+  const [showExplanation, setShowExplanation] = React.useState(false);
+  const [explanation, setExplanation] = React.useState('');
+  const [isLoadingExplanation, setIsLoadingExplanation] = React.useState(false);
+  const [explanationError, setExplanationError] = React.useState<string | undefined>();
+  const [popupPosition, setPopupPosition] = React.useState({ x: 0, y: 0 });
+
+  const handleExplainClick = async (event: React.MouseEvent) => {
+    if (!canExplain) return;
+
+    event.stopPropagation();
+
+    // Set popup position near the click
+    const rect = event.currentTarget.getBoundingClientRect();
+    setPopupPosition({
+      x: rect.right + 10,
+      y: rect.top,
+    });
+
+    setShowExplanation(true);
+    setIsLoadingExplanation(true);
+    setExplanationError(undefined);
+    setExplanation('');
+
+    try {
+      const result = await explainLine(
+        line.content,
+        filePath,
+        line.newLine || line.oldLine,
+        fileContent,
+        3
+      );
+      setExplanation(result);
+    } catch (error) {
+      setExplanationError(error instanceof Error ? error.message : 'Failed to get explanation');
+    } finally {
+      setIsLoadingExplanation(false);
+    }
+  };
+
+  const handleCloseExplanation = () => {
+    setShowExplanation(false);
+    setExplanation('');
+    setExplanationError(undefined);
+  };
+
+  // Close popup when clicking outside or pressing Escape
+  React.useEffect(() => {
+    if (!showExplanation) return;
+
+    const handleClickOutside = () => {
+      setShowExplanation(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowExplanation(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showExplanation]);
 
   return (
-    <tr className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/10 h-4`}>
-      <td className="w-8 text-center align-middle h-4">
-        {/* 
-                  The button is always rendered to maintain a consistent column width, preventing layout shifts.
-                  It is only made visible and interactive via CSS on hover for commentable lines.
-                */}
-        <button
-          onClick={onAddComment}
-          title={canComment ? 'Add comment' : ''}
-          disabled={!canComment}
-          className={`
-                      opacity-0 bg-brand-secondary text-white rounded-full p-[3px] leading-none shadow-lg hover:bg-red-600 transition-opacity duration-150
-                      ${canComment ? 'group-hover:opacity-100' : 'pointer-events-none'}
-                    `}
-        >
-          <PlusIcon className="w-3 h-3" />
-        </button>
-      </td>
-      <td className="w-10 text-right px-1 select-none opacity-70 align-middle h-4 text-xs">
-        {line.oldLine || ''}
-      </td>
-      <td className="w-10 text-right px-1 select-none opacity-70 align-middle h-4 text-xs">
-        {line.newLine || ''}
-      </td>
-      <td className="w-full pr-2 align-middle font-mono text-xs h-4">
-        {line.type !== 'meta' && <span className="mr-1 select-none">{prefix}</span>}
-        <span className="whitespace-pre-wrap break-words">{line.content}</span>
-      </td>
-    </tr>
+    <>
+      <tr className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/10 h-4`}>
+        <td className="w-8 text-center align-middle h-4">
+          {/* Action buttons container */}
+          <div className="flex items-center justify-center space-x-1">
+            {/* Add comment button */}
+            <button
+              onClick={onAddComment}
+              title={canComment ? 'Add comment' : ''}
+              disabled={!canComment}
+              className={`
+                        opacity-0 bg-brand-secondary text-white rounded-full p-[3px] leading-none shadow-lg hover:bg-red-600 transition-opacity duration-150
+                        ${canComment ? 'group-hover:opacity-100' : 'pointer-events-none'}
+                      `}
+            >
+              <PlusIcon className="w-3 h-3" />
+            </button>
+
+            {/* AI Explain button */}
+            {canExplain && (
+              <button
+                onClick={handleExplainClick}
+                title="AI Explain this line"
+                className="opacity-0 bg-purple-600 text-white rounded-full p-[3px] leading-none shadow-lg hover:bg-purple-700 transition-opacity duration-150 group-hover:opacity-100"
+              >
+                <AIExplainIcon className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </td>
+        <td className="w-10 text-right px-1 select-none opacity-70 align-middle h-4 text-xs">
+          {line.oldLine || ''}
+        </td>
+        <td className="w-10 text-right px-1 select-none opacity-70 align-middle h-4 text-xs">
+          {line.newLine || ''}
+        </td>
+        <td className="w-full pr-2 align-middle font-mono text-xs h-4">
+          {line.type !== 'meta' && <span className="mr-1 select-none">{prefix}</span>}
+          <span className="whitespace-pre-wrap break-words">{line.content}</span>
+        </td>
+      </tr>
+
+      {/* AI Explanation Popup */}
+      {showExplanation && (
+        <ExplanationPopup
+          explanation={explanation}
+          lineContent={line.content}
+          filePath={filePath}
+          isLoading={isLoadingExplanation}
+          error={explanationError}
+          onClose={handleCloseExplanation}
+          position={popupPosition}
+        />
+      )}
+    </>
   );
 };

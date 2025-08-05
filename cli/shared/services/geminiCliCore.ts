@@ -1,6 +1,5 @@
-import { spawn } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
-import { exec } from 'child_process';
 
 const execAsync = promisify(exec);
 
@@ -36,7 +35,7 @@ export class GeminiCliCore {
       try {
         const { stdout } = await execAsync(command);
         geminiPath = stdout.trim();
-      } catch (e) {
+      } catch {
         return false; // gemini command not found in PATH
       }
 
@@ -66,7 +65,7 @@ export class GeminiCliCore {
               'and that "gemini" is not conflicting with "gcloud".'
           );
         }
-      } catch (e) {
+      } catch {
         // If 'gemini --version' fails, it might not be the correct gemini CLI
         throw new Error(
           'Could not verify the "gemini" CLI. It might be corrupted or not properly installed. ' +
@@ -237,6 +236,51 @@ export class GeminiCliCore {
       }
 
       return parsedResponse;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Gemini CLI execution failed: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Execute gemini CLI for line explanation
+   */
+  public static async executeExplanation(
+    prompt: string,
+    options: GeminiCliOptions = {}
+  ): Promise<string> {
+    const { verbose = false } = options;
+
+    if (verbose) {
+      console.log('🔄 Checking if gemini CLI is available...');
+    }
+
+    // Check if gemini CLI is available
+    const isAvailable = await this.isAvailable();
+    if (!isAvailable) {
+      throw new Error(
+        'Gemini CLI tool not found. Please install it first:\n' +
+          '  npm install -g @google-ai/generative-ai-cli\n' +
+          'Or ensure the "gemini" command is available in your PATH.'
+      );
+    }
+
+    if (verbose) {
+      console.log('✅ Gemini CLI found, executing explanation request...');
+    }
+
+    try {
+      const result = await this.executeGeminiWithStdin(prompt, options);
+
+      if (result.stderr && verbose) {
+        console.warn('⚠️  Gemini CLI warnings:', result.stderr);
+      }
+
+      if (verbose) {
+        console.log('✅ Explanation generated successfully');
+      }
+
+      return result.stdout.trim();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Gemini CLI execution failed: ${errorMessage}`);

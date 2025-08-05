@@ -129,6 +129,81 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
         });
       }
     });
+
+    // AI Explain Line endpoint
+    app.post('/api/explain-line', async (req, res) => {
+      try {
+        const { lineContent, lineNumber, filePath, fileContent, contextLines = 3 } = req.body;
+
+        // Validate required parameters
+        if (!lineContent) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing lineContent parameter',
+          });
+        }
+
+        if (!filePath) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing filePath parameter',
+          });
+        }
+
+        // Import AI provider core for explanation
+        const { AIProviderCore } = await import('../shared/services/aiProviderCore.js');
+
+        let explanation: string;
+
+        // Use the configured LLM provider
+        if (config.llm.provider === 'gemini-cli') {
+          // Use the gemini-cli provider
+          const { GeminiCliProvider } = await import('../services/llm/geminiCliProvider.js');
+          const provider = new GeminiCliProvider();
+          explanation = await provider.explainLine(
+            lineContent,
+            filePath,
+            fileContent,
+            contextLines,
+            lineNumber
+          );
+        } else if (config.llm.provider === 'gemini' && config.llm.apiKey) {
+          explanation = await AIProviderCore.generateGeminiExplanation(
+            config.llm.apiKey,
+            lineContent,
+            filePath,
+            fileContent,
+            contextLines,
+            lineNumber
+          );
+        } else if (config.llm.provider === 'anthropic' && config.llm.apiKey) {
+          explanation = await AIProviderCore.generateAnthropicExplanation(
+            config.llm.apiKey,
+            lineContent,
+            filePath,
+            fileContent,
+            contextLines,
+            lineNumber
+          );
+        } else {
+          return res.status(400).json({
+            success: false,
+            error: `Unsupported LLM provider: ${config.llm.provider} or API key missing`,
+          });
+        }
+
+        res.json({
+          success: true,
+          explanation,
+        });
+      } catch (error) {
+        console.error('Failed to explain line:', error);
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    });
     console.log('✅ LLM provider initialized successfully');
   } catch (error) {
     console.error('❌ Failed to initialize LLM provider:', error);
@@ -193,6 +268,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       console.log(`   • POST ${url}/api/review-mr - Unified MR review endpoint`);
       console.log(`   • POST ${url}/api/config - Configuration endpoint`);
       console.log(`   • POST ${url}/api/post-discussion - Post GitLab discussion endpoint`);
+      console.log(`   • POST ${url}/api/explain-line - AI explain code line endpoint`);
       console.log(`   🛑 Press Ctrl+C to stop\n`);
     } else {
       console.log('\n✅ AI Code Review is ready!');

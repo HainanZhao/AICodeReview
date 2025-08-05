@@ -143,6 +143,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
 
   const fileContents = mrDetails.fileContents[fileDiff.filePath];
   const newFileContentLines = fileContents?.newContent || [];
+  const fullFileContent = newFileContentLines.join('\n');
 
   const handleExpandGap = (startLine: number, endLine: number) => {
     setExpandedGaps((prev) => [...prev, [startLine, endLine]]);
@@ -176,6 +177,8 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
                 key={`gap-${gapStartLine}-line-${i}`}
                 line={line}
                 onAddComment={() => handlers.onAddCustomFeedback(fileDiff, line)}
+                filePath={fileDiff.filePath}
+                fileContent={fullFileContent}
               />
             );
           }
@@ -212,6 +215,8 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
                 <DiffLine
                   line={line}
                   onAddComment={() => handlers.onAddCustomFeedback(fileDiff, line)}
+                  filePath={fileDiff.filePath}
+                  fileContent={fullFileContent}
                 />
                 {allFeedbackItems.map((fb) => {
                   const isActive = fb.id === activeFeedbackId;
@@ -268,6 +273,8 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
               key={`gap-final-line-${i}`}
               line={line}
               onAddComment={() => handlers.onAddCustomFeedback(fileDiff, line)}
+              filePath={fileDiff.filePath}
+              fileContent={fullFileContent}
             />
           );
         }
