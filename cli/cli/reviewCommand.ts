@@ -102,16 +102,11 @@ export class CLIReviewCommand {
       for (const result of reviewResults) {
         if (result.success) {
           console.log(
-            CLIOutputFormatter.formatSuccess(
-              `✅ Review for ${result.mrUrl} completed successfully.`
-            )
+            CLIOutputFormatter.formatSuccess(`Review for ${result.mrUrl} completed successfully.`)
           );
-          if (result.summary) {
-            console.log(result.summary);
-          }
         } else {
           console.log(
-            CLIOutputFormatter.formatError(`❌ Review for ${result.mrUrl} failed: ${result.error}`)
+            CLIOutputFormatter.formatError(`Review for ${result.mrUrl} failed: ${result.error}`)
           );
         }
         console.log(''); // Add a blank line for readability

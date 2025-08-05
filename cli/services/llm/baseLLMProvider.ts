@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { LLMProvider, MrUrlRequest } from './types.js';
 import { MrReviewService, type MrReviewOptions } from '../../shared/index.js';
+import { LLMProvider, MrUrlRequest } from './types.js';
 
 /**
  * Base LLM provider that implements unified MR review logic
@@ -45,7 +45,12 @@ export abstract class BaseLLMProvider implements LLMProvider {
         options
       );
 
-      // Return the full result with feedback, summary, and overall rating
+      // Remove large fields from mrDetails that are not needed by frontend
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { diffForPrompt, fileDiffs, fileContents, parsedDiffs, ...mrDetailsForFrontend } =
+        result.mrDetails;
+
+      // Return the result with lightweight mrDetails
       res.json({
         feedback: result.feedback.map((item) => ({
           filePath: item.filePath,
@@ -60,6 +65,7 @@ export abstract class BaseLLMProvider implements LLMProvider {
         })),
         summary: result.summary,
         overallRating: result.overallRating,
+        mrDetails: mrDetailsForFrontend,
       });
     } catch (error) {
       console.error(`Error in ${this.providerName} reviewMr:`, error);

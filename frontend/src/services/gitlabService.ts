@@ -15,11 +15,6 @@ export const postDiscussion = async (
   reviewFeedback: ReviewFeedback
 ): Promise<any> => {
   try {
-    // Remove large fields that are not needed for posting discussions
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { diffForPrompt, fileDiffs, fileContents, parsedDiffs, ...mrDetailsForPosting } =
-      mrDetails;
-
     const response = await fetch('/api/post-discussion', {
       method: 'POST',
       headers: {
@@ -27,7 +22,7 @@ export const postDiscussion = async (
       },
       body: JSON.stringify({
         gitlabConfig,
-        mrDetails: mrDetailsForPosting,
+        mrDetails,
         feedbackItem: reviewFeedback,
       }),
     });
