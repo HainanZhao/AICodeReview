@@ -1,14 +1,16 @@
+import type { LineMapping } from '../types/gitlab.js';
 import {
-  GitLabConfig,
-  GitLabMRDetails,
   FileDiff,
-  ReviewFeedback,
-  ParsedFileDiff,
-  GitLabProject,
-  GitLabMergeRequest,
-  ParsedHunk,
-  Severity,
+  GitLabConfig,
   GitLabDiscussion,
+  GitLabMergeRequest,
+  GitLabMRDetails,
+  GitLabPosition,
+  GitLabProject,
+  ParsedFileDiff,
+  ParsedHunk,
+  ReviewFeedback,
+  Severity,
 } from '../types/gitlab.js';
 
 /**
@@ -196,14 +198,14 @@ const parseDiffs = (diffString: string): ParsedHunk[] => {
  */
 export const parseDiffsToHunks = (
   diffs: FileDiff[],
-  fileContents: Map<string, { oldContent?: string[]; newContent?: string[] }>
+  fileContents: Record<string, { oldContent?: string[]; newContent?: string[] }>
 ): { diffForPrompt: string; parsedDiffs: ParsedFileDiff[] } => {
   const parsedDiffs: ParsedFileDiff[] = [];
   const allDiffsForPrompt: string[] = [];
   const processedFiles = new Set<string>(); // Track files for which we've already included full content
 
   diffs.forEach((file) => {
-    const newFileContent = fileContents.get(file.new_path)?.newContent;
+    const newFileContent = fileContents[file.new_path]?.newContent;
 
     // Parse the diff into structured hunks
     const hunks = parseDiffs(file.diff);
@@ -297,7 +299,6 @@ export const parseDiffsToHunks = (
     const shouldIncludeFullFile =
       newFileContent &&
       newFileContent.length <= MAX_FILE_LINES &&
-      !file.new_file &&
       !file.deleted_file &&
       !isNonMeaningfulFile(file.new_path) &&
       !processedFiles.has(file.new_path); // Only include once per file
@@ -306,7 +307,8 @@ export const parseDiffsToHunks = (
       // Include full file content with line numbers (use new file content for accurate line numbers)
       promptParts.push(`\n=== FULL FILE CONTENT: ${file.new_path} ===`);
       newFileContent.forEach((line: string, index: number) => {
-        promptParts.push(`${(index + 1).toString()}: ${line}`);
+        const lineNumber = (index + 1).toString().padStart(4, ' ');
+        promptParts.push(`${lineNumber}: ${line}`);
       });
       promptParts.push(`=== END FILE CONTENT ===\n`);
       processedFiles.add(file.new_path); // Mark this file as processed
@@ -380,85 +382,116 @@ export const convertDiscussionsToFeedback = (discussions: GitLabDiscussion[]): R
 };
 
 /**
- * Posts a review comment to GitLab with fallback to general comment if inline posting fails
+ * Builds a mapping between old and new line numbers based on parsed diff hunks
+ * This only maps lines that are explicitly shown in the diff (context, added, removed)
  */
-export const postDiscussion = async (
-  config: GitLabConfig,
-  mrDetails: GitLabMRDetails,
-  feedback: ReviewFeedback
-): Promise<GitLabDiscussion> => {
-  const { projectId, mrIid } = mrDetails;
+export const buildLineMapping = (parsedDiff: ParsedFileDiff): LineMapping => {
+  const newToOld: Record<number, number> = {};
+  const oldToNew: Record<number, number> = {};
 
-  const baseBody = `
-**[AI] ${feedback.severity}: ${feedback.title}**
-
-${feedback.description}
-    `;
-
-  // Use discussions endpoint for all comments (both inline and general)
-  const url = `${config.url}/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions`;
-
-  // First, try to post as an inline comment if we have position data
-  const hasValidPosition =
-    feedback.position &&
-    feedback.position.base_sha &&
-    feedback.position.start_sha &&
-    feedback.position.head_sha &&
-    feedback.position.old_path &&
-    feedback.position.new_path &&
-    (feedback.position.new_line || feedback.position.old_line);
-
-  if (hasValidPosition) {
-    try {
-      const inlinePayload = {
-        body: baseBody.trim(),
-        position: feedback.position,
-      };
-
-      const result = await gitlabApiFetch(url, config, {
-        method: 'POST',
-        body: JSON.stringify(inlinePayload),
-      });
-
-      // Mark as successfully posted inline
-      return { ...result, postedAsInline: true };
-    } catch (error) {
-      // If inline comment fails, log the error and fallback to general comment
-      console.warn(
-        `Failed to post inline comment for ${feedback.filePath}:${feedback.lineNumber}. ` +
-          `Retrying as general comment. Error: ${error instanceof Error ? error.message : String(error)}`
-      );
-
-      // Continue to fallback logic below
-    }
-  }
-
-  // Fallback: Post as a general comment with file and line information in the body
-  const fallbackBody =
-    feedback.filePath && feedback.lineNumber > 0
-      ? `
-**${feedback.severity}: ${feedback.title}**
-
-📍 **File:** \`${feedback.filePath}\` (line ${feedback.lineNumber})
-
-${feedback.description}
-
-*Powered by AI Code Reviewer*
-    `
-      : baseBody;
-
-  const generalPayload = {
-    body: fallbackBody.trim(),
-    // No position for general comments
-  };
-
-  const result = await gitlabApiFetch(url, config, {
-    method: 'POST',
-    body: JSON.stringify(generalPayload),
+  // Process each hunk in the parsed diff
+  parsedDiff.hunks.forEach((hunk) => {
+    hunk.lines.forEach((line) => {
+      if (line.type === 'context') {
+        // Context lines exist in both old and new files
+        if (line.oldLine !== undefined && line.newLine !== undefined) {
+          newToOld[line.newLine] = line.oldLine;
+          oldToNew[line.oldLine] = line.newLine;
+        }
+      }
+      // Note: Added lines (type === 'add') only have newLine
+      // Note: Deleted lines (type === 'remove') only have oldLine
+      // These don't get mapped since they don't exist in both versions
+    });
   });
 
-  // Mark as posted as general comment (fallback)
-  return { ...result, postedAsInline: false };
+  return { newToOld, oldToNew };
+};
+
+/**
+ * Builds a complete mapping for the entire file, including untouched parts
+ * This reconstructs the full file line mapping by analyzing the diff hunks
+ */
+export const buildCompleteLineMapping = (
+  parsedDiff: ParsedFileDiff,
+  newFileLineCount?: number,
+  oldFileLineCount?: number
+): LineMapping => {
+  const newToOld: Record<number, number> = {};
+  const oldToNew: Record<number, number> = {};
+
+  // Start with line 1 mapping to line 1
+  let currentOldLine = 1;
+  let currentNewLine = 1;
+
+  // Process each hunk in chronological order
+  parsedDiff.hunks.forEach((hunk) => {
+    // Fill in untouched lines before this hunk
+    while (currentOldLine < hunk.oldStartLine && currentNewLine < hunk.newStartLine) {
+      newToOld[currentNewLine] = currentOldLine;
+      oldToNew[currentOldLine] = currentNewLine;
+      currentOldLine++;
+      currentNewLine++;
+    }
+
+    // Set current position to hunk start
+    currentOldLine = hunk.oldStartLine;
+    currentNewLine = hunk.newStartLine;
+
+    // Process lines within the hunk
+    hunk.lines.forEach((line) => {
+      if (line.type === 'context') {
+        // Context lines exist in both files
+        if (line.oldLine !== undefined && line.newLine !== undefined) {
+          newToOld[line.newLine] = line.oldLine;
+          oldToNew[line.oldLine] = line.newLine;
+          currentOldLine = line.oldLine + 1;
+          currentNewLine = line.newLine + 1;
+        }
+      } else if (line.type === 'add') {
+        // Added line only exists in new file
+        currentNewLine++;
+      } else if (line.type === 'remove') {
+        // Deleted line only exists in old file
+        currentOldLine++;
+      }
+    });
+  });
+
+  // Fill in remaining untouched lines after all hunks
+  const maxOldLine =
+    oldFileLineCount || Math.max(...Object.keys(oldToNew).map(Number), currentOldLine);
+  const maxNewLine =
+    newFileLineCount || Math.max(...Object.keys(newToOld).map(Number), currentNewLine);
+
+  while (currentOldLine <= maxOldLine && currentNewLine <= maxNewLine) {
+    newToOld[currentNewLine] = currentOldLine;
+    oldToNew[currentOldLine] = currentNewLine;
+    currentOldLine++;
+    currentNewLine++;
+  }
+
+  return { newToOld, oldToNew };
+};
+
+/**
+ * Gets the old line number for a given new line number
+ */
+export const getOldLineFromNewLine = (
+  newLine: number,
+  mapping: LineMapping
+): number | undefined => {
+  return mapping.newToOld[newLine];
+};
+
+/**
+ * Gets the new line number for a given old line number
+ */
+export const getNewLineFromOldLine = (
+  oldLine: number,
+  mapping: LineMapping
+): number | undefined => {
+  return mapping.oldToNew[oldLine];
 };
 
 /**
@@ -501,7 +534,7 @@ export const fetchMrData = async (
     diffs = await gitlabApiFetch(`${baseUrl}/diffs`, config);
   }
 
-  const fileContents = new Map<string, { oldContent?: string[]; newContent?: string[] }>();
+  const fileContents: Record<string, { oldContent?: string[]; newContent?: string[] }> = {};
 
   // Convert existing inline discussions to feedback items (only show inline comments with position)
   const existingFeedback = convertDiscussionsToFeedback(discussions);
@@ -528,7 +561,7 @@ export const fetchMrData = async (
         )
       : undefined;
 
-    fileContents.set(file.new_path, { newContent });
+    fileContents[file.new_path] = { newContent };
   });
   await Promise.all(contentPromises);
 
@@ -541,6 +574,23 @@ export const fetchMrData = async (
       feedback.position.base_sha = latestVersion.base_commit_sha;
       feedback.position.start_sha = latestVersion.start_commit_sha;
       feedback.position.head_sha = latestVersion.head_commit_sha;
+    }
+  });
+
+  // Pre-compute line mappings for all files to speed up postDiscussion
+  const lineMappings: Record<string, LineMapping> = {};
+  parsedDiffs.forEach((parsedDiff) => {
+    const fileContent = fileContents[parsedDiff.filePath];
+    const newFileLineCount = fileContent?.newContent?.length;
+    const oldFileLineCount = fileContent?.oldContent?.length;
+
+    // Build complete line mapping from the parsed diff
+    const lineMapping = buildCompleteLineMapping(parsedDiff, newFileLineCount, oldFileLineCount);
+
+    lineMappings[parsedDiff.filePath] = lineMapping;
+    // Also add mapping for old path if different (for renamed files)
+    if (parsedDiff.oldPath && parsedDiff.oldPath !== parsedDiff.filePath) {
+      lineMappings[parsedDiff.oldPath] = lineMapping;
     }
   });
 
@@ -560,6 +610,7 @@ export const fetchMrData = async (
     diffForPrompt,
     parsedDiffs,
     fileContents,
+    lineMappings,
     discussions, // Include discussions for reference
     existingFeedback, // Add existing feedback to the returned object
     approvals, // Include approval information

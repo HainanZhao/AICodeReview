@@ -1,10 +1,10 @@
 import express from 'express';
-import { join, dirname } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { ConfigLoader, CLIOptions } from '../config/configLoader.js';
-import { findAvailablePort } from '../utils/portUtils.js';
-import { openBrowser } from '../utils/browserUtils.js';
+import { CLIOptions, ConfigLoader } from '../config/configLoader.js';
 import { createConfigService } from '../shared/services/configService.js';
+import { openBrowser } from '../utils/browserUtils.js';
+import { findAvailablePort } from '../utils/portUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -76,6 +76,59 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     if (llmProvider.reviewMr) {
       app.post('/api/review-mr', llmProvider.reviewMr.bind(llmProvider));
     }
+
+    app.post('/api/post-discussion', async (req, res) => {
+      try {
+        const { gitlabConfig, mrDetails, feedbackItem } = req.body;
+
+        // Validate required parameters
+        if (!gitlabConfig) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing gitlabConfig parameter',
+          });
+        }
+
+        if (!mrDetails) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing mrDetails parameter',
+          });
+        }
+
+        if (!feedbackItem) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing feedbackItem parameter',
+          });
+        }
+
+        // Validate GitLab config has required fields
+        if (!gitlabConfig.url || !gitlabConfig.accessToken) {
+          return res.status(400).json({
+            success: false,
+            error: 'GitLab config missing url or accessToken',
+          });
+        }
+
+        // Map to the expected format for postDiscussion
+        const mappedGitlabConfig = {
+          url: gitlabConfig.url,
+          accessToken: gitlabConfig.accessToken,
+        };
+
+        const { postDiscussion } = await import('../services/gitlabService.js');
+        const result = await postDiscussion(mappedGitlabConfig, mrDetails, feedbackItem);
+
+        res.json({ success: true, result });
+      } catch (error) {
+        console.error('Failed to post discussion:', error);
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    });
     console.log('✅ LLM provider initialized successfully');
   } catch (error) {
     console.error('❌ Failed to initialize LLM provider:', error);
@@ -139,6 +192,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       console.log(`   📋 Available endpoints:`);
       console.log(`   • POST ${url}/api/review-mr - Unified MR review endpoint`);
       console.log(`   • POST ${url}/api/config - Configuration endpoint`);
+      console.log(`   • POST ${url}/api/post-discussion - Post GitLab discussion endpoint`);
       console.log(`   🛑 Press Ctrl+C to stop\n`);
     } else {
       console.log('\n✅ AI Code Review is ready!');

@@ -7,7 +7,7 @@ import type { FileDiff } from '../../../types';
  * Originally based on test-simplified-approach.js, now converted to proper Vitest tests
  */
 describe('Simplified Context Building Approach', () => {
-  let fileContents: Map<string, { oldContent?: string[]; newContent?: string[] }>;
+  let fileContents: Record<string, { oldContent?: string[]; newContent?: string[] }>;
   let smallFileDiff: FileDiff;
   let largeFileDiff: FileDiff;
   let packageLockDiff: FileDiff;
@@ -15,11 +15,11 @@ describe('Simplified Context Building Approach', () => {
   let deletedFileDiff: FileDiff;
 
   beforeEach(() => {
-    // Reset file contents map before each test
-    fileContents = new Map();
+    // Reset file contents object before each test
+    fileContents = {};
 
     // Small file (should include full content)
-    fileContents.set('small-file.js', {
+    fileContents['small-file.js'] = {
       newContent: [
         'const express = require("express");',
         'const app = express();',
@@ -38,22 +38,22 @@ describe('Simplified Context Building Approach', () => {
         '  console.log("Server running on port 3000");',
         '});',
       ],
-    });
+    };
 
     // Large file (should skip full content)
     const largeFileContent = Array(10001)
       .fill(0)
       .map((_, i) => `line ${i + 1}`);
-    fileContents.set('large-file.js', {
+    fileContents['large-file.js'] = {
       newContent: largeFileContent,
-    });
+    };
 
     // Package lock file (should be excluded as non-meaningful)
-    fileContents.set('package-lock.json', {
+    fileContents['package-lock.json'] = {
       newContent: Array(5000)
         .fill(0)
         .map((_, i) => `  "dependency-${i}": "1.0.0",`),
-    });
+    };
 
     // Setup test diffs
     smallFileDiff = {
@@ -204,9 +204,9 @@ describe('Simplified Context Building Approach', () => {
     });
 
     test('new files include full content when small', () => {
-      fileContents.set('new-file.js', {
+      fileContents['new-file.js'] = {
         newContent: ['const newFunction = () => {', '  return "hello world";', '};'],
-      });
+      };
 
       const diffs = [newFileDiff];
       const { diffForPrompt } = parseDiffsToHunks(diffs, fileContents);
@@ -282,7 +282,7 @@ describe('Simplified Context Building Approach', () => {
 
     test.each(nonMeaningfulFiles)('should skip full content for %s', (fileName) => {
       const testContent = Array(100).fill('mock content');
-      fileContents.set(fileName, { newContent: testContent });
+      fileContents[fileName] = { newContent: testContent };
 
       const testDiff: FileDiff = {
         old_path: fileName,

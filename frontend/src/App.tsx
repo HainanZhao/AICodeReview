@@ -431,7 +431,13 @@ function App() {
         const hunk = fileDiff.hunks[hunkIndex];
         if (!hunk) return prevDetails;
 
-        const fileContents = newDetails.fileContents[filePath];
+        const fileContents =
+          (
+            newDetails.fileContents as Record<
+              string,
+              { oldContent?: string[]; newContent?: string[] }
+            >
+          )[filePath];
         if (!fileContents) return prevDetails;
 
         if (direction === 'up') {

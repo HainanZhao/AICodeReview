@@ -92,7 +92,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
         } else if (fb.position?.new_line) {
           // Use new_line as the key since backend consistently uses new_line
           const key = fb.position.new_line.toString();
-          
+
           // Check if this new_line exists in the diff
           const lineExists = fileDiff.hunks.some((hunk) =>
             hunk.lines.some((line) => line.newLine === fb.position?.new_line)
@@ -141,7 +141,9 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
     ? `${fileDiff.oldPath} → ${fileDiff.filePath}`
     : fileDiff.filePath;
 
-  const fileContents = mrDetails.fileContents.get(fileDiff.filePath);
+  const fileContents =
+    (mrDetails.fileContents as Record<string, { oldContent?: string[]; newContent?: string[] }>)
+      [fileDiff.filePath];
   const newFileContentLines = fileContents?.newContent || [];
 
   const handleExpandGap = (startLine: number, endLine: number) => {

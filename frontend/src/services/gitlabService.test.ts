@@ -3,43 +3,44 @@ import { parseDiffsToHunks } from './gitlabService';
 import { FileDiff } from '../../../types';
 
 describe('parseDiffsToHunks', () => {
-  const mockFileContents = new Map<string, { oldContent?: string[]; newContent?: string[] }>();
-  mockFileContents.set('file.txt', {
-    oldContent: [
-      'line 1 old',
-      'line 2 old',
-      'line 3 old',
-      'line 4 old',
-      'line 5 old',
-      'line 6 old',
-      'line 7 old',
-      'line 8 old',
-      'line 9 old',
-      'line 10 old',
-      // ... many more lines for context
-      ...Array(40).fill('context old line'),
-      'changed line old',
-      'line after change old',
-      ...Array(40).fill('context old line after'),
-    ],
-    newContent: [
-      'line 1 new',
-      'line 2 new',
-      'line 3 new',
-      'line 4 new',
-      'line 5 new',
-      'line 6 new',
-      'line 7 new',
-      'line 8 new',
-      'line 9 new',
-      'line 10 new',
-      // ... many more lines for context
-      ...Array(40).fill('context new line'),
-      'changed line new',
-      'line after change new',
-      ...Array(40).fill('context new line after'),
-    ],
-  });
+  const mockFileContents: Record<string, { oldContent?: string[]; newContent?: string[] }> = {
+    'file.txt': {
+      oldContent: [
+        'line 1 old',
+        'line 2 old',
+        'line 3 old',
+        'line 4 old',
+        'line 5 old',
+        'line 6 old',
+        'line 7 old',
+        'line 8 old',
+        'line 9 old',
+        'line 10 old',
+        // ... many more lines for context
+        ...Array(40).fill('context old line'),
+        'changed line old',
+        'line after change old',
+        ...Array(40).fill('context old line after'),
+      ],
+      newContent: [
+        'line 1 new',
+        'line 2 new',
+        'line 3 new',
+        'line 4 new',
+        'line 5 new',
+        'line 6 new',
+        'line 7 new',
+        'line 8 new',
+        'line 9 new',
+        'line 10 new',
+        // ... many more lines for context
+        ...Array(40).fill('context new line'),
+        'changed line new',
+        'line after change new',
+        ...Array(40).fill('context new line after'),
+      ],
+    },
+  };
 
   it('should include full file content and git diff for small files', () => {
     const diffs: FileDiff[] = [

@@ -1,4 +1,4 @@
-# AI Code Reviewer
+# AI Code Review
 
 🤖 AI-powered code review tool with a focus on command-line interface (CLI) usage, supporting multiple LLM providers including Gemini CLI, Google Gemini API, and Anthropic Claude. It also offers a modern web interface for interactive reviews.
 

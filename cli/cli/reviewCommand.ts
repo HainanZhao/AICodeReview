@@ -1,18 +1,18 @@
-import { CLIReviewOptions } from './types.js';
+import { ConfigLoader } from '../config/configLoader.js';
+import { postDiscussion } from '../services/gitlabService.js';
+import {
+  createReviewSummary,
+  FileDiff,
+  GitLabMRDetails,
+  MrReviewService,
+  ParsedFileDiff,
+  Severity,
+  type MrReviewOptions,
+  type ReviewFeedback,
+} from '../shared/index.js';
 import { CLIConfigValidator } from './configValidator.js';
 import { CLIOutputFormatter } from './outputFormatter.js';
-import { ConfigLoader } from '../config/configLoader.js';
-import {
-  MrReviewService,
-  type MrReviewOptions,
-  createReviewSummary,
-  Severity,
-  type ReviewFeedback,
-  postDiscussion,
-  GitLabMRDetails,
-  FileDiff,
-  ParsedFileDiff,
-} from '../shared/index.js';
+import { CLIReviewOptions } from './types.js';
 
 /**
  * Main CLI review command orchestrator
@@ -102,16 +102,11 @@ export class CLIReviewCommand {
       for (const result of reviewResults) {
         if (result.success) {
           console.log(
-            CLIOutputFormatter.formatSuccess(
-              `✅ Review for ${result.mrUrl} completed successfully.`
-            )
+            CLIOutputFormatter.formatSuccess(`Review for ${result.mrUrl} completed successfully.`)
           );
-          if (result.summary) {
-            console.log(result.summary);
-          }
         } else {
           console.log(
-            CLIOutputFormatter.formatError(`❌ Review for ${result.mrUrl} failed: ${result.error}`)
+            CLIOutputFormatter.formatError(`Review for ${result.mrUrl} failed: ${result.error}`)
           );
         }
         console.log(''); // Add a blank line for readability
@@ -241,10 +236,9 @@ export class CLIReviewCommand {
           try {
             const result = await postDiscussion(config.gitlab!, mrDetails, feedbackItem);
             if (options.verbose) {
-              const postingMode = result.postedAsInline === false ? ' (as general comment)' : '';
               console.log(
                 CLIOutputFormatter.formatSuccess(
-                  `Posted comment for ${feedbackItem.filePath}:${feedbackItem.lineNumber}${postingMode}`
+                  `Posted comment for ${feedbackItem.filePath}:${feedbackItem.lineNumber}`
                 )
               );
             } else {
@@ -489,26 +483,24 @@ export class CLIReviewCommand {
       fileDiffs: [mockFileDiff],
       diffForPrompt: mockFileDiff.diff,
       parsedDiffs: [mockParsedDiff],
-      fileContents: new Map([
-        [
-          'src/main.ts',
-          {
-            oldContent: [
-              'class MyClass {',
-              '  constructor() {',
-              '    console.log("Hello, world!");',
-              '  }',
-            ],
-            newContent: [
-              'class MyClass {',
-              '  constructor() {',
-              '    console.log("Hello, world!");',
-              '    // Added a new line',
-              '  }',
-            ],
-          },
-        ],
-      ]),
+      fileContents: {
+        'src/main.ts': {
+          oldContent: [
+            'class MyClass {',
+            '  constructor() {',
+            '    console.log("Hello, world!");',
+            '  }',
+          ],
+          newContent: [
+            'class MyClass {',
+            '  constructor() {',
+            '    console.log("Hello, world!");',
+            '    // Added a new line',
+            '  }',
+          ],
+        },
+      },
+      lineMappings: {}, // Empty for mock
       discussions: [],
       existingFeedback: [],
       approvals: undefined,
