@@ -1,7 +1,10 @@
 // Re-export necessary functions, but not postDiscussion
 export {
-    approveMergeRequest, fetchMergeRequestsForProjects, fetchMrData,
-    fetchProjects, parseDiffsToHunks
+  approveMergeRequest,
+  fetchMergeRequestsForProjects,
+  fetchMrData,
+  fetchProjects,
+  parseDiffsToHunks
 } from '../../../cli/shared/services/gitlabCore.js';
 import { GitLabConfig, GitLabMRDetails, ReviewFeedback } from '../types';
 
@@ -12,6 +15,11 @@ export const postDiscussion = async (
   reviewFeedback: ReviewFeedback
 ): Promise<any> => {
   try {
+    // Remove large fields that are not needed for posting discussions
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { diffForPrompt, fileDiffs, fileContents, parsedDiffs, ...mrDetailsForPosting } =
+      mrDetails;
+
     const response = await fetch('/api/post-discussion', {
       method: 'POST',
       headers: {
@@ -19,7 +27,7 @@ export const postDiscussion = async (
       },
       body: JSON.stringify({
         gitlabConfig,
-        mrDetails,
+        mrDetails: mrDetailsForPosting,
         feedbackItem: reviewFeedback,
       }),
     });

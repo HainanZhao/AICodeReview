@@ -1,5 +1,5 @@
 import { ConfigLoader } from '../config/configLoader.js';
-import { postDiscussion } from './gitlabService.js';
+import { postDiscussion } from '../services/gitlabService.js';
 import {
   createReviewSummary,
   FileDiff,

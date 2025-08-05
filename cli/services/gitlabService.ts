@@ -1,16 +1,16 @@
 import crypto from 'crypto';
 import {
-    getNewLineFromOldLine,
-    getOldLineFromNewLine,
-    gitlabApiFetch,
+  getNewLineFromOldLine,
+  getOldLineFromNewLine,
+  gitlabApiFetch,
 } from '../shared/services/gitlabCore.js';
 import {
-    GitLabConfig,
-    GitLabDiscussion,
-    GitLabMRDetails,
-    GitLabPosition,
-    LineMapping,
-    ReviewFeedback,
+  GitLabConfig,
+  GitLabDiscussion,
+  GitLabMRDetails,
+  GitLabPosition,
+  LineMapping,
+  ReviewFeedback,
 } from '../shared/types/gitlab.js';
 
 /**
@@ -159,14 +159,16 @@ ${feedback.description}
         );
       }
 
-      console.log('Using normalized position:', {
-        original_old_line: feedback.position.old_line,
-        original_new_line: feedback.position.new_line,
-        normalized_old_line: normalizedPosition.old_line,
-        normalized_new_line: normalizedPosition.new_line,
-        filePath: feedback.filePath,
-        lineNumber: feedback.lineNumber,
-      });
+      if (process.env.VERBOSE || process.env.DEBUG) {
+        console.log('Using normalized position:', {
+          original_old_line: feedback.position.old_line,
+          original_new_line: feedback.position.new_line,
+          normalized_old_line: normalizedPosition.old_line,
+          normalized_new_line: normalizedPosition.new_line,
+          filePath: feedback.filePath,
+          lineNumber: feedback.lineNumber,
+        });
+      }
 
       const inlinePayload = {
         body: baseBody.trim(),
@@ -182,7 +184,9 @@ ${feedback.description}
         },
       };
 
-      console.log('Sending inline payload:', JSON.stringify(inlinePayload, null, 2));
+      if (process.env.VERBOSE || process.env.DEBUG) {
+        console.log('Sending inline payload:', JSON.stringify(inlinePayload, null, 2));
+      }
 
       const result = await gitlabApiFetch(url, config, {
         method: 'POST',
