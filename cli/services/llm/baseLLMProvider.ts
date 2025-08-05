@@ -47,8 +47,7 @@ export abstract class BaseLLMProvider implements LLMProvider {
 
       // Remove large fields from mrDetails that are not needed by frontend
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { diffForPrompt, fileDiffs, fileContents, parsedDiffs, ...mrDetailsForFrontend } =
-        result.mrDetails;
+      const { diffForPrompt, ...mrDetailsForFrontend } = result.mrDetails;
 
       // Return the result with lightweight mrDetails
       res.json({

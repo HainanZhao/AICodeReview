@@ -118,7 +118,7 @@ export interface GitLabMRDetails {
   fileDiffs: FileDiff[];
   diffForPrompt: string;
   parsedDiffs: ParsedFileDiff[];
-  fileContents: Map<string, { oldContent?: string[]; newContent?: string[] }>;
+  fileContents: Record<string, { oldContent?: string[]; newContent?: string[] }>;
   discussions: GitLabDiscussion[];
   existingFeedback: ReviewFeedback[];
   lineMappings: Record<string, LineMapping>;

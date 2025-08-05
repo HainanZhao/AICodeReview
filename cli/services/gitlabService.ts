@@ -28,10 +28,10 @@ export const normalizePositionForFile = (
     // Use line mapping to fill in missing old_line or new_line
     if (position.new_line && !position.old_line) {
       const mappedOldLine = getOldLineFromNewLine(position.new_line, lineMapping);
-      normalizedPosition.old_line = mappedOldLine ?? position.new_line;
+      normalizedPosition.old_line = mappedOldLine;
     } else if (position.old_line && !position.new_line) {
       const mappedNewLine = getNewLineFromOldLine(position.old_line, lineMapping);
-      normalizedPosition.new_line = mappedNewLine ?? position.old_line;
+      normalizedPosition.new_line = mappedNewLine;
     }
   }
 
@@ -181,6 +181,7 @@ ${feedback.description}
           position_type: 'text',
           old_line: normalizedPosition.old_line ?? null,
           new_line: normalizedPosition.new_line ?? null,
+          line_code: normalizedPosition.line_code,
         },
       };
 

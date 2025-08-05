@@ -1,15 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  ParsedFileDiff,
-  ReviewFeedback,
-  ParsedDiffLine,
-  Severity,
-  ParsedHunk,
-  GitLabMRDetails,
+    GitLabMRDetails,
+    ParsedDiffLine,
+    ParsedFileDiff,
+    ParsedHunk,
+    ReviewFeedback,
+    Severity,
 } from '../types';
-import { ChevronDownIcon, ChevronUpIcon, AddCommentIcon } from './icons';
 import { DiffLine } from './DiffLine';
 import { FeedbackCard } from './FeedbackCard';
+import { AddCommentIcon, ChevronDownIcon, ChevronUpIcon } from './icons';
 
 interface FileDiffCardProps {
   fileDiff: ParsedFileDiff;
@@ -141,9 +141,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
     ? `${fileDiff.oldPath} → ${fileDiff.filePath}`
     : fileDiff.filePath;
 
-  const fileContents =
-    (mrDetails.fileContents as Record<string, { oldContent?: string[]; newContent?: string[] }>)
-      [fileDiff.filePath];
+  const fileContents = mrDetails.fileContents[fileDiff.filePath];
   const newFileContentLines = fileContents?.newContent || [];
 
   const handleExpandGap = (startLine: number, endLine: number) => {
