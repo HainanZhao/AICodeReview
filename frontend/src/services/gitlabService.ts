@@ -4,7 +4,7 @@ export {
   fetchMergeRequestsForProjects,
   fetchMrData,
   fetchProjects,
-  parseDiffsToHunks
+  parseDiffsToHunks,
 } from '../../../cli/shared/services/gitlabCore.js';
 import { GitLabConfig, GitLabMRDetails, ReviewFeedback } from '../types';
 

@@ -494,10 +494,6 @@ export const getNewLineFromOldLine = (
   return mapping.oldToNew[oldLine];
 };
 
-
-
-
-
 /**
  * Fetches the main MR data with all related information
  */
@@ -597,8 +593,6 @@ export const fetchMrData = async (
       lineMappings[parsedDiff.oldPath] = lineMapping;
     }
   });
-
-  
 
   return {
     projectPath,
