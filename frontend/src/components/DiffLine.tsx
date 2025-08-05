@@ -9,6 +9,7 @@ interface DiffLineProps {
   onAddComment: () => void;
   filePath?: string;
   fileContent?: string;
+  oldFileContent?: string;
 }
 
 const getLineClasses = (type: ParsedDiffLine['type']) => {
@@ -29,6 +30,7 @@ export const DiffLine: React.FC<DiffLineProps> = ({
   onAddComment,
   filePath = 'unknown',
   fileContent,
+  oldFileContent,
 }) => {
   const lineClasses = getLineClasses(line.type);
   const prefix = line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ';
@@ -60,13 +62,11 @@ export const DiffLine: React.FC<DiffLineProps> = ({
     setExplanation('');
 
     try {
-      const result = await explainLine(
-        line.content,
-        filePath,
-        line.newLine || line.oldLine,
-        fileContent,
-        3
-      );
+      // For deleted lines, use old file content; for other lines, use new file content
+      const contentToUse = line.type === 'remove' ? oldFileContent : fileContent;
+      const lineNumberToUse = line.type === 'remove' ? line.oldLine : line.newLine || line.oldLine;
+
+      const result = await explainLine(line.content, filePath, lineNumberToUse, contentToUse, 3);
       setExplanation(result);
     } catch (error) {
       setExplanationError(error instanceof Error ? error.message : 'Failed to get explanation');

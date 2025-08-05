@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import {
-    GeminiCliCore,
-    GeminiCliItem,
-    buildReviewPrompt,
-    type AIReviewRequest,
+  GeminiCliCore,
+  GeminiCliItem,
+  buildReviewPrompt,
+  type AIReviewRequest,
 } from '../../shared/index.js';
 import { BaseLLMProvider } from './baseLLMProvider.js';
 import { ReviewRequest, ReviewResponse } from './types.js';
@@ -102,13 +102,13 @@ export class GeminiCliProvider extends BaseLLMProvider {
         lineNumber
       );
       const rawOutput = await GeminiCliCore.executeExplanation(prompt, { verbose: false });
-      
+
       // Try to extract JSON from the output first
       const jsonExplanation = this.extractJsonExplanation(rawOutput);
       if (jsonExplanation) {
         return jsonExplanation;
       }
-      
+
       // Fallback to raw output if no JSON found
       return rawOutput.trim();
     } catch (error) {
@@ -128,24 +128,24 @@ export class GeminiCliProvider extends BaseLLMProvider {
       if (jsonMatch) {
         const jsonContent = jsonMatch[0];
         const parsed = JSON.parse(jsonContent);
-        
+
         // Check if it has an explanation field
         if (parsed.explanation && typeof parsed.explanation === 'string') {
           return parsed.explanation;
         }
       }
-      
+
       // Look for JSON with different structure
       const arrayMatch = output.match(/\[[\s\S]*?\]/);
       if (arrayMatch) {
         const jsonContent = arrayMatch[0];
         const parsed = JSON.parse(jsonContent);
-        
+
         if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].explanation) {
           return parsed[0].explanation;
         }
       }
-      
+
       return null;
     } catch {
       // JSON parsing failed, return null to use fallback
@@ -182,7 +182,7 @@ export class GeminiCliProvider extends BaseLLMProvider {
       // If we have full file content, try to extract context around the line
       const lines = fileContent.split('\n');
       let targetLineIndex = -1;
-      
+
       // Try to find the line by line number first (more reliable)
       if (lineNumber && lineNumber > 0 && lineNumber <= lines.length) {
         targetLineIndex = lineNumber - 1; // Convert to 0-based index

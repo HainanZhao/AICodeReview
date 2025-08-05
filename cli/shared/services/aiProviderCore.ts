@@ -217,7 +217,9 @@ export class AIProviderCore {
     fileContent?: string,
     contextLines: number = 3,
     lineNumber?: number,
-    options: RetryOptions = {}
+    options: RetryOptions = {},
+    oldFileContent?: string,
+    isDeletedLine: boolean = false
   ): Promise<string> {
     return this.retryWithCondition(async () => {
       try {
@@ -256,13 +258,13 @@ export class AIProviderCore {
       if (jsonMatch) {
         const jsonContent = jsonMatch[0];
         const parsed = JSON.parse(jsonContent);
-        
+
         // Check if it has an explanation field
         if (parsed.explanation && typeof parsed.explanation === 'string') {
           return parsed.explanation;
         }
       }
-      
+
       // Fallback: return the original text cleaned up
       return output.trim();
     } catch {
@@ -326,11 +328,11 @@ export class AIProviderCore {
     const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
     const language = this.getLanguageFromExtension(fileExtension);
 
-    let prompt = `You are a helpful code assistant. Please explain what the following line of code does in a clear, concise manner.
+    let prompt = `You are a helpful code assistant. Please explain what the following code does in a clear, concise manner. If it's a function or code block, explain its overall purpose and functionality. If it's a single line, explain what that line accomplishes.
 
 **File:** ${filePath}
 **Language:** ${language}
-**Line of code:** \`${lineContent}\``;
+**Code:** \`${lineContent}\``;
 
     if (lineNumber) {
       prompt += `\n**Line number:** ${lineNumber}`;
@@ -342,7 +344,7 @@ export class AIProviderCore {
       // If we have full file content, try to extract context around the line
       const lines = fileContent.split('\n');
       let targetLineIndex = -1;
-      
+
       // Try to find the line by line number first (more reliable)
       if (lineNumber && lineNumber > 0 && lineNumber <= lines.length) {
         targetLineIndex = lineNumber - 1; // Convert to 0-based index
@@ -375,7 +377,7 @@ ${contextCode}
     }
 
     prompt += `Please provide a brief explanation focusing on:
-1. What this line does
+1. What this code does (whether it's a single line, function, or code block)
 2. Its purpose in the context
 3. Any important technical details
 

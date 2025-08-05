@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import {
-    GitLabMRDetails,
-    ParsedDiffLine,
-    ParsedFileDiff,
-    ParsedHunk,
-    ReviewFeedback,
-    Severity,
+  GitLabMRDetails,
+  ParsedDiffLine,
+  ParsedFileDiff,
+  ParsedHunk,
+  ReviewFeedback,
+  Severity,
 } from '../types';
 import { DiffLine } from './DiffLine';
 import { FeedbackCard } from './FeedbackCard';
@@ -143,7 +143,9 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
 
   const fileContents = mrDetails.fileContents[fileDiff.filePath];
   const newFileContentLines = fileContents?.newContent || [];
+  const oldFileContentLines = fileContents?.oldContent || [];
   const fullFileContent = newFileContentLines.join('\n');
+  const fullOldFileContent = oldFileContentLines.join('\n');
 
   const handleExpandGap = (startLine: number, endLine: number) => {
     setExpandedGaps((prev) => [...prev, [startLine, endLine]]);
@@ -179,6 +181,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
                 onAddComment={() => handlers.onAddCustomFeedback(fileDiff, line)}
                 filePath={fileDiff.filePath}
                 fileContent={fullFileContent}
+                oldFileContent={fullOldFileContent}
               />
             );
           }
@@ -217,6 +220,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
                   onAddComment={() => handlers.onAddCustomFeedback(fileDiff, line)}
                   filePath={fileDiff.filePath}
                   fileContent={fullFileContent}
+                  oldFileContent={fullOldFileContent}
                 />
                 {allFeedbackItems.map((fb) => {
                   const isActive = fb.id === activeFeedbackId;
@@ -275,6 +279,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
               onAddComment={() => handlers.onAddCustomFeedback(fileDiff, line)}
               filePath={fileDiff.filePath}
               fileContent={fullFileContent}
+              oldFileContent={fullOldFileContent}
             />
           );
         }
