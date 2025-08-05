@@ -432,14 +432,12 @@ function App() {
         if (!hunk) return prevDetails;
 
         const fileContents =
-          newDetails.fileContents instanceof Map
-            ? newDetails.fileContents.get(filePath)
-            : (
-                newDetails.fileContents as Record<
-                  string,
-                  { oldContent?: string[]; newContent?: string[] }
-                >
-              )[filePath];
+          (
+            newDetails.fileContents as Record<
+              string,
+              { oldContent?: string[]; newContent?: string[] }
+            >
+          )[filePath];
         if (!fileContents) return prevDetails;
 
         if (direction === 'up') {
