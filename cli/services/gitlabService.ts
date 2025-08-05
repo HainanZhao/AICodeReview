@@ -179,8 +179,8 @@ ${feedback.description}
           old_path: normalizedPosition.old_path,
           new_path: normalizedPosition.new_path,
           position_type: 'text',
-          old_line: feedback.position.old_line ?? null,
-          new_line: feedback.position.new_line ?? null,
+          old_line: normalizedPosition.old_line ?? null,
+          new_line: normalizedPosition.new_line ?? null,
         },
       };
 
