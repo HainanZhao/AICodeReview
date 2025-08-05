@@ -99,8 +99,6 @@ export interface GitLabNote {
 export interface GitLabDiscussion {
   id: string;
   notes: GitLabNote[];
-  // Custom field to track how the comment was posted (inline vs general fallback)
-  postedAsInline?: boolean;
 }
 
 export interface GitLabMRDetails {

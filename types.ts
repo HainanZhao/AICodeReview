@@ -17,6 +17,7 @@ export interface GitLabPosition {
   new_path: string;
   new_line?: number;
   old_line?: number;
+  line_code?: string;
 }
 
 export interface FileDiff {
@@ -97,6 +98,11 @@ export interface GitLabDiscussion {
   notes: GitLabNote[];
 }
 
+export interface LineMapping {
+  newToOld: Record<number, number>;
+  oldToNew: Record<number, number>;
+}
+
 export interface GitLabMRDetails {
   projectPath: string;
   mrIid: string;
@@ -115,6 +121,7 @@ export interface GitLabMRDetails {
   fileContents: Map<string, { oldContent?: string[]; newContent?: string[] }>;
   discussions: GitLabDiscussion[];
   existingFeedback: ReviewFeedback[];
+  lineMappings: Record<string, LineMapping>;
   approvals?: {
     approved_by: Array<{ user: { name: string; username: string } }>;
     approvals_left: number;
@@ -183,4 +190,16 @@ export interface ExpandedHunk extends ParsedHunk {
 export interface Config {
   gitlabUrl: string;
   accessToken: string;
+}
+
+export interface PostDiscussionRequest {
+  gitlabConfig: GitLabConfig;
+  mrDetails: GitLabMRDetails;
+  reviewFeedback: ReviewFeedback;
+}
+
+export interface PostDiscussionResponse {
+  success: boolean;
+  result?: any;
+  error?: string;
 }

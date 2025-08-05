@@ -12,6 +12,8 @@ export type {
   GitLabConfig,
   AIReviewResponse,
   ParsedDiffLine,
+  PostDiscussionRequest,
+  PostDiscussionResponse,
 } from '../../types';
 
 // Re-export enums that need to be imported as values

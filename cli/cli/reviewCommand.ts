@@ -1,11 +1,11 @@
 import { ConfigLoader } from '../config/configLoader.js';
+import { postDiscussion } from './gitlabService.js';
 import {
   createReviewSummary,
   FileDiff,
   GitLabMRDetails,
   MrReviewService,
   ParsedFileDiff,
-  postDiscussion,
   Severity,
   type MrReviewOptions,
   type ReviewFeedback,
@@ -241,10 +241,9 @@ export class CLIReviewCommand {
           try {
             const result = await postDiscussion(config.gitlab!, mrDetails, feedbackItem);
             if (options.verbose) {
-              const postingMode = result.postedAsInline === false ? ' (as general comment)' : '';
               console.log(
                 CLIOutputFormatter.formatSuccess(
-                  `Posted comment for ${feedbackItem.filePath}:${feedbackItem.lineNumber}${postingMode}`
+                  `Posted comment for ${feedbackItem.filePath}:${feedbackItem.lineNumber}`
                 )
               );
             } else {

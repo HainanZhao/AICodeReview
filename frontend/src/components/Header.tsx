@@ -1,5 +1,5 @@
 import React from 'react';
-import { SettingsIcon, SunIcon, MoonIcon } from './icons';
+import { MoonIcon, SettingsIcon, SunIcon } from './icons';
 
 const BrainCircuitIcon = () => (
   <svg
@@ -30,7 +30,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onToggleTheme, c
             <BrainCircuitIcon />
             <div>
               <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                AI Code Reviewer
+                AI Code Review
               </h1>
               <p className="text-xs text-gray-500 dark:text-brand-subtle">
                 AI-powered Merge Request analysis
