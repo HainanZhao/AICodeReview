@@ -238,7 +238,7 @@ ${feedback.description}
 
           return (
             `
-**[AI]${feedback.severity}: ${feedback.title}**` +
+**[AI] ${feedback.severity}: ${feedback.title}**` +
             `
 ${fileLocationText}` +
             `
