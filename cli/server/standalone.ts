@@ -133,7 +133,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     // AI Explain Line endpoint
     app.post('/api/explain-line', async (req, res) => {
       try {
-        const { lineContent, lineNumber, filePath, fileContent, contextLines = 3 } = req.body;
+        const { lineContent, lineNumber, filePath, fileContent, contextLines = 5 } = req.body;
 
         // Validate required parameters
         if (!lineContent) {
