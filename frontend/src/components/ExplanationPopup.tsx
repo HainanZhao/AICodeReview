@@ -61,6 +61,9 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
     <div
       ref={popupRef}
       className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-w-2xl w-[640px]"
+      role="dialog"
+      aria-labelledby="explanation-popup-title"
+      aria-describedby="explanation-popup-content"
       style={{
         left: adjustedPosition.x,
         top: adjustedPosition.y,
@@ -69,7 +72,10 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-600">
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+          <h3
+            id="explanation-popup-title"
+            className="text-sm font-medium text-gray-900 dark:text-white truncate"
+          >
             AI Explanation
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">{filePath}</p>
@@ -84,7 +90,7 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
       </div>
 
       {/* Content */}
-      <div className="p-3">
+      <div className="p-3" id="explanation-popup-content">
         {/* Code line */}
         <div className="mb-3">
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Code line:</p>

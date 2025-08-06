@@ -217,9 +217,7 @@ export class AIProviderCore {
     fileContent?: string,
     contextLines: number = 3,
     lineNumber?: number,
-    options: RetryOptions = {},
-    oldFileContent?: string,
-    isDeletedLine: boolean = false
+    options: RetryOptions = {}
   ): Promise<string> {
     return this.retryWithCondition(async () => {
       try {

@@ -63,7 +63,7 @@ export const DiffLine: React.FC<DiffLineProps> = ({
 
     try {
       // For deleted lines, use old file content; for other lines, use new file content
-      const contentToUse = line.type === 'remove' ? oldFileContent : fileContent;
+      const contentToUse = line.type === 'remove' ? (oldFileContent ?? '') : (fileContent ?? '');
       const lineNumberToUse = line.type === 'remove' ? line.oldLine : line.newLine || line.oldLine;
 
       const result = await explainLine(line.content, filePath, lineNumberToUse, contentToUse, 3);
@@ -85,8 +85,16 @@ export const DiffLine: React.FC<DiffLineProps> = ({
   React.useEffect(() => {
     if (!showExplanation) return;
 
-    const handleClickOutside = () => {
-      setShowExplanation(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      // Check if the click is outside the popup
+      const target = event.target as Element;
+      const popupElement = document.querySelector(
+        '[role="dialog"][aria-labelledby="explanation-popup-title"]'
+      );
+
+      if (popupElement && !popupElement.contains(target)) {
+        setShowExplanation(false);
+      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
