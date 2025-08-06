@@ -1,6 +1,11 @@
 import { Request, Response } from 'express';
-import { MrReviewService, type MrReviewOptions } from '../../shared/index.js';
-import { LLMProvider, MrUrlRequest } from './types.js';
+import {
+  MrReviewService,
+  type MrReviewOptions,
+  buildReviewPrompt,
+  type AIReviewRequest,
+} from '../../shared/index.js';
+import { LLMProvider, MrUrlRequest, ReviewRequest } from './types.js';
 
 /**
  * Base LLM provider that implements unified MR review logic
@@ -74,6 +79,26 @@ export abstract class BaseLLMProvider implements LLMProvider {
         error: `${this.providerName} review failed: ${errorMessage}`,
       });
     }
+  }
+
+  /**
+   * Shared method to build review prompt from ReviewRequest
+   * Converts ReviewRequest to AIReviewRequest format and uses shared buildReviewPrompt
+   */
+  protected buildPrompt(request: ReviewRequest): string {
+    // Convert ReviewRequest to AIReviewRequest format
+    const aiRequest: AIReviewRequest = {
+      title: request.title || 'Code Review',
+      description: request.description || '',
+      sourceBranch: request.sourceBranch || 'feature-branch',
+      targetBranch: request.targetBranch || 'main',
+      diffContent: request.diffForPrompt, // This already includes file contents when appropriate
+      parsedDiffs: request.parsedDiffs || [],
+      existingFeedback: request.existingFeedback || [],
+      authorName: request.authorName || 'Unknown',
+    };
+
+    return buildReviewPrompt(aiRequest);
   }
 
   /**

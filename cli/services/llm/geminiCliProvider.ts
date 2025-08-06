@@ -1,10 +1,5 @@
 import { Request, Response } from 'express';
-import {
-  GeminiCliCore,
-  GeminiCliItem,
-  buildReviewPrompt,
-  type AIReviewRequest,
-} from '../../shared/index.js';
+import { GeminiCliCore, GeminiCliItem } from '../../shared/index.js';
 import { BaseLLMProvider } from './baseLLMProvider.js';
 import { ReviewRequest, ReviewResponse } from './types.js';
 
@@ -20,22 +15,6 @@ export class GeminiCliProvider extends BaseLLMProvider {
     } catch {
       return false;
     }
-  }
-
-  private buildPrompt(request: ReviewRequest): string {
-    // Convert ReviewRequest to AIReviewRequest format
-    const aiRequest: AIReviewRequest = {
-      title: request.title || 'Code Review',
-      description: request.description || '',
-      sourceBranch: request.sourceBranch || 'feature-branch',
-      targetBranch: request.targetBranch || 'main',
-      diffContent: request.diffForPrompt, // This already includes file contents when appropriate
-      parsedDiffs: request.parsedDiffs || [],
-      existingFeedback: request.existingFeedback || [],
-      authorName: request.authorName || 'Unknown',
-    };
-
-    return buildReviewPrompt(aiRequest);
   }
 
   public async initializeWithCleanup(): Promise<void> {
