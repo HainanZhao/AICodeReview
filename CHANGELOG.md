@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-08-06
+
+### Added
+- **AI Line Explanations**: New interactive feature in the web interface that provides instant AI-powered explanations for any line of code
+  - Hover over any line in the diff view to get contextual explanations
+  - Smart detection of functions, code blocks, and single lines with appropriate explanation styles
+  - Context-aware analysis using surrounding code for more accurate explanations
+  - Diff-aware handling that correctly uses old file content for deleted lines and new file content for added lines
+  - Works with all supported LLM providers (Gemini CLI, Gemini API, Anthropic Claude)
+
+### Enhanced
+- Updated web interface with improved user experience for code exploration
+- Enhanced AI provider core with specialized explanation prompts
+- Improved diff visualization with interactive explanation capabilities
+
+### Technical Changes
+- Added `explainLine` functionality to AI review service
+- Enhanced `DiffLine` component with hover-based explanation triggers
+- Updated `AIProviderCore` with dedicated explanation methods for different AI providers
+- Improved prompt engineering for better code explanation quality
+
 ## [1.1.4] - 2025-07-27
 
 ### Changed
