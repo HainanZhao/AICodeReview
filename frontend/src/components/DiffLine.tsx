@@ -1,7 +1,7 @@
 import React from 'react';
-import { explainLine } from '../services/aiReviewService';
-import { ParsedDiffLine } from '../types';
-import { ExplanationPopup } from './ExplanationPopup';
+import { startChat, continueChat } from '../services/aiReviewService';
+import { ParsedDiffLine, ChatMessage } from '../types';
+import { ChatInterface } from './ChatInterface';
 import { AIExplainIcon, PlusIcon } from './icons';
 
 interface DiffLineProps {
@@ -37,11 +37,12 @@ export const DiffLine: React.FC<DiffLineProps> = ({
   const canComment = line.type === 'add' || line.type === 'remove' || line.type === 'context';
   const canExplain = line.type !== 'meta' && line.content.trim().length > 0;
 
-  // AI Explain state
-  const [showExplanation, setShowExplanation] = React.useState(false);
-  const [explanation, setExplanation] = React.useState('');
-  const [isLoadingExplanation, setIsLoadingExplanation] = React.useState(false);
-  const [explanationError, setExplanationError] = React.useState<string | undefined>();
+  // AI Chat state
+  const [showChat, setShowChat] = React.useState(false);
+  const [chatSessionId, setChatSessionId] = React.useState<string | undefined>();
+  const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>([]);
+  const [isLoadingChat, setIsLoadingChat] = React.useState(false);
+  const [chatError, setChatError] = React.useState<string | undefined>();
   const [popupPosition, setPopupPosition] = React.useState({ x: 0, y: 0 });
 
   const handleExplainClick = async (event: React.MouseEvent) => {
@@ -56,50 +57,67 @@ export const DiffLine: React.FC<DiffLineProps> = ({
       y: rect.top,
     });
 
-    setShowExplanation(true);
-    setIsLoadingExplanation(true);
-    setExplanationError(undefined);
-    setExplanation('');
+    setShowChat(true);
+    setIsLoadingChat(true);
+    setChatError(undefined);
+    setChatMessages([]);
+    setChatSessionId(undefined);
 
     try {
       // For deleted lines, use old file content; for other lines, use new file content
       const contentToUse = line.type === 'remove' ? (oldFileContent ?? '') : (fileContent ?? '');
       const lineNumberToUse = line.type === 'remove' ? line.oldLine : line.newLine || line.oldLine;
 
-      const result = await explainLine(line.content, filePath, lineNumberToUse, contentToUse, 5);
-      setExplanation(result);
+      const result = await startChat(line.content, filePath, lineNumberToUse, contentToUse, 5);
+      setChatSessionId(result.sessionId);
+      setChatMessages(result.messages);
     } catch (error) {
-      setExplanationError(error instanceof Error ? error.message : 'Failed to get explanation');
+      setChatError(error instanceof Error ? error.message : 'Failed to start chat');
     } finally {
-      setIsLoadingExplanation(false);
+      setIsLoadingChat(false);
     }
   };
 
-  const handleCloseExplanation = () => {
-    setShowExplanation(false);
-    setExplanation('');
-    setExplanationError(undefined);
+  const handleSendMessage = async (message: string) => {
+    if (!chatSessionId) {
+      throw new Error('No active chat session');
+    }
+
+    try {
+      const result = await continueChat(chatSessionId, message);
+      setChatMessages(result.messages);
+    } catch (error) {
+      setChatError(error instanceof Error ? error.message : 'Failed to send message');
+      throw error; // Re-throw to let ChatInterface handle the error state
+    }
+  };
+
+  const handleCloseChat = () => {
+    setShowChat(false);
+    setChatMessages([]);
+    setChatSessionId(undefined);
+    setChatError(undefined);
   };
 
   // Close popup when clicking outside or pressing Escape
   React.useEffect(() => {
-    if (!showExplanation) return;
+    if (!showChat) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       // Check if the click is outside the popup
       const target = event.target as Element;
       const popupElement = document.querySelector(
-        '[role="dialog"][aria-labelledby="explanation-popup-title"]'
+        '[role="dialog"][aria-labelledby="chat-interface-title"]'
       );
 
       if (popupElement && !popupElement.contains(target)) {
-        setShowExplanation(false);
+        setShowChat(false);
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setShowExplanation(false);
+        setShowChat(false);
       }
     };
 
@@ -110,7 +128,7 @@ export const DiffLine: React.FC<DiffLineProps> = ({
       document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [showExplanation]);
+  }, [showChat]);
 
   return (
     <>
@@ -131,11 +149,11 @@ export const DiffLine: React.FC<DiffLineProps> = ({
               <PlusIcon className="w-3 h-3" />
             </button>
 
-            {/* AI Explain button */}
+            {/* AI Chat button */}
             {canExplain && (
               <button
                 onClick={handleExplainClick}
-                title="AI Explain this line"
+                title="Start AI chat about this line"
                 className="opacity-0 bg-purple-600 text-white rounded-full p-[3px] leading-none shadow-lg hover:bg-purple-700 transition-opacity duration-150 group-hover:opacity-100"
               >
                 <AIExplainIcon className="w-3 h-3" />
@@ -155,15 +173,17 @@ export const DiffLine: React.FC<DiffLineProps> = ({
         </td>
       </tr>
 
-      {/* AI Explanation Popup */}
-      {showExplanation && (
-        <ExplanationPopup
-          explanation={explanation}
+      {/* AI Chat Interface */}
+      {showChat && (
+        <ChatInterface
+          sessionId={chatSessionId}
+          messages={chatMessages}
           lineContent={line.content}
           filePath={filePath}
-          isLoading={isLoadingExplanation}
-          error={explanationError}
-          onClose={handleCloseExplanation}
+          isLoading={isLoadingChat}
+          error={chatError}
+          onClose={handleCloseChat}
+          onSendMessage={handleSendMessage}
           position={popupPosition}
         />
       )}
