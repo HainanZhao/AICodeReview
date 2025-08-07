@@ -1,7 +1,7 @@
 import React from 'react';
-import { explainLine } from '../services/aiReviewService';
+import { explainLine, chat } from '../services/aiReviewService';
 import { ParsedDiffLine } from '../types';
-import { ExplanationPopup } from './ExplanationPopup';
+import { ChatPopup } from './ChatPopup';
 import { AIExplainIcon, PlusIcon } from './icons';
 
 interface DiffLineProps {
@@ -37,11 +37,11 @@ export const DiffLine: React.FC<DiffLineProps> = ({
   const canComment = line.type === 'add' || line.type === 'remove' || line.type === 'context';
   const canExplain = line.type !== 'meta' && line.content.trim().length > 0;
 
-  // AI Explain state
-  const [showExplanation, setShowExplanation] = React.useState(false);
-  const [explanation, setExplanation] = React.useState('');
-  const [isLoadingExplanation, setIsLoadingExplanation] = React.useState(false);
-  const [explanationError, setExplanationError] = React.useState<string | undefined>();
+  // AI Chat state
+  const [showChat, setShowChat] = React.useState(false);
+  const [initialMessage, setInitialMessage] = React.useState('');
+  const [isLoadingInitialMessage, setIsLoadingInitialMessage] = React.useState(false);
+  const [chatError, setChatError] = React.useState<string | undefined>();
   const [popupPosition, setPopupPosition] = React.useState({ x: 0, y: 0 });
 
   const handleExplainClick = async (event: React.MouseEvent) => {
@@ -49,89 +49,89 @@ export const DiffLine: React.FC<DiffLineProps> = ({
 
     event.stopPropagation();
 
-    // Set popup position near the click
     const rect = event.currentTarget.getBoundingClientRect();
     setPopupPosition({
       x: rect.right + 10,
       y: rect.top,
     });
 
-    setShowExplanation(true);
-    setIsLoadingExplanation(true);
-    setExplanationError(undefined);
-    setExplanation('');
+    setShowChat(true);
+    setIsLoadingInitialMessage(true);
+    setChatError(undefined);
+    setInitialMessage('');
 
     try {
-      // For deleted lines, use old file content; for other lines, use new file content
-      const contentToUse = line.type === 'remove' ? (oldFileContent ?? '') : (fileContent ?? '');
+      const contentToUse = line.type === 'remove' ? oldFileContent ?? '' : fileContent ?? '';
       const lineNumberToUse = line.type === 'remove' ? line.oldLine : line.newLine || line.oldLine;
-
       const result = await explainLine(line.content, filePath, lineNumberToUse, contentToUse, 5);
-      setExplanation(result);
+      setInitialMessage(result);
     } catch (error) {
-      setExplanationError(error instanceof Error ? error.message : 'Failed to get explanation');
+      setChatError(error instanceof Error ? error.message : 'Failed to get explanation');
     } finally {
-      setIsLoadingExplanation(false);
+      setIsLoadingInitialMessage(false);
     }
   };
 
-  const handleCloseExplanation = () => {
-    setShowExplanation(false);
-    setExplanation('');
-    setExplanationError(undefined);
+  const handleSendMessage = async (history: { role: 'user' | 'model'; content: string }[]) => {
+    const contentToUse = line.type === 'remove' ? oldFileContent ?? '' : fileContent ?? '';
+    const lineNumberToUse = line.type === 'remove' ? line.oldLine : line.newLine || line.oldLine;
+    return await chat(
+      history,
+      filePath,
+      contentToUse,
+      lineNumberToUse,
+      line.content,
+      5
+    );
   };
 
-  // Close popup when clicking outside or pressing Escape
+  const handleCloseChat = () => {
+    setShowChat(false);
+    setInitialMessage('');
+    setChatError(undefined);
+  };
+
   React.useEffect(() => {
-    if (!showExplanation) return;
+    if (!showChat) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      // Check if the click is outside the popup
       const target = event.target as Element;
-      const popupElement = document.querySelector(
-        '[role="dialog"][aria-labelledby="explanation-popup-title"]'
-      );
-
-      if (popupElement && !popupElement.contains(target)) {
-        setShowExplanation(false);
-      }
+      if (target.closest('[role="dialog"]')) return;
+      setShowChat(false);
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setShowExplanation(false);
+        setShowChat(false);
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [showExplanation]);
+  }, [showChat]);
 
   return (
     <>
       <tr className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/10 h-4`}>
         <td className="w-8 text-center align-middle h-4">
-          {/* Action buttons container */}
           <div className="flex items-center justify-center space-x-1">
-            {/* Add comment button */}
             <button
               onClick={onAddComment}
               title={canComment ? 'Add comment' : ''}
               disabled={!canComment}
               className={`
-                        opacity-0 bg-brand-secondary text-white rounded-full p-[3px] leading-none shadow-lg hover:bg-red-600 transition-opacity duration-150
-                        ${canComment ? 'group-hover:opacity-100' : 'pointer-events-none'}
-                      `}
+                opacity-0 bg-brand-secondary text-white rounded-full p-[3px] leading-none shadow-lg hover:bg-red-600 transition-opacity duration-150
+                ${canComment ? 'group-hover:opacity-100' : 'pointer-events-none'}
+              `}
             >
               <PlusIcon className="w-3 h-3" />
             </button>
 
-            {/* AI Explain button */}
             {canExplain && (
               <button
                 onClick={handleExplainClick}
@@ -155,17 +155,34 @@ export const DiffLine: React.FC<DiffLineProps> = ({
         </td>
       </tr>
 
-      {/* AI Explanation Popup */}
-      {showExplanation && (
-        <ExplanationPopup
-          explanation={explanation}
-          lineContent={line.content}
-          filePath={filePath}
-          isLoading={isLoadingExplanation}
-          error={explanationError}
-          onClose={handleCloseExplanation}
-          position={popupPosition}
-        />
+      {showChat && (
+        <>
+          {isLoadingInitialMessage ? (
+            // You can replace this with a more sophisticated loading indicator inside the popup
+            <div
+              className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-4"
+              style={{ left: popupPosition.x, top: popupPosition.y }}
+            >
+              Loading...
+            </div>
+          ) : chatError ? (
+            <div
+              className="fixed z-50 bg-white dark:bg-gray-800 border border-red-500 rounded-lg shadow-lg p-4"
+              style={{ left: popupPosition.x, top: popupPosition.y }}
+            >
+              Error: {chatError}
+            </div>
+          ) : (
+            <ChatPopup
+              initialMessage={initialMessage}
+              lineContent={line.content}
+              filePath={filePath}
+              onSendMessage={handleSendMessage}
+              onClose={handleCloseChat}
+              position={popupPosition}
+            />
+          )}
+        </>
       )}
     </>
   );

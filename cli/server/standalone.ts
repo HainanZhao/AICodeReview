@@ -130,6 +130,62 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       }
     });
 
+    // AI Chat endpoint
+    app.post('/api/chat', async (req, res) => {
+      try {
+        const { chatHistory, filePath, fileContent, lineNumber, lineContent, contextLines = 5 } =
+          req.body;
+
+        if (!chatHistory || !Array.isArray(chatHistory) || chatHistory.length === 0) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing or invalid chatHistory parameter',
+          });
+        }
+
+        if (!filePath) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing filePath parameter',
+          });
+        }
+
+        const { AIProviderCore } = await import('../shared/services/aiProviderCore.js');
+
+        const provider = config.llm.provider;
+        const apiKey = config.llm.apiKey;
+
+        if ((provider === 'gemini' || provider === 'anthropic') && !apiKey) {
+          return res.status(400).json({
+            success: false,
+            error: `API key missing for ${provider} provider`,
+          });
+        }
+
+        const response = await AIProviderCore.generateChatResponse(
+          provider,
+          apiKey || '',
+          chatHistory,
+          filePath,
+          fileContent,
+          lineNumber,
+          lineContent,
+          contextLines
+        );
+
+        res.json({
+          success: true,
+          response,
+        });
+      } catch (error) {
+        console.error('Failed to get chat response:', error);
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    });
+
     // AI Explain Line endpoint
     app.post('/api/explain-line', async (req, res) => {
       try {

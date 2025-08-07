@@ -138,6 +138,70 @@ export const runAiReview = async (
 };
 
 /**
+ * Send a message to the AI chat
+ */
+export const chat = async (
+  chatHistory: { role: 'user' | 'model'; content: string }[],
+  filePath: string,
+  fileContent?: string,
+  lineNumber?: number,
+  lineContent?: string,
+  contextLines: number = 5
+): Promise<string> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chatHistory: chatHistory.map(message => ({
+          role: message.role,
+          parts: [{ text: message.content }],
+        })),
+        filePath,
+        fileContent,
+        lineNumber,
+        lineContent,
+        contextLines,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `AI Chat failed with status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch {
+        // ignore
+      }
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || 'AI Chat failed');
+    }
+
+    return result.response || 'No response available';
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('The AI chat request timed out. Please try again.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+/**
  * Legacy combined function - kept for backward compatibility
  * @deprecated Use fetchMrDetailsOnly + runAiReview for better UX
  */

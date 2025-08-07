@@ -421,6 +421,194 @@ Make sure to return only valid JSON with no additional text before or after.`;
   }
 
   /**
+   * Generate a chat response using the appropriate AI provider.
+   */
+  public static async generateChatResponse(
+    provider: 'gemini' | 'anthropic' | 'gemini-cli',
+    apiKey: string,
+    chatHistory: { role: 'user' | 'model'; parts: { text: string }[] }[],
+    filePath: string,
+    fileContent?: string,
+    lineNumber?: number,
+    lineContent?: string,
+    contextLines: number = 5,
+    options: RetryOptions = {}
+  ): Promise<string> {
+    if (provider === 'gemini') {
+      return this.generateGeminiChatResponse(
+        apiKey,
+        chatHistory,
+        filePath,
+        fileContent,
+        lineNumber,
+        lineContent,
+        contextLines,
+        options
+      );
+    } else if (provider === 'anthropic') {
+      return this.generateAnthropicChatResponse(
+        apiKey,
+        chatHistory,
+        filePath,
+        fileContent,
+        lineNumber,
+        lineContent,
+        contextLines,
+        options
+      );
+    } else {
+      throw new Error(`Unsupported provider for chat: ${provider}`);
+    }
+  }
+
+  /**
+   * Generate chat response using Gemini API.
+   */
+  private static async generateGeminiChatResponse(
+    apiKey: string,
+    chatHistory: { role: 'user' | 'model'; parts: { text: string }[] }[],
+    filePath: string,
+    fileContent?: string,
+    lineNumber?: number,
+    lineContent?: string,
+    contextLines: number = 5,
+    options: RetryOptions = {}
+  ): Promise<string> {
+    return this.retryWithCondition(async () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const client = (await this.createGeminiClient(apiKey)) as any;
+        const model = client.getGenerativeModel({ model: 'gemini-1.5-pro' });
+
+        const prompt = this.createChatPrompt(
+          chatHistory,
+          filePath,
+          fileContent,
+          lineNumber,
+          lineContent,
+          contextLines
+        );
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        return response.text();
+      } catch (error) {
+        throw new Error(
+          `Gemini API error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
+    }, options);
+  }
+
+  /**
+   * Generate chat response using Anthropic Claude API.
+   */
+  private static async generateAnthropicChatResponse(
+    apiKey: string,
+    chatHistory: { role: 'user' | 'model'; parts: { text: string }[] }[],
+    filePath: string,
+    fileContent?: string,
+    lineNumber?: number,
+    lineContent?: string,
+    contextLines: number = 5,
+    options: RetryOptions = {}
+  ): Promise<string> {
+    return this.retryWithCondition(async () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const client = (await this.createAnthropicClient(apiKey)) as any;
+
+        const prompt = this.createChatPrompt(
+          chatHistory,
+          filePath,
+          fileContent,
+          lineNumber,
+          lineContent,
+          contextLines
+        );
+
+        const response = await client.messages.create({
+          model: 'claude-3-5-sonnet-20241010',
+          max_tokens: 1024,
+          temperature: 0.1,
+          messages: [{ role: 'user', content: prompt }],
+        });
+
+        const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+        return text;
+      } catch (error) {
+        throw new Error(
+          `Anthropic API error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
+    }, options);
+  }
+
+  /**
+   * Create a prompt for a chat conversation.
+   */
+  private static createChatPrompt(
+    chatHistory: any[],
+    filePath: string,
+    fileContent?: string,
+    lineNumber?: number,
+    lineContent?: string,
+    contextLines: number = 5
+  ): string {
+    const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
+    const language = this.getLanguageFromExtension(fileExtension);
+
+    let prompt = `You are a helpful code assistant. The user wants to discuss the following code snippet from the file "${filePath}".
+
+**File:** ${filePath}
+**Language:** ${language}`;
+
+    if (lineNumber) {
+      prompt += `\n**Line number:** ${lineNumber}`;
+    }
+    if (lineContent) {
+      prompt += `\n**Target line:** \`${lineContent}\``;
+    }
+
+    prompt += '\n\n';
+
+    if (fileContent && lineNumber) {
+      const lines = fileContent.split('\n');
+      const targetLineIndex = lineNumber - 1;
+      const start = Math.max(0, targetLineIndex - contextLines);
+      const end = Math.min(lines.length, targetLineIndex + contextLines + 1);
+      const contextCode = lines
+        .slice(start, end)
+        .map((line, index) => {
+          const currentLineNumber = start + index + 1;
+          const isTargetLine = currentLineNumber === lineNumber;
+          return `${currentLineNumber.toString().padStart(4, ' ')}: ${
+            isTargetLine ? '>>> ' : '    '
+          }${line}`;
+        })
+        .join('\n');
+      prompt += `**Code context (lines ${start + 1}-${end}):**
+\`\`\`${language}
+${contextCode}
+\`\`\`\n\n`;
+    }
+
+    prompt += '**Conversation History:**\n';
+    chatHistory.forEach((message) => {
+      const content = message.parts ? message.parts[0].text : (message as any).content;
+      if (message.role === 'user') {
+        prompt += `User: ${content}\n`;
+      } else {
+        prompt += `Assistant: ${content}\n`;
+      }
+    });
+
+    prompt += '\n**Instructions:**\nBased on the conversation history and the code context, please provide a helpful and concise response to the latest user message. If the user is asking a question, answer it. If they are giving a command, fulfill it. The response should be in plain text, not JSON.';
+
+    return prompt;
+  }
+
+  /**
    * Get programming language from file extension
    */
   private static getLanguageFromExtension(extension: string): string {
