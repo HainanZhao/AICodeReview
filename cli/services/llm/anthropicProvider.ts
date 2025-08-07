@@ -1,11 +1,6 @@
 import { ReviewRequest, ReviewResponse } from './types.js';
 import { Request, Response } from 'express';
-import {
-  AIProviderCore,
-  buildReviewPrompt,
-  parseAIResponse,
-  type AIReviewRequest,
-} from '../../shared/index.js';
+import { AIProviderCore, parseAIResponse } from '../../shared/index.js';
 import { ReviewResponseProcessor } from './reviewResponseProcessor.js';
 import { BaseLLMProvider } from './baseLLMProvider.js';
 
@@ -14,22 +9,6 @@ export class AnthropicProvider extends BaseLLMProvider {
 
   constructor(apiKey: string) {
     super(apiKey);
-  }
-
-  private buildPrompt(request: ReviewRequest): string {
-    // Convert ReviewRequest to AIReviewRequest format
-    const aiRequest: AIReviewRequest = {
-      title: request.title || 'Code Review',
-      description: request.description || '',
-      sourceBranch: request.sourceBranch || 'feature-branch',
-      targetBranch: request.targetBranch || 'main',
-      diffContent: request.diffForPrompt, // This already includes file contents when appropriate
-      parsedDiffs: request.parsedDiffs || [],
-      existingFeedback: request.existingFeedback || [],
-      authorName: request.authorName || 'Unknown',
-    };
-
-    return buildReviewPrompt(aiRequest);
   }
 
   public async reviewCode(req: Request, res: Response): Promise<void> {

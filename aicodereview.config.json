@@ -1,0 +1,14 @@
+{
+  "server": {
+    "port": 5960,
+    "host": "localhost"
+  },
+  "llm": {
+    "provider": "gemini-cli",
+    "googleCloudProject": "test-project"
+  },
+  "ui": {
+    "theme": "light",
+    "autoOpen": false
+  }
+}

@@ -12,6 +12,7 @@
 - 🚀 **CLI-First Approach**: Seamless integration into your development workflow for quick reviews.
 - 🤖 **Multiple AI Providers**: Support for Gemini CLI (default), Google Gemini API, and Anthropic Claude.
 - 🌐 **Optional Web Interface**: A React-based UI for interactive review management.
+- 💡 **AI Line Explanations**: Get instant explanations for any line of code by hovering over it in the web interface.
 - ⚙️ **Flexible Configuration**: Configure via CLI arguments, interactive wizard, config files, or environment variables.
 - 🔍 **GitLab Integration**: Direct merge request analysis and comment posting.
 

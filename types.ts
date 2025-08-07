@@ -203,3 +203,19 @@ export interface PostDiscussionResponse {
   result?: any;
   error?: string;
 }
+
+// AI Explain feature types
+export interface ExplainLineRequest {
+  lineContent: string;
+  lineNumber: number;
+  filePath: string;
+  fileContent?: string;
+  contextLines?: number;
+  gitlabConfig?: GitLabConfig;
+}
+
+export interface ExplainLineResponse {
+  success: boolean;
+  explanation?: string;
+  error?: string;
+}

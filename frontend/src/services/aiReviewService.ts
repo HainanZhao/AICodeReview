@@ -163,3 +163,66 @@ export const reviewCode = async (
   // This function is deprecated - return empty feedback for compatibility
   return { feedback: [] };
 };
+
+/**
+ * Get AI explanation for a specific line of code
+ */
+export const explainLine = async (
+  lineContent: string,
+  filePath: string,
+  lineNumber?: number,
+  fileContent?: string,
+  contextLines: number = 5
+): Promise<string> => {
+  if (!lineContent || !filePath) {
+    throw new Error('Line content and file path are required for explanation.');
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+
+  try {
+    const response = await fetch('/api/explain-line', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        lineContent,
+        lineNumber,
+        filePath,
+        fileContent,
+        contextLines,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `AI Explain failed with status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch {
+        // If we can't parse JSON, use default message
+      }
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || 'AI Explain failed');
+    }
+
+    return result.explanation || 'No explanation available';
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('The AI explanation request timed out. Please try again.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};

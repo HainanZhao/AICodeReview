@@ -1,12 +1,7 @@
-import { ReviewRequest, ReviewResponse } from './types.js';
 import { Request, Response } from 'express';
-import {
-  GeminiCliCore,
-  GeminiCliItem,
-  buildReviewPrompt,
-  type AIReviewRequest,
-} from '../../shared/index.js';
+import { GeminiCliCore, GeminiCliItem } from '../../shared/index.js';
 import { BaseLLMProvider } from './baseLLMProvider.js';
+import { ReviewRequest, ReviewResponse } from './types.js';
 
 export class GeminiCliProvider extends BaseLLMProvider {
   readonly providerName = 'gemini-cli';
@@ -20,22 +15,6 @@ export class GeminiCliProvider extends BaseLLMProvider {
     } catch {
       return false;
     }
-  }
-
-  private buildPrompt(request: ReviewRequest): string {
-    // Convert ReviewRequest to AIReviewRequest format
-    const aiRequest: AIReviewRequest = {
-      title: request.title || 'Code Review',
-      description: request.description || '',
-      sourceBranch: request.sourceBranch || 'feature-branch',
-      targetBranch: request.targetBranch || 'main',
-      diffContent: request.diffForPrompt, // This already includes file contents when appropriate
-      parsedDiffs: request.parsedDiffs || [],
-      existingFeedback: request.existingFeedback || [],
-      authorName: request.authorName || 'Unknown',
-    };
-
-    return buildReviewPrompt(aiRequest);
   }
 
   public async initializeWithCleanup(): Promise<void> {
@@ -81,5 +60,224 @@ export class GeminiCliProvider extends BaseLLMProvider {
       // Return empty array for preparation errors
       res.json([]);
     }
+  }
+
+  /**
+   * Generate explanation for a specific line of code using Gemini CLI
+   */
+  public async explainLine(
+    lineContent: string,
+    filePath: string,
+    fileContent?: string,
+    contextLines: number = 5,
+    lineNumber?: number
+  ): Promise<string> {
+    try {
+      const prompt = this.createExplanationPrompt(
+        lineContent,
+        filePath,
+        fileContent,
+        contextLines,
+        lineNumber
+      );
+      const rawOutput = await GeminiCliCore.executeExplanation(prompt, { verbose: false });
+
+      // Try to extract JSON from the output first
+      const jsonExplanation = this.extractJsonExplanation(rawOutput);
+      if (jsonExplanation) {
+        return jsonExplanation;
+      }
+
+      // Fallback to raw output if no JSON found
+      return rawOutput.trim();
+    } catch (error) {
+      throw new Error(
+        `Gemini CLI error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * Extract JSON explanation from AI output, handling mixed content
+   */
+  private extractJsonExplanation(output: string): string | null {
+    try {
+      // Look for JSON object in the output
+      const jsonMatch = output.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+        const jsonContent = jsonMatch[0];
+        const parsed = JSON.parse(jsonContent);
+
+        // Check if it has an explanation field
+        if (parsed.explanation && typeof parsed.explanation === 'string') {
+          return parsed.explanation;
+        }
+      }
+
+      // Look for JSON with different structure
+      const arrayMatch = output.match(/\[[\s\S]*?\]/);
+      if (arrayMatch) {
+        const jsonContent = arrayMatch[0];
+        const parsed = JSON.parse(jsonContent);
+
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].explanation) {
+          return parsed[0].explanation;
+        }
+      }
+
+      return null;
+    } catch {
+      // JSON parsing failed, return null to use fallback
+      return null;
+    }
+  }
+
+  /**
+   * Create a prompt for explaining a specific line of code with enhanced context awareness
+   */
+  private createExplanationPrompt(
+    lineContent: string,
+    filePath: string,
+    fileContent?: string,
+    contextLines: number = 5,
+    lineNumber?: number
+  ): string {
+    const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
+    const language = this.getLanguageFromExtension(fileExtension);
+
+    let prompt = `You are a helpful code assistant. When explaining code, prioritize context and broader understanding over line-by-line analysis.
+
+**File:** ${filePath}
+**Language:** ${language}
+**Target line:** \`${lineContent}\``;
+
+    if (lineNumber) {
+      prompt += `\n**Line number:** ${lineNumber}`;
+    }
+
+    prompt += '\n\n';
+
+    let contextCode = '';
+    let hasContext = false;
+
+    if (fileContent) {
+      // If we have full file content, try to extract context around the line
+      const lines = fileContent.split('\n');
+      let targetLineIndex = -1;
+
+      // Try to find the line by line number first (more reliable)
+      if (lineNumber && lineNumber > 0 && lineNumber <= lines.length) {
+        targetLineIndex = lineNumber - 1; // Convert to 0-based index
+      } else {
+        // Fallback to content match
+        targetLineIndex = lines.findIndex((line) => line.trim() === lineContent.trim());
+      }
+
+      if (targetLineIndex >= 0) {
+        const start = Math.max(0, targetLineIndex - contextLines);
+        const end = Math.min(lines.length, targetLineIndex + contextLines + 1);
+        contextCode = lines
+          .slice(start, end)
+          .map((line, index) => {
+            const lineNumber = start + index + 1;
+            const isTargetLine = start + index === targetLineIndex;
+            return `${lineNumber.toString().padStart(3, ' ')}: ${
+              isTargetLine ? '>>> ' : '    '
+            }${line}`;
+          })
+          .join('\n');
+
+        hasContext = true;
+        prompt += `**Code context (lines ${start + 1}-${end}):**
+\`\`\`${language}
+${contextCode}
+\`\`\`
+
+`;
+      }
+    }
+
+    if (hasContext) {
+      prompt += `**Instructions:**
+Analyze the code context above and provide an explanation that prioritizes broader understanding:
+
+1. **Context Analysis**: First, identify what broader code structure this line belongs to (e.g., SQL query, function definition, loop, conditional block, class method, etc.)
+
+2. **Primary Explanation**: 
+   - If this line is part of a larger logical unit (like a multi-line SQL query, function body, or complex expression), explain the overall purpose and functionality of that unit
+   - If this line is standalone, explain what it does and why
+
+3. **Specific Line Details**: Then provide details about the specific line's role within that broader context
+
+4. **Technical Context**: Include any important technical details about how this fits into the overall logic
+
+**For SQL queries specifically**: Explain what data is being retrieved/modified and the business purpose, not just the syntax.
+**For function calls**: Explain what the function accomplishes and how this line contributes.
+**For complex expressions**: Break down the logic and the intended outcome.
+
+Prioritize usefulness to a developer trying to understand the code's purpose over detailed syntax explanation.`;
+    } else {
+      prompt += `**Instructions:**
+Since limited context is available, provide the best explanation possible for this line:
+
+1. **What it does**: Explain the line's functionality
+2. **Likely purpose**: Based on the content, infer the probable purpose or business logic
+3. **Technical details**: Any important implementation details
+
+Focus on helping a developer understand both the "what" and the "why" of this code.`;
+    }
+
+    prompt += `
+
+IMPORTANT: Return your response as a JSON object with the following format:
+{
+  "explanation": "Your detailed explanation here..."
+}
+
+Make sure to return only valid JSON with no additional text before or after.`;
+
+    return prompt;
+  }
+
+  /**
+   * Get programming language from file extension
+   */
+  private getLanguageFromExtension(extension: string): string {
+    const languageMap: Record<string, string> = {
+      js: 'javascript',
+      jsx: 'javascript',
+      ts: 'typescript',
+      tsx: 'typescript',
+      py: 'python',
+      java: 'java',
+      c: 'c',
+      cpp: 'cpp',
+      h: 'c',
+      hpp: 'cpp',
+      cs: 'csharp',
+      php: 'php',
+      rb: 'ruby',
+      go: 'go',
+      rs: 'rust',
+      kt: 'kotlin',
+      swift: 'swift',
+      scala: 'scala',
+      sh: 'shell',
+      bash: 'shell',
+      ps1: 'powershell',
+      sql: 'sql',
+      html: 'html',
+      css: 'css',
+      scss: 'scss',
+      less: 'less',
+      json: 'json',
+      xml: 'xml',
+      yaml: 'yaml',
+      yml: 'yaml',
+      md: 'markdown',
+      dockerfile: 'dockerfile',
+    };
+
+    return languageMap[extension] || extension || 'text';
   }
 }

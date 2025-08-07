@@ -14,7 +14,8 @@
     "inlineSourceMap": false,
     "inlineSources": true,
     "outDir": "../dist",
-    "rootDir": "."
+    "rootDir": ".",
+    "types": ["node"]
   },
   "include": [
     "./**/*"
