@@ -130,7 +130,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       }
     });
 
-    // AI Explain Line endpoint
+    // AI Explain Line endpoint (legacy, maintained for backward compatibility)
     app.post('/api/explain-line', async (req, res) => {
       try {
         const { lineContent, lineNumber, filePath, fileContent, contextLines = 5 } = req.body;
@@ -155,8 +155,17 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
 
         let explanation: string;
 
-        // Use the configured LLM provider
-        if (config.llm.provider === 'gemini-cli') {
+        // Use mock provider for testing with test-key
+        if (config.llm.apiKey === 'test-key') {
+          const { MockLLMProvider } = await import('../services/mockLLMProvider.js');
+          explanation = await MockLLMProvider.explainLine(
+            lineContent,
+            filePath,
+            fileContent,
+            contextLines,
+            lineNumber
+          );
+        } else if (config.llm.provider === 'gemini-cli') {
           // Use the gemini-cli provider
           const { GeminiCliProvider } = await import('../services/llm/geminiCliProvider.js');
           const provider = new GeminiCliProvider();
@@ -198,6 +207,252 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
         });
       } catch (error) {
         console.error('Failed to explain line:', error);
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    });
+
+    // Import chat session store
+    const { chatSessionStore } = await import('../services/chatSessionStore.js');
+
+    // Start AI Chat Session endpoint
+    app.post('/api/start-chat', async (req, res) => {
+      try {
+        const { lineContent, lineNumber, filePath, fileContent, contextLines = 5 } = req.body;
+
+        // Validate required parameters
+        if (!lineContent) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing lineContent parameter',
+          });
+        }
+
+        if (!filePath) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing filePath parameter',
+          });
+        }
+
+        // Create new chat session
+        const sessionId = chatSessionStore.createSession(
+          lineContent,
+          filePath,
+          lineNumber,
+          fileContent,
+          contextLines
+        );
+
+        // Generate initial explanation
+        const { AIProviderCore } = await import('../shared/services/aiProviderCore.js');
+        let explanation: string;
+
+        // Use mock provider for testing with test-key
+        if (config.llm.apiKey === 'test-key') {
+          const { MockLLMProvider } = await import('../services/mockLLMProvider.js');
+          explanation = await MockLLMProvider.explainLine(
+            lineContent,
+            filePath,
+            fileContent,
+            contextLines,
+            lineNumber
+          );
+        } else if (config.llm.provider === 'gemini-cli') {
+          const { GeminiCliProvider } = await import('../services/llm/geminiCliProvider.js');
+          const provider = new GeminiCliProvider();
+          explanation = await provider.explainLine(
+            lineContent,
+            filePath,
+            fileContent,
+            contextLines,
+            lineNumber
+          );
+        } else if (config.llm.provider === 'gemini' && config.llm.apiKey) {
+          explanation = await AIProviderCore.generateGeminiExplanation(
+            config.llm.apiKey,
+            lineContent,
+            filePath,
+            fileContent,
+            contextLines,
+            lineNumber
+          );
+        } else if (config.llm.provider === 'anthropic' && config.llm.apiKey) {
+          explanation = await AIProviderCore.generateAnthropicExplanation(
+            config.llm.apiKey,
+            lineContent,
+            filePath,
+            fileContent,
+            contextLines,
+            lineNumber
+          );
+        } else {
+          return res.status(400).json({
+            success: false,
+            error: `Unsupported LLM provider: ${config.llm.provider} or API key missing`,
+          });
+        }
+
+        // Add initial explanation as assistant message
+        chatSessionStore.addMessage(sessionId, 'assistant', explanation);
+
+        res.json({
+          success: true,
+          sessionId,
+          explanation,
+          messages: chatSessionStore.getMessages(sessionId),
+        });
+      } catch (error) {
+        console.error('Failed to start chat:', error);
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    });
+
+    // Continue AI Chat endpoint
+    app.post('/api/chat', async (req, res) => {
+      try {
+        const { sessionId, message } = req.body;
+
+        // Validate required parameters
+        if (!sessionId) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing sessionId parameter',
+          });
+        }
+
+        if (!message || typeof message !== 'string' || message.trim().length === 0) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing or empty message parameter',
+          });
+        }
+
+        // Get session
+        const session = chatSessionStore.getSession(sessionId);
+        if (!session) {
+          return res.status(404).json({
+            success: false,
+            error: 'Chat session not found or expired',
+          });
+        }
+
+        // Add user message
+        chatSessionStore.addMessage(sessionId, 'user', message.trim());
+
+        // Build conversation context for AI
+        const conversationHistory = session.messages
+          .map((msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+          .join('\n\n');
+
+        const contextPrompt = `File: ${session.filePath}
+Line: ${session.lineContent}
+${session.lineNumber ? `Line number: ${session.lineNumber}` : ''}
+
+Previous conversation:
+${conversationHistory}
+
+User's new question: ${message.trim()}
+
+Please respond to the user's question in the context of the code line and previous conversation. Keep your response helpful and concise.`;
+
+        // Generate AI response
+        const { AIProviderCore } = await import('../shared/services/aiProviderCore.js');
+        let response: string;
+
+        // Use mock provider for testing with test-key
+        if (config.llm.apiKey === 'test-key') {
+          const { MockLLMProvider } = await import('../services/mockLLMProvider.js');
+          response = await MockLLMProvider.generateChatResponse(
+            conversationHistory,
+            message.trim(),
+            session.lineContent,
+            session.filePath
+          );
+        } else if (config.llm.provider === 'gemini-cli') {
+          const { GeminiCliProvider } = await import('../services/llm/geminiCliProvider.js');
+          const provider = new GeminiCliProvider();
+          response = await provider.explainLine(
+            contextPrompt,
+            session.filePath,
+            session.fileContent,
+            session.contextLines
+          );
+        } else if (config.llm.provider === 'gemini' && config.llm.apiKey) {
+          response = await AIProviderCore.generateGeminiExplanation(
+            config.llm.apiKey,
+            contextPrompt,
+            session.filePath,
+            session.fileContent,
+            session.contextLines
+          );
+        } else if (config.llm.provider === 'anthropic' && config.llm.apiKey) {
+          response = await AIProviderCore.generateAnthropicExplanation(
+            config.llm.apiKey,
+            contextPrompt,
+            session.filePath,
+            session.fileContent,
+            session.contextLines
+          );
+        } else {
+          return res.status(400).json({
+            success: false,
+            error: `Unsupported LLM provider: ${config.llm.provider} or API key missing`,
+          });
+        }
+
+        // Add AI response to session
+        chatSessionStore.addMessage(sessionId, 'assistant', response);
+
+        res.json({
+          success: true,
+          sessionId,
+          response,
+          messages: chatSessionStore.getMessages(sessionId),
+        });
+      } catch (error) {
+        console.error('Failed to continue chat:', error);
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    });
+
+    // Get Chat Messages endpoint
+    app.get('/api/chat/:sessionId', async (req, res) => {
+      try {
+        const { sessionId } = req.params;
+
+        if (!sessionId) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing sessionId parameter',
+          });
+        }
+
+        const session = chatSessionStore.getSession(sessionId);
+        if (!session) {
+          return res.status(404).json({
+            success: false,
+            error: 'Chat session not found or expired',
+          });
+        }
+
+        res.json({
+          success: true,
+          sessionId,
+          messages: session.messages,
+          lineContent: session.lineContent,
+          filePath: session.filePath,
+        });
+      } catch (error) {
+        console.error('Failed to get chat messages:', error);
         res.status(500).json({
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -268,7 +523,10 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       console.log(`   • POST ${url}/api/review-mr - Unified MR review endpoint`);
       console.log(`   • POST ${url}/api/config - Configuration endpoint`);
       console.log(`   • POST ${url}/api/post-discussion - Post GitLab discussion endpoint`);
-      console.log(`   • POST ${url}/api/explain-line - AI explain code line endpoint`);
+      console.log(`   • POST ${url}/api/explain-line - AI explain code line endpoint (legacy)`);
+      console.log(`   • POST ${url}/api/start-chat - Start AI chat session for code line`);
+      console.log(`   • POST ${url}/api/chat - Continue AI chat conversation`);
+      console.log(`   • GET ${url}/api/chat/:sessionId - Get chat messages`);
       console.log(`   🛑 Press Ctrl+C to stop\n`);
     } else {
       console.log('\n✅ AI Code Review is ready!');
