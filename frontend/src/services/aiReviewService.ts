@@ -172,7 +172,7 @@ export const explainLine = async (
   filePath: string,
   lineNumber?: number,
   fileContent?: string,
-  contextLines: number = 3
+  contextLines: number = 5
 ): Promise<string> => {
   if (!lineContent || !filePath) {
     throw new Error('Line content and file path are required for explanation.');

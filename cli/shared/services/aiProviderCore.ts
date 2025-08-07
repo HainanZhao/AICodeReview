@@ -215,7 +215,7 @@ export class AIProviderCore {
     lineContent: string,
     filePath: string,
     fileContent?: string,
-    contextLines: number = 3,
+    contextLines: number = 5,
     lineNumber?: number,
     options: RetryOptions = {}
   ): Promise<string> {
@@ -279,7 +279,7 @@ export class AIProviderCore {
     lineContent: string,
     filePath: string,
     fileContent?: string,
-    contextLines: number = 3,
+    contextLines: number = 5,
     lineNumber?: number,
     options: RetryOptions = {}
   ): Promise<string> {
@@ -314,29 +314,32 @@ export class AIProviderCore {
   }
 
   /**
-   * Create a prompt for explaining a specific line of code
+   * Create a prompt for explaining a specific line of code with enhanced context awareness
    */
   private static createExplanationPrompt(
     lineContent: string,
     filePath: string,
     fileContent?: string,
-    contextLines: number = 3,
+    contextLines: number = 5,
     lineNumber?: number
   ): string {
     const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
     const language = this.getLanguageFromExtension(fileExtension);
 
-    let prompt = `You are a helpful code assistant. Please explain what the following code does in a clear, concise manner. If it's a function or code block, explain its overall purpose and functionality. If it's a single line, explain what that line accomplishes.
+    let prompt = `You are a helpful code assistant. When explaining code, prioritize context and broader understanding over line-by-line analysis.
 
 **File:** ${filePath}
 **Language:** ${language}
-**Code:** \`${lineContent}\``;
+**Target line:** \`${lineContent}\``;
 
     if (lineNumber) {
       prompt += `\n**Line number:** ${lineNumber}`;
     }
 
     prompt += '\n\n';
+
+    let contextCode = '';
+    let hasContext = false;
 
     if (fileContent) {
       // If we have full file content, try to extract context around the line
@@ -354,7 +357,7 @@ export class AIProviderCore {
       if (targetLineIndex >= 0) {
         const start = Math.max(0, targetLineIndex - contextLines);
         const end = Math.min(lines.length, targetLineIndex + contextLines + 1);
-        const contextCode = lines
+        contextCode = lines
           .slice(start, end)
           .map((line, index) => {
             const lineNumber = start + index + 1;
@@ -365,7 +368,8 @@ export class AIProviderCore {
           })
           .join('\n');
 
-        prompt += `**Context (lines ${start + 1}-${end}):**
+        hasContext = true;
+        prompt += `**Code context (lines ${start + 1}-${end}):**
 \`\`\`${language}
 ${contextCode}
 \`\`\`
@@ -374,12 +378,37 @@ ${contextCode}
       }
     }
 
-    prompt += `Please provide a brief explanation focusing on:
-1. What this code does (whether it's a single line, function, or code block)
-2. Its purpose in the context
-3. Any important technical details
+    if (hasContext) {
+      prompt += `**Instructions:**
+Analyze the code context above and provide an explanation that prioritizes broader understanding:
 
-Keep the explanation concise but informative, suitable for a developer reviewing the code.
+1. **Context Analysis**: First, identify what broader code structure this line belongs to (e.g., SQL query, function definition, loop, conditional block, class method, etc.)
+
+2. **Primary Explanation**: 
+   - If this line is part of a larger logical unit (like a multi-line SQL query, function body, or complex expression), explain the overall purpose and functionality of that unit
+   - If this line is standalone, explain what it does and why
+
+3. **Specific Line Details**: Then provide details about the specific line's role within that broader context
+
+4. **Technical Context**: Include any important technical details about how this fits into the overall logic
+
+**For SQL queries specifically**: Explain what data is being retrieved/modified and the business purpose, not just the syntax.
+**For function calls**: Explain what the function accomplishes and how this line contributes.
+**For complex expressions**: Break down the logic and the intended outcome.
+
+Prioritize usefulness to a developer trying to understand the code's purpose over detailed syntax explanation.`;
+    } else {
+      prompt += `**Instructions:**
+Since limited context is available, provide the best explanation possible for this line:
+
+1. **What it does**: Explain the line's functionality
+2. **Likely purpose**: Based on the content, infer the probable purpose or business logic
+3. **Technical details**: Any important implementation details
+
+Focus on helping a developer understand both the "what" and the "why" of this code.`;
+    }
+
+    prompt += `
 
 IMPORTANT: Return your response as a JSON object with the following format:
 {

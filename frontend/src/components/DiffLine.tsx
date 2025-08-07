@@ -66,7 +66,7 @@ export const DiffLine: React.FC<DiffLineProps> = ({
       const contentToUse = line.type === 'remove' ? (oldFileContent ?? '') : (fileContent ?? '');
       const lineNumberToUse = line.type === 'remove' ? line.oldLine : line.newLine || line.oldLine;
 
-      const result = await explainLine(line.content, filePath, lineNumberToUse, contentToUse, 3);
+      const result = await explainLine(line.content, filePath, lineNumberToUse, contentToUse, 5);
       setExplanation(result);
     } catch (error) {
       setExplanationError(error instanceof Error ? error.message : 'Failed to get explanation');
