@@ -19,17 +19,9 @@ interface HeaderProps {
   onOpenSettings: () => void;
   onToggleTheme: () => void;
   currentTheme: 'light' | 'dark';
-  onShowSyntaxDemo?: () => void;
-  showingSyntaxDemo?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ 
-  onOpenSettings, 
-  onToggleTheme, 
-  currentTheme, 
-  onShowSyntaxDemo, 
-  showingSyntaxDemo 
-}) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onToggleTheme, currentTheme }) => {
   return (
     <header className="bg-white/80 dark:bg-brand-surface/50 backdrop-blur-sm border-b border-gray-200 dark:border-brand-primary/50 sticky top-0 z-20">
       <div className="w-full px-4 md:px-6 lg:px-8">
@@ -46,19 +38,6 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            {onShowSyntaxDemo && (
-              <button
-                onClick={onShowSyntaxDemo}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                  showingSyntaxDemo
-                    ? 'bg-brand-secondary text-white'
-                    : 'bg-gray-100 dark:bg-brand-primary text-gray-700 dark:text-brand-text hover:bg-gray-200 dark:hover:bg-brand-primary/80'
-                }`}
-                aria-label="Show syntax highlighting demo"
-              >
-                {showingSyntaxDemo ? 'Hide Demo' : 'Syntax Demo'}
-              </button>
-            )}
             <button
               onClick={onToggleTheme}
               className="p-2 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-gray-200 dark:hover:bg-brand-primary hover:text-gray-900 dark:hover:text-white transition-colors"

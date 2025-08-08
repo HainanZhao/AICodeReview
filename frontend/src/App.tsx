@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { Header } from './components/Header';
 import { ReviewDashboard } from './components/CodeEditor';
 import { FeedbackPanel } from './components/FeedbackPanel';
-import { SyntaxHighlightingDemo } from './components/SyntaxHighlightingDemo';
 import { fetchMrDetailsOnly, runAiReview } from './services/aiReviewService';
 import { fetchProjects, postDiscussion, approveMergeRequest } from './services/gitlabService';
 import {
@@ -44,7 +43,6 @@ function App() {
   const [projects, setProjects] = useState<GitLabProject[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [showSyntaxDemo, setShowSyntaxDemo] = useState<boolean>(false);
 
   useEffect(() => {
     const savedTheme = loadTheme();
@@ -518,8 +516,6 @@ function App() {
         onOpenSettings={() => setIsConfigModalOpen(true)}
         onToggleTheme={handleThemeToggle}
         currentTheme={theme}
-        onShowSyntaxDemo={() => setShowSyntaxDemo(!showSyntaxDemo)}
-        showingSyntaxDemo={showSyntaxDemo}
       />
       <ConfigModal
         isOpen={isConfigModalOpen}
@@ -530,54 +526,48 @@ function App() {
         configSource={configSource}
       />
       <main className="flex-grow w-full px-2 md:px-4 lg:px-4 py-2 md:py-3 lg:py-3 h-full">
-        {showSyntaxDemo ? (
-          <div className="h-full overflow-y-auto bg-white dark:bg-brand-surface rounded-lg">
-            <SyntaxHighlightingDemo isDarkMode={theme === 'dark'} />
-          </div>
-        ) : (
-          <ResizablePane
-            defaultSizePercent={mrDetails ? 25 : 33}
-            minSizePercent={20}
-            maxSizePercent={50}
-            className="h-full"
-            storageKey="main-layout"
-          >
-            <div className="flex flex-col h-full">
-              {mrDetails ? (
-                <MrSummary mrDetails={mrDetails} onNewReview={handleNewReview} />
-              ) : (
-                <ReviewDashboard
-                  onReview={handleReviewRequest}
-                  isLoading={isLoading}
-                  config={config}
-                  projects={projects}
-                  isLoadingProjects={isLoadingProjects}
-                />
-              )}
-            </div>
-            <div className="flex flex-col h-full">
-              <FeedbackPanel
-                feedback={feedback}
-                mrDetails={mrDetails}
+        <ResizablePane
+          defaultSizePercent={mrDetails ? 25 : 33}
+          minSizePercent={20}
+          maxSizePercent={50}
+          className="h-full"
+          storageKey="main-layout"
+        >
+          <div className="flex flex-col h-full">
+            {mrDetails ? (
+              <MrSummary mrDetails={mrDetails} onNewReview={handleNewReview} />
+            ) : (
+              <ReviewDashboard
+                onReview={handleReviewRequest}
                 isLoading={isLoading}
-                error={error}
-                onPostComment={handlePostComment}
-                onPostAllComments={handlePostAllComments}
-                onUpdateFeedback={handleUpdateFeedback}
-                onDeleteFeedback={handleDeleteFeedback}
-                onSetEditing={handleSetEditing}
-                onAddCustomFeedback={handleAddCustomFeedback}
-                onToggleHunkCollapse={handleToggleHunkCollapse}
-                onExpandHunkContext={handleExpandHunkContext}
-                onToggleIgnoreFeedback={handleToggleIgnoreFeedback}
-                isAiAnalyzing={isAiAnalyzing}
-                onApproveMR={handleApproveMR}
-                onRedoReview={handleRedoReview}
-                onClearError={handleClearError}
+                config={config}
+                projects={projects}
+                isLoadingProjects={isLoadingProjects}
               />
-            </div>
-          </ResizablePane>
-        )}
+            )}
+          </div>
+          <div className="flex flex-col h-full">
+            <FeedbackPanel
+              feedback={feedback}
+              mrDetails={mrDetails}
+              isLoading={isLoading}
+              error={error}
+              onPostComment={handlePostComment}
+              onPostAllComments={handlePostAllComments}
+              onUpdateFeedback={handleUpdateFeedback}
+              onDeleteFeedback={handleDeleteFeedback}
+              onSetEditing={handleSetEditing}
+              onAddCustomFeedback={handleAddCustomFeedback}
+              onToggleHunkCollapse={handleToggleHunkCollapse}
+              onExpandHunkContext={handleExpandHunkContext}
+              onToggleIgnoreFeedback={handleToggleIgnoreFeedback}
+              isAiAnalyzing={isAiAnalyzing}
+              onApproveMR={handleApproveMR}
+              onRedoReview={handleRedoReview}
+              onClearError={handleClearError}
+            />
+          </div>
+        </ResizablePane>
       </main>
     </div>
   );
