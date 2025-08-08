@@ -118,6 +118,19 @@ const generateLineCode = (
 };
 
 /**
+ * Helper function to format comment body with appropriate prefix
+ */
+const formatCommentBody = (feedback: ReviewFeedback): string => {
+  // Use different prefixes for AI vs manual comments
+  const isManualComment = feedback.title === 'Manual Input' || feedback.isNewlyAdded;
+  const prefix = isManualComment ? '' : '[AI] ';
+
+  return `**${prefix}${feedback.severity}: ${feedback.title}**
+
+${feedback.description}`;
+};
+
+/**
  * Posts a review comment to GitLab with fallback to general comment if inline posting fails
  */
 export const postDiscussion = async (
@@ -127,15 +140,7 @@ export const postDiscussion = async (
 ): Promise<GitLabDiscussion> => {
   const { projectId, mrIid } = mrDetails;
 
-  // Use different prefixes for AI vs manual comments
-  const isManualComment = feedback.title === 'Manual Input' || feedback.isNewlyAdded;
-  const prefix = isManualComment ? '' : '[AI] ';
-
-  const baseBody = `
-**${prefix}${feedback.severity}: ${feedback.title}**
-
-${feedback.description}
-    `;
+  const baseBody = formatCommentBody(feedback);
 
   // Use discussions endpoint for all comments (both inline and general)
   const url = `${config.url}/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions`;
@@ -241,15 +246,11 @@ ${feedback.description}
             fileLocationText = `📍 **File:** [${feedback.filePath} (line ${feedback.lineNumber})](${codeLink})`;
           }
 
-          return (
-            `
-**${prefix}${feedback.severity}: ${feedback.title}**` +
-            `
-${fileLocationText}` +
-            `
+          // Reuse the formatted comment body and add file location info
+          const formattedBody = formatCommentBody(feedback);
+          return `${formattedBody}
 
-${feedback.description}`
-          );
+${fileLocationText}`;
         })()
       : baseBody;
 
