@@ -127,8 +127,12 @@ export const postDiscussion = async (
 ): Promise<GitLabDiscussion> => {
   const { projectId, mrIid } = mrDetails;
 
+  // Use different prefixes for AI vs manual comments
+  const isManualComment = feedback.title === 'Manual Input' || feedback.isNewlyAdded;
+  const prefix = isManualComment ? '' : '[AI] ';
+
   const baseBody = `
-**[AI] ${feedback.severity}: ${feedback.title}**
+**${prefix}${feedback.severity}: ${feedback.title}**
 
 ${feedback.description}
     `;
@@ -239,7 +243,7 @@ ${feedback.description}
 
           return (
             `
-**[AI] ${feedback.severity}: ${feedback.title}**` +
+**${prefix}${feedback.severity}: ${feedback.title}**` +
             `
 ${fileLocationText}` +
             `
