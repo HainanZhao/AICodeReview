@@ -3,6 +3,7 @@ import { explainLine } from '../services/aiReviewService';
 import { ParsedDiffLine } from '../types';
 import { ExplanationPopup } from './ExplanationPopup';
 import { AIExplainIcon, PlusIcon } from './icons';
+import { SyntaxHighlightedCode } from './SyntaxHighlightedCode';
 
 interface DiffLineProps {
   line: ParsedDiffLine;
@@ -36,6 +37,11 @@ export const DiffLine: React.FC<DiffLineProps> = ({
   const prefix = line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ';
   const canComment = line.type === 'add' || line.type === 'remove' || line.type === 'context';
   const canExplain = line.type !== 'meta' && line.content.trim().length > 0;
+
+  // Detect dark mode from document class
+  const isDarkMode = React.useMemo(() => {
+    return document.documentElement.classList.contains('dark');
+  }, []);
 
   // AI Explain state
   const [showExplanation, setShowExplanation] = React.useState(false);
@@ -151,7 +157,12 @@ export const DiffLine: React.FC<DiffLineProps> = ({
         </td>
         <td className="w-full pr-2 align-middle font-mono text-xs h-4">
           {line.type !== 'meta' && <span className="mr-1 select-none">{prefix}</span>}
-          <span className="whitespace-pre-wrap break-words">{line.content}</span>
+          <SyntaxHighlightedCode
+            code={line.content}
+            filePath={filePath}
+            isDarkMode={isDarkMode}
+            className="whitespace-pre-wrap break-words"
+          />
         </td>
       </tr>
 
