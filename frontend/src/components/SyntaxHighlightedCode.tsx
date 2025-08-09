@@ -1,6 +1,6 @@
 import React from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { oneDark, oneLight, vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { detectLanguageFromPath } from '../utils/languageDetection';
 
 interface SyntaxHighlightedCodeProps {
@@ -23,7 +23,8 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
     return <span className={className}>{code}</span>;
   }
   
-  const style = isDarkMode ? oneDark : oneLight;
+  // Use vscDarkPlus which has much better contrast than oneDark for dark mode
+  const style = isDarkMode ? vscDarkPlus : oneLight;
   
   return (
     <SyntaxHighlighter
