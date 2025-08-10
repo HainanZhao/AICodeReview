@@ -7,11 +7,10 @@ import {
   ReviewFeedback,
   Severity,
 } from '../types';
-import { getStoredViewMode, setStoredViewMode } from '../utils/viewModeStorage';
 import { DiffLine } from './DiffLine';
 import { FeedbackCard } from './FeedbackCard';
 import { SplitDiffView } from './SplitDiffView';
-import { ViewMode, ViewModeToggle } from './ViewModeToggle';
+import { ViewMode } from './ViewModeToggle';
 import { AddCommentIcon, ChevronDownIcon, ChevronUpIcon } from './icons';
 
 interface FileDiffCardProps {
@@ -33,6 +32,7 @@ interface FileDiffCardProps {
     lines: number
   ) => void;
   onToggleIgnoreFeedback: (id: string) => void;
+  viewMode: ViewMode;
 }
 
 const HunkHeader: React.FC<{ hunk: ParsedHunk; onClick: () => void }> = ({ hunk, onClick }) => (
@@ -79,15 +79,10 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
     activeFeedbackId,
     mrDetails,
     onToggleIgnoreFeedback,
+    viewMode,
     ...handlers
   } = props;
   const [expandedGaps, setExpandedGaps] = useState<[number, number][]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>(() => getStoredViewMode());
-
-  const handleViewModeChange = (newMode: ViewMode) => {
-    setViewMode(newMode);
-    setStoredViewMode(newMode);
-  };
 
   const { fileLevelFeedback, lineLevelFeedbackMap } = useMemo(() => {
     const fileLevel: ReviewFeedback[] = [];
@@ -336,7 +331,6 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
           )}
         </div>
         <div className="flex items-center space-x-3 flex-shrink-0">
-          <ViewModeToggle currentMode={viewMode} onModeChange={handleViewModeChange} />
           <div className="flex items-center space-x-2 font-mono text-sm">
             <span className="text-green-600 dark:text-green-400 font-bold">+{additions}</span>
             <span className="text-red-600 dark:text-red-400 font-bold">-{deletions}</span>
@@ -392,7 +386,6 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
           onDeleteFeedback={handlers.onDeleteFeedback}
           onSetEditing={handlers.onSetEditing}
           onAddCustomFeedback={handlers.onAddCustomFeedback}
-          onToggleHunkCollapse={handlers.onToggleHunkCollapse}
           onToggleIgnoreFeedback={onToggleIgnoreFeedback}
           lineLevelFeedbackMap={lineLevelFeedbackMap}
           expandedGaps={expandedGaps}
