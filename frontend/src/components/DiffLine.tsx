@@ -161,7 +161,7 @@ export const DiffLine: React.FC<DiffLineProps> = ({
             code={line.content}
             filePath={filePath}
             isDarkMode={isDarkMode}
-            className="whitespace-pre-wrap break-words"
+            className="whitespace-pre-wrap break-words bg-transparent"
           />
         </td>
       </tr>

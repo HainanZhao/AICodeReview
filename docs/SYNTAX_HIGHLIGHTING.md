@@ -85,10 +85,10 @@ Syntax highlighting is seamlessly integrated into the diff view through the `Dif
 
 The syntax highlighting automatically adapts to the current theme:
 
-- **Light Theme**: Uses the `oneLight` color scheme from Prism
-- **Dark Theme**: Uses the `oneDark` color scheme from Prism
+- **Light Theme**: Uses the `prism` color scheme for optimal readability
+- **Dark Theme**: Uses the `oneDark` color scheme with enhanced font rendering for crisp text display
 
-The theme is automatically detected from the document's dark mode class.
+The theme is automatically detected from the document's dark mode class. Font rendering is optimized to prevent blurry text in dark mode.
 
 ## Technical Implementation
 
@@ -197,3 +197,10 @@ If colors don't look right:
 1. Verify the theme detection is working
 2. Check if custom CSS is interfering
 3. Try toggling the theme manually
+
+### Font Rendering Issues
+If text appears blurry or has shadows in dark mode:
+1. The system automatically applies font-smoothing optimizations
+2. Text shadows are disabled for all syntax highlighting tokens
+3. If issues persist, check browser font rendering settings
+4. Try refreshing the page to ensure CSS changes are applied
