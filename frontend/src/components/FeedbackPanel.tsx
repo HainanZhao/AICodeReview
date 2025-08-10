@@ -1,16 +1,18 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ReviewFeedback,
   GitLabMRDetails,
   ParsedFileDiff,
   ParsedHunk,
+  ReviewFeedback,
   Severity,
 } from '../../../types';
 import { ParsedDiffLine } from '../types';
-import { FileDiffCard } from './FileDiffCard';
+import { getStoredViewMode, setStoredViewMode } from '../utils/viewModeStorage';
 import { FeedbackCard } from './FeedbackCard';
+import { FileDiffCard } from './FileDiffCard';
+import { ApproveIcon, ArrowDownIcon, ArrowUpIcon, CheckmarkIcon, RefreshIcon } from './icons';
 import { Spinner } from './Spinner';
-import { ArrowUpIcon, ArrowDownIcon, ApproveIcon, RefreshIcon, CheckmarkIcon } from './icons';
+import { ViewMode, ViewModeToggle } from './ViewModeToggle';
 
 interface FeedbackPanelProps {
   onRedoReview?: () => void;
@@ -111,6 +113,12 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
     ...handlers
   } = props;
   const [currentCommentIndex, setCurrentCommentIndex] = useState(-1);
+  const [globalViewMode, setGlobalViewMode] = useState<ViewMode>(() => getStoredViewMode());
+
+  const handleGlobalViewModeChange = (newMode: ViewMode) => {
+    setGlobalViewMode(newMode);
+    setStoredViewMode(newMode);
+  };
 
   const feedbackByFile = useMemo(() => {
     const result = new Map<string, ReviewFeedback[]>();
@@ -346,6 +354,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
               activeFeedbackId={activeFeedbackId}
               mrDetails={mrDetails}
               onToggleIgnoreFeedback={onToggleIgnoreFeedback}
+              viewMode={globalViewMode}
               {...handlers}
             />
           );
@@ -451,7 +460,10 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   return (
     <div className="bg-white dark:bg-brand-surface rounded-lg shadow-xl h-full flex flex-col">
       <div className="border-b border-gray-200 dark:border-brand-primary flex items-center justify-between px-4 py-2">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white">Review Feedback</h2>
+        <div className="flex items-center space-x-4">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Review Feedback</h2>
+          <ViewModeToggle currentMode={globalViewMode} onModeChange={handleGlobalViewModeChange} />
+        </div>
         <div className="flex items-center space-x-4">
           {onRedoReview && !isAiAnalyzing && mrDetails && (
             <button

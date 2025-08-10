@@ -38,7 +38,8 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
         fontSize: 'inherit',
         fontFamily: 'inherit',
         lineHeight: 'inherit',
-        // Fix font rendering issues in dark mode
+        display: 'inline',
+        // Improved font rendering
         textShadow: 'none',
         WebkitFontSmoothing: 'antialiased',
         MozOsxFontSmoothing: 'grayscale',
@@ -49,6 +50,7 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
           backgroundColor: 'transparent',
           fontFamily: 'inherit',
           fontSize: 'inherit',
+          display: 'inline',
           textShadow: 'none',
           WebkitFontSmoothing: 'antialiased',
           MozOsxFontSmoothing: 'grayscale',
@@ -58,7 +60,12 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
         <span
           {...props}
           className={className}
-          style={{ background: 'transparent', backgroundColor: 'transparent' }}
+          style={{
+            background: 'transparent',
+            backgroundColor: 'transparent',
+            display: 'inline',
+            whiteSpace: 'pre-wrap',
+          }}
         >
           {children}
         </span>
@@ -67,7 +74,11 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
         <span
           {...props}
           className={className}
-          style={{ background: 'transparent', backgroundColor: 'transparent' }}
+          style={{
+            background: 'transparent',
+            backgroundColor: 'transparent',
+            display: 'inline',
+          }}
         >
           {children}
         </span>

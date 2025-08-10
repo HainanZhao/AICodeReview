@@ -1,14 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import {
-  GitLabMRDetails,
-  ParsedDiffLine,
-  ParsedFileDiff,
-  ParsedHunk,
-  ReviewFeedback,
-  Severity,
+    GitLabMRDetails,
+    ParsedDiffLine,
+    ParsedFileDiff,
+    ParsedHunk,
+    ReviewFeedback,
+    Severity,
 } from '../types';
+import { getStoredViewMode, setStoredViewMode } from '../utils/viewModeStorage';
 import { DiffLine } from './DiffLine';
 import { FeedbackCard } from './FeedbackCard';
+import { SplitDiffView } from './SplitDiffView';
+import { ViewMode, ViewModeToggle } from './ViewModeToggle';
 import { AddCommentIcon, ChevronDownIcon, ChevronUpIcon } from './icons';
 
 interface FileDiffCardProps {
@@ -79,6 +82,12 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
     ...handlers
   } = props;
   const [expandedGaps, setExpandedGaps] = useState<[number, number][]>([]);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => getStoredViewMode());
+
+  const handleViewModeChange = (newMode: ViewMode) => {
+    setViewMode(newMode);
+    setStoredViewMode(newMode);
+  };
 
   const { fileLevelFeedback, lineLevelFeedbackMap } = useMemo(() => {
     const fileLevel: ReviewFeedback[] = [];
@@ -326,9 +335,12 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
             </span>
           )}
         </div>
-        <div className="flex items-center space-x-2 font-mono text-sm flex-shrink-0">
-          <span className="text-green-600 dark:text-green-400 font-bold">+{additions}</span>
-          <span className="text-red-600 dark:text-red-400 font-bold">-{deletions}</span>
+        <div className="flex items-center space-x-3 flex-shrink-0">
+          <ViewModeToggle currentMode={viewMode} onModeChange={handleViewModeChange} />
+          <div className="flex items-center space-x-2 font-mono text-sm">
+            <span className="text-green-600 dark:text-green-400 font-bold">+{additions}</span>
+            <span className="text-red-600 dark:text-red-400 font-bold">-{deletions}</span>
+          </div>
         </div>
       </div>
       {fileLevelFeedback.length > 0 && (
@@ -363,11 +375,31 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
           })}
         </div>
       )}
-      <div className="overflow-x-auto">
-        <table className="w-full font-mono text-sm border-separate" style={{ borderSpacing: 0 }}>
-          <tbody>{renderFileContent()}</tbody>
-        </table>
-      </div>
+      {viewMode === 'inline' ? (
+        <div className="overflow-x-auto">
+          <table className="w-full font-mono text-sm border-separate" style={{ borderSpacing: 0 }}>
+            <tbody>{renderFileContent()}</tbody>
+          </table>
+        </div>
+      ) : (
+        <SplitDiffView
+          fileDiff={fileDiff}
+          feedbackForFile={feedbackForFile}
+          onPostComment={onPostComment}
+          activeFeedbackId={activeFeedbackId}
+          mrDetails={mrDetails}
+          onUpdateFeedback={handlers.onUpdateFeedback}
+          onDeleteFeedback={handlers.onDeleteFeedback}
+          onSetEditing={handlers.onSetEditing}
+          onAddCustomFeedback={handlers.onAddCustomFeedback}
+          onToggleHunkCollapse={handlers.onToggleHunkCollapse}
+          onToggleIgnoreFeedback={onToggleIgnoreFeedback}
+          lineLevelFeedbackMap={lineLevelFeedbackMap}
+          expandedGaps={expandedGaps}
+          onExpandGap={handleExpandGap}
+          isGapExpanded={isGapExpanded}
+        />
+      )}
     </div>
   );
 };
