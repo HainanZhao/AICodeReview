@@ -398,9 +398,13 @@ function App() {
 
       // Combine all current feedback (including any manual comments) with new AI review comments
       setFeedback((currentFeedback) => {
-        // Keep all current feedback (manual + existing) and add new AI results
-        const existingFeedback = currentFeedback || mrDetails.existingFeedback || [];
-        const combinedFeedback = [...existingFeedback, ...aiResult.feedback];
+        // Filter out previous AI reviews (keep only existing GitLab comments and manual comments)
+        const nonAiFeedback = (currentFeedback || []).filter(
+          (f) => f.isExisting || f.isNewlyAdded || f.status === 'submitted'
+        );
+
+        // Combine filtered feedback with new AI results
+        const combinedFeedback = [...nonAiFeedback, ...aiResult.feedback];
 
         // Save updated state with new AI feedback
         saveReviewState(mrDetails, combinedFeedback, mrDetails.webUrl);
