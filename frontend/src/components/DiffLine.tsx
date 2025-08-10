@@ -39,8 +39,26 @@ export const DiffLine: React.FC<DiffLineProps> = ({
   const canExplain = line.type !== 'meta' && line.content.trim().length > 0;
 
   // Detect dark mode from document class
-  const isDarkMode = React.useMemo(() => {
+  const [isDarkMode, setIsDarkMode] = React.useState(() => {
     return document.documentElement.classList.contains('dark');
+  });
+
+  // Listen for theme changes
+  React.useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          setIsDarkMode(document.documentElement.classList.contains('dark'));
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
   }, []);
 
   // AI Explain state
