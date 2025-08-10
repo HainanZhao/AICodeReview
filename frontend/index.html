@@ -41,7 +41,50 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-  
+    
+    <style>
+      /* Ensure syntax highlighting doesn't interfere with diff line backgrounds */
+      .diff-line pre,
+      .diff-line code,
+      .diff-line .token,
+      .diff-line [class*="language-"] {
+        background: transparent !important;
+        background-color: transparent !important;
+      }
+      
+      /* Specifically target syntax highlighter elements in diff context */
+      tr.bg-green-100 pre,
+      tr.bg-green-100 code,
+      tr.bg-green-100 .token,
+      tr.bg-green-100 [class*="language-"],
+      tr.bg-red-100 pre,
+      tr.bg-red-100 code,
+      tr.bg-red-100 .token,
+      tr.bg-red-100 [class*="language-"],
+      tr[class*="bg-green"] pre,
+      tr[class*="bg-green"] code,
+      tr[class*="bg-green"] .token,
+      tr[class*="bg-green"] [class*="language-"],
+      tr[class*="bg-red"] pre,
+      tr[class*="bg-red"] code,
+      tr[class*="bg-red"] .token,
+      tr[class*="bg-red"] [class*="language-"] {
+        background: transparent !important;
+        background-color: transparent !important;
+      }
+      
+      /* Ensure spans within syntax highlighted code inherit the parent background */
+      .bg-green-100 span,
+      .bg-red-100 span,
+      .bg-blue-100 span,
+      .dark\\:bg-green-900 span,
+      .dark\\:bg-red-900 span,
+      .dark\\:bg-blue-900 span {
+        background: inherit !important;
+        background-color: inherit !important;
+      }
+    </style>
+    
   <script type="importmap">
 {
   "imports": {

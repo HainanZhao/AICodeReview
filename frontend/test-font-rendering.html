@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Font Rendering Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              mono: ['Fira Code', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+      /* Font rendering improvements for syntax highlighting */
+      .token, code, pre, .font-mono {
+        -webkit-font-smoothing: antialiased !important;
+        -moz-osx-font-smoothing: grayscale !important;
+        text-shadow: none !important;
+        text-rendering: optimizeLegibility;
+        font-variant-ligatures: none;
+      }
+      
+      .dark .token, .dark code, .dark pre, .dark .font-mono {
+        -webkit-font-smoothing: antialiased !important;
+        -moz-osx-font-smoothing: grayscale !important;
+        text-shadow: none !important;
+      }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+    <div class="container mx-auto p-8 space-y-6">
+        <div class="flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Font Rendering Test</h1>
+            <button onclick="toggleDarkMode()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                Toggle Dark Mode
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <h2 class="text-xl font-semibold">Before Fix (vscDarkPlus)</h2>
+            <div class="p-4 bg-white dark:bg-gray-800 rounded border">
+                <pre class="font-mono text-sm">
+                    <code style="color: #D4D4D4; text-shadow: 0.5px 0.5px 1px rgba(0,0,0,0.3);">
+// This simulates the old blurry font rendering
+function example() {
+    const message = "This text might appear blurry in dark mode";
+    console.log(message);
+    return true;
+}
+                    </code>
+                </pre>
+            </div>
+            
+            <h2 class="text-xl font-semibold">After Fix (oneDark + font smoothing)</h2>
+            <div class="p-4 bg-white dark:bg-gray-800 rounded border">
+                <pre class="font-mono text-sm">
+                    <code style="color: #D4D4D4;">
+// This simulates the fixed crisp font rendering
+function example() {
+    const message = "This text should appear crisp and clear";
+    console.log(message);
+    return true;
+}
+                    </code>
+                </pre>
+            </div>
+        </div>
+        
+        <div class="mt-8 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded">
+            <h3 class="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
+                ✅ Font Rendering Improvements Applied
+            </h3>
+            <ul class="space-y-1 text-sm text-green-700 dark:text-green-300">
+                <li>• Changed from vscDarkPlus to oneDark theme for better font rendering</li>
+                <li>• Applied -webkit-font-smoothing: antialiased</li>
+                <li>• Applied -moz-osx-font-smoothing: grayscale</li>
+                <li>• Disabled text-shadow that was causing blurriness</li>
+                <li>• Disabled font ligatures for cleaner code display</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+        
+        // Set initial theme
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+</body>
+</html>

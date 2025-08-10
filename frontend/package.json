@@ -10,8 +10,11 @@
     "clean": "rm -rf ../dist/public"
   },
   "dependencies": {
+    "@types/react-syntax-highlighter": "^15.5.13",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-syntax-highlighter": "^15.6.1",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/react": "^19.1.8",
