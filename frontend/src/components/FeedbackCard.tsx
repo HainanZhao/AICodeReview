@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ReviewFeedback, Severity } from '../../../types';
-import { AddCommentIcon, EditIcon, TrashIcon, EyeSlashIcon, CheckmarkIcon } from './icons';
+import { AddCommentIcon, CheckmarkIcon, EditIcon, EyeSlashIcon, TrashIcon } from './icons';
 import { Spinner } from './Spinner';
 
 const BugIcon = () => (
@@ -77,27 +77,15 @@ const ChevronDownIcon = () => (
 const SEVERITY_CONFIG = {
   [Severity.Critical]: {
     icon: <BugIcon />,
-    colorClass:
-      'border-rose-500/50 dark:bg-rose-900/40 bg-rose-50 text-rose-800 dark:text-rose-300',
-    titleColor: 'text-rose-600 dark:text-rose-400',
   },
   [Severity.Warning]: {
     icon: <WarningIcon />,
-    colorClass:
-      'border-amber-500/50 dark:bg-amber-900/40 bg-amber-50 text-amber-800 dark:text-amber-300',
-    titleColor: 'text-amber-600 dark:text-amber-400',
   },
   [Severity.Suggestion]: {
     icon: <LightbulbIcon />,
-    colorClass:
-      'border-indigo-500/50 dark:bg-indigo-900/40 bg-indigo-50 text-indigo-800 dark:text-indigo-300',
-    titleColor: 'text-indigo-600 dark:text-indigo-400',
   },
   [Severity.Info]: {
     icon: <InfoIcon />,
-    colorClass:
-      'border-cyan-500/50 dark:bg-cyan-900/40 bg-cyan-50 text-cyan-800 dark:text-cyan-300',
-    titleColor: 'text-cyan-600 dark:text-cyan-400',
   },
 };
 
@@ -169,13 +157,12 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
   };
 
   if (feedback.isEditing) {
-    const config = SEVERITY_CONFIG[editedSeverity] || SEVERITY_CONFIG[Severity.Info];
     return (
-      <div className={`shadow-sm ${config.colorClass} border-l-4 rounded-md`}>
+      <div className="shadow-md bg-white dark:bg-gray-800 border-2 border-blue-300 dark:border-blue-700 rounded-md">
         <div className="p-2">
           <label
             htmlFor={`description-${feedback.id}`}
-            className="block text-xs font-medium text-gray-700 dark:text-brand-subtle mb-1"
+            className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1"
           >
             {feedback.isNewlyAdded ? 'Add New Comment' : `Edit Comment: ${feedback.title}`}
           </label>
@@ -184,17 +171,17 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
             value={editedDescription}
             onChange={(e) => setEditedDescription(e.target.value)}
             placeholder="Detailed explanation and suggestions..."
-            className="w-full p-1.5 bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text text-xs font-mono rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+            className="w-full p-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-xs font-mono rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
             rows={3}
             autoFocus
           ></textarea>
         </div>
-        <div className="px-2 py-1.5 bg-black/10 dark:bg-black/20 rounded-b-md">
+        <div className="px-2 py-1.5 bg-blue-50 dark:bg-blue-950/30 rounded-b-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => onDeleteFeedback(feedback.id)}
-                className="p-1 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-red-200 dark:hover:bg-red-800/50 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                 aria-label="Delete comment"
               >
                 <TrashIcon />
@@ -202,16 +189,16 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
               <div className="relative" data-dropdown-id={feedback.id}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-1 text-xs text-gray-700 dark:text-brand-text font-semibold py-1 px-2 bg-gray-200 dark:bg-brand-primary/80 rounded-md hover:bg-gray-300 dark:hover:bg-brand-primary transition-colors"
+                  className="flex items-center space-x-1 text-xs text-gray-700 dark:text-gray-200 font-semibold py-1 px-2 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
                 >
-                  <span className={`${SEVERITY_CONFIG[editedSeverity].titleColor}`}>
+                  <span className="text-gray-600 dark:text-gray-300">
                     {SEVERITY_CONFIG[editedSeverity].icon}
                   </span>
                   <span>{editedSeverity}</span>
                   <ChevronDownIcon />
                 </button>
                 {isDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 rounded-md shadow-lg z-10 min-w-[120px]">
+                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 min-w-[120px]">
                     {Object.entries(SEVERITY_CONFIG).map(([severity, config]) => (
                       <button
                         key={severity}
@@ -221,12 +208,12 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
                           setEditedSeverity(severity as Severity);
                           setIsDropdownOpen(false);
                         }}
-                        className={`w-full flex items-center space-x-2 px-3 py-2 text-xs text-left hover:bg-gray-100 dark:hover:bg-brand-primary/50 transition-colors first:rounded-t-md last:rounded-b-md ${
-                          editedSeverity === severity ? 'bg-gray-100 dark:bg-brand-primary/50' : ''
+                        className={`w-full flex items-center space-x-2 px-3 py-2 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors first:rounded-t-md last:rounded-b-md ${
+                          editedSeverity === severity ? 'bg-gray-100 dark:bg-gray-700' : ''
                         }`}
                       >
-                        <span className={config.titleColor}>{config.icon}</span>
-                        <span className="text-gray-800 dark:text-brand-text">{severity}</span>
+                        <span className="text-gray-600 dark:text-gray-300">{config.icon}</span>
+                        <span className="text-gray-800 dark:text-gray-200">{severity}</span>
                       </button>
                     ))}
                   </div>
@@ -236,14 +223,14 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
             <div className="flex items-center space-x-2">
               <button
                 onClick={handleCancel}
-                className="text-xs text-gray-700 dark:text-brand-subtle font-semibold py-1 px-2 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors"
+                className="text-xs text-gray-600 dark:text-gray-300 font-semibold py-1 px-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={!editedDescription.trim()}
-                className="text-xs bg-brand-secondary hover:bg-red-600 disabled:bg-gray-300 dark:disabled:bg-brand-primary disabled:cursor-not-allowed text-white font-bold py-1 px-2 rounded-md transition-all"
+                className="text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-1 px-2 rounded-md transition-all"
               >
                 Save
               </button>
@@ -254,57 +241,76 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
     );
   }
 
-  const config = SEVERITY_CONFIG[feedback.severity] || SEVERITY_CONFIG[Severity.Info];
-
   // If this is an existing comment from GitLab
   if (feedback.isExisting) {
     return (
-      <div className="shadow-sm border-l-4 border-gray-400 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-brand-primary/20">
+      <div className="transition-all duration-300 shadow-md bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md">
         <div className="p-1.5">
           <div className="flex items-start space-x-2">
+            <div className="mt-0.5 text-gray-500 dark:text-gray-400">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="1.5"
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H11.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9Z"
+                />
+              </svg>
+            </div>
             <div className="flex-1">
               <div className="flex justify-between items-center">
-                <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                <h3 className="text-xs font-semibold text-gray-800 dark:text-gray-200">
                   {feedback.title}
                 </h3>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Existing</span>
               </div>
-              <p className="mt-0.5 text-xs text-gray-800 dark:text-brand-text whitespace-pre-wrap">
+              <p className="mt-0.5 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                 {feedback.description}
               </p>
             </div>
           </div>
         </div>
+        <div className="px-1.5 py-1 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between rounded-b-md">
+          <span className="text-xs text-gray-500 dark:text-gray-400">From GitLab</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-2 py-0.5 rounded-full">
+            Existing
+          </span>
+        </div>
       </div>
     );
   }
 
+  const config = SEVERITY_CONFIG[feedback.severity] || SEVERITY_CONFIG[Severity.Info];
+
   return (
-    <div
-      className={`transition-all duration-300 shadow-sm ${config.colorClass} border-l-4 rounded-md`}
-    >
+    <div className="transition-all duration-300 shadow-md bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-800 rounded-md">
       <div className={`p-1.5 ${feedback.isIgnored ? 'opacity-60' : ''}`}>
         <div className="flex items-start space-x-2">
-          <div className={`mt-0.5 ${config.titleColor}`}>{config.icon}</div>
+          <div className="mt-0.5 text-gray-600 dark:text-gray-300">{config.icon}</div>
           <div className="flex-1">
             <div className="flex justify-between items-center">
-              <h3 className={`text-xs font-semibold ${config.titleColor}`}>{feedback.title}</h3>
+              <h3 className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                {feedback.title}
+              </h3>
             </div>
-            <p className="mt-0.5 text-xs text-gray-800 dark:text-brand-text whitespace-pre-wrap">
+            <p className="mt-0.5 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
               {feedback.description}
             </p>
           </div>
         </div>
       </div>
-      <div className="px-1.5 py-1 bg-black/10 dark:bg-black/20 flex items-center justify-between rounded-b-md">
+      <div className="px-1.5 py-1 bg-blue-50 dark:bg-blue-950/30 flex items-center justify-between rounded-b-md">
         {feedback.isIgnored ? (
           <>
-            <span className="text-xs italic text-gray-600 dark:text-brand-subtle">
-              Comment ignored
-            </span>
+            <span className="text-xs italic text-gray-600 dark:text-gray-400">Comment ignored</span>
             <button
               onClick={() => onToggleIgnoreFeedback(feedback.id)}
-              className="text-xs text-gray-700 dark:text-brand-subtle font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors"
+              className="text-xs text-gray-600 dark:text-gray-300 font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
             >
               Undo
             </button>
@@ -316,14 +322,14 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
                 <div className="flex items-center space-x-1">
                   <button
                     onClick={() => onSetEditing(feedback.id, true)}
-                    className="flex items-center space-x-1 text-xs text-gray-600 dark:text-brand-subtle font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors"
+                    className="flex items-center space-x-1 text-xs text-gray-600 dark:text-gray-300 font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                   >
                     <EditIcon />
                     <span>Edit</span>
                   </button>
                   <button
                     onClick={() => onToggleIgnoreFeedback(feedback.id)}
-                    className="flex items-center space-x-1 text-xs text-gray-600 dark:text-brand-subtle font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-300/50 dark:hover:bg-brand-primary/80 transition-colors"
+                    className="flex items-center space-x-1 text-xs text-gray-600 dark:text-gray-300 font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                     aria-label="Ignore comment"
                   >
                     <EyeSlashIcon />
@@ -342,14 +348,14 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
               {feedback.status === 'pending' && (
                 <button
                   onClick={handleAction}
-                  className="flex items-center space-x-1 text-xs bg-gray-600 dark:bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-0.5 px-1.5 rounded-md transition-colors"
+                  className="flex items-center space-x-1 text-xs bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-semibold py-0.5 px-1.5 rounded-md transition-colors"
                 >
                   <AddCommentIcon />
                   <span>Add to MR</span>
                 </button>
               )}
               {feedback.status === 'submitting' && (
-                <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-brand-subtle py-0.5 px-1.5">
+                <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400 py-0.5 px-1.5">
                   <Spinner size="sm" /> <span>Posting...</span>
                 </div>
               )}
