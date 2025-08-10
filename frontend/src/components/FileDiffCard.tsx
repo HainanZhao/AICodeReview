@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import {
-    GitLabMRDetails,
-    ParsedDiffLine,
-    ParsedFileDiff,
-    ParsedHunk,
-    ReviewFeedback,
-    Severity,
+  GitLabMRDetails,
+  ParsedDiffLine,
+  ParsedFileDiff,
+  ParsedHunk,
+  ReviewFeedback,
+  Severity,
 } from '../types';
 import { getStoredViewMode, setStoredViewMode } from '../utils/viewModeStorage';
 import { DiffLine } from './DiffLine';

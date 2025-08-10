@@ -1,10 +1,10 @@
 import React from 'react';
 import {
-    GitLabMRDetails,
-    ParsedDiffLine,
-    ParsedFileDiff,
-    ReviewFeedback,
-    Severity,
+  GitLabMRDetails,
+  ParsedDiffLine,
+  ParsedFileDiff,
+  ReviewFeedback,
+  Severity,
 } from '../types';
 import { FeedbackCard } from './FeedbackCard';
 import { AddCommentIcon, ChevronDownIcon } from './icons';
