@@ -90,8 +90,8 @@ export const Notification: React.FC<NotificationProps> = ({
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 transition-all duration-300 transform ${
-        isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+      className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ${
+        isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
       }`}
     >
       <div
