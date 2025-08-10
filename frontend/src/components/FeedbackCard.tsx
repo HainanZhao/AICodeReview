@@ -244,7 +244,7 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
   // If this is an existing comment from GitLab
   if (feedback.isExisting) {
     return (
-      <div className="transition-all duration-300 shadow-md bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md">
+      <div className="transition-all duration-300 shadow-md bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md font-sans">
         <div className="p-1.5">
           <div className="flex items-start space-x-2">
             <div className="mt-0.5 text-gray-500 dark:text-gray-400">
@@ -268,18 +268,15 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
                 <h3 className="text-xs font-semibold text-gray-800 dark:text-gray-200">
                   {feedback.title}
                 </h3>
+                <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-2 py-0.5 rounded-full ml-2">
+                  Existing
+                </span>
               </div>
               <p className="mt-0.5 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                 {feedback.description}
               </p>
             </div>
           </div>
-        </div>
-        <div className="px-1.5 py-1 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between rounded-b-md">
-          <span className="text-xs text-gray-500 dark:text-gray-400">From GitLab</span>
-          <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-2 py-0.5 rounded-full">
-            Existing
-          </span>
         </div>
       </div>
     );

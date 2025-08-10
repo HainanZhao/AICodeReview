@@ -1,5 +1,9 @@
 import { describe, test, expect } from 'vitest';
-import { detectLanguageFromPath, isLanguageSupported, getSupportedLanguages } from './languageDetection';
+import {
+  detectLanguageFromPath,
+  isLanguageSupported,
+  getSupportedLanguages,
+} from './languageDetection';
 
 describe('Language Detection', () => {
   test('detects TypeScript files', () => {

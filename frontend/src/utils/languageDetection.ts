@@ -14,7 +14,7 @@ const extensionToLanguage: LanguageMap = {
   '.jsx': 'jsx',
   '.mjs': 'javascript',
   '.cjs': 'javascript',
-  
+
   // Web languages
   '.html': 'html',
   '.htm': 'html',
@@ -23,12 +23,12 @@ const extensionToLanguage: LanguageMap = {
   '.scss': 'scss',
   '.sass': 'sass',
   '.less': 'less',
-  
+
   // Python
   '.py': 'python',
   '.pyw': 'python',
   '.py3': 'python',
-  
+
   // C/C++
   '.c': 'c',
   '.cpp': 'cpp',
@@ -39,10 +39,10 @@ const extensionToLanguage: LanguageMap = {
   '.hpp': 'cpp',
   '.hxx': 'cpp',
   '.h++': 'cpp',
-  
+
   // Rust
   '.rs': 'rust',
-  
+
   // Other common languages
   '.java': 'java',
   '.go': 'go',
@@ -52,7 +52,7 @@ const extensionToLanguage: LanguageMap = {
   '.swift': 'swift',
   '.kt': 'kotlin',
   '.scala': 'scala',
-  
+
   // Data/Config formats
   '.json': 'json',
   '.yaml': 'yaml',
@@ -61,12 +61,12 @@ const extensionToLanguage: LanguageMap = {
   '.ini': 'ini',
   '.cfg': 'ini',
   '.conf': 'ini',
-  
+
   // Markup
   '.md': 'markdown',
   '.markdown': 'markdown',
   '.tex': 'latex',
-  
+
   // Shell/Scripts
   '.sh': 'bash',
   '.bash': 'bash',
@@ -75,14 +75,14 @@ const extensionToLanguage: LanguageMap = {
   '.ps1': 'powershell',
   '.bat': 'batch',
   '.cmd': 'batch',
-  
+
   // SQL
   '.sql': 'sql',
-  
+
   // Docker
-  'dockerfile': 'dockerfile',
+  dockerfile: 'dockerfile',
   '.dockerfile': 'dockerfile',
-  
+
   // Other
   '.r': 'r',
   '.R': 'r',
@@ -104,30 +104,30 @@ const extensionToLanguage: LanguageMap = {
  */
 export function detectLanguageFromPath(filePath: string): string | null {
   if (!filePath) return null;
-  
+
   const fileName = filePath.toLowerCase();
-  
+
   // Check for special cases first
   if (fileName.includes('dockerfile') || fileName.endsWith('/dockerfile')) {
     return 'dockerfile';
   }
-  
+
   if (fileName.includes('makefile') || fileName.endsWith('/makefile')) {
     return 'makefile';
   }
-  
+
   if (fileName.includes('gemfile') || fileName.endsWith('/gemfile')) {
     return 'ruby';
   }
-  
+
   if (fileName.includes('podfile') || fileName.endsWith('/podfile')) {
     return 'ruby';
   }
-  
+
   // Extract file extension
   const lastDotIndex = fileName.lastIndexOf('.');
   if (lastDotIndex === -1) return null;
-  
+
   const extension = fileName.substring(lastDotIndex);
   return extensionToLanguage[extension] || null;
 }

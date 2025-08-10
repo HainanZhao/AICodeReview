@@ -40,7 +40,7 @@ const HunkHeader: React.FC<{ hunk: ParsedHunk; onClick: () => void }> = ({ hunk,
         className="w-full flex items-center p-2 text-left hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
       >
         {hunk.isCollapsed ? <ChevronDownIcon /> : <ChevronUpIcon />}
-        <span className="ml-2 font-mono text-xs text-blue-600 dark:text-blue-300 select-all">
+        <span className="ml-2 font-mono text-xs select-all text-gray-500 dark:text-brand-subtle">
           {hunk.header}
         </span>
       </button>
