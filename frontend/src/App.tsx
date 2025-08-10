@@ -1,31 +1,38 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Header } from './components/Header';
-import { ReviewDashboard } from './components/CodeEditor';
-import { FeedbackPanel } from './components/FeedbackPanel';
-import { fetchMrDetailsOnly, runAiReview } from './services/aiReviewService';
-import { fetchProjects, postDiscussion, approveMergeRequest } from './services/gitlabService';
 import {
-  ReviewFeedback,
   GitLabMRDetails,
+  GitLabPosition,
   GitLabProject,
   ParsedFileDiff,
-  GitLabPosition,
+  ReviewFeedback,
   Severity,
 } from '../../types';
-import { Config, ParsedDiffLine } from './types';
+import { ReviewDashboard } from './components/CodeEditor';
 import { ConfigModal } from './components/ConfigModal';
+import { FeedbackPanel } from './components/FeedbackPanel';
+import { Header } from './components/Header';
+import { MrSummary } from './components/MrSummary';
+import { Notification } from './components/Notification';
 import { ResizablePane } from './components/ResizablePane';
+import { fetchMrDetailsOnly, runAiReview } from './services/aiReviewService';
 import {
-  loadConfig,
-  loadTheme,
-  saveTheme,
-  loadProjectsFromCache,
-  saveProjectsToCache,
   fetchBackendConfig,
+  loadConfig,
+  loadProjectsFromCache,
+  loadTheme,
+  saveProjectsToCache,
+  saveTheme,
   type ConfigSource,
 } from './services/configService';
-import { MrSummary } from './components/MrSummary';
+import { approveMergeRequest, fetchProjects, postDiscussion } from './services/gitlabService';
+import {
+  clearReviewState,
+  loadReviewState,
+  saveReviewState,
+  updateReviewStateFeedback,
+} from './services/reviewStateService';
+import { Config, ParsedDiffLine } from './types';
 
 function App() {
   const [feedback, setFeedback] = useState<ReviewFeedback[] | null>(null);
@@ -43,6 +50,60 @@ function App() {
   const [projects, setProjects] = useState<GitLabProject[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [isRestoringState, setIsRestoringState] = useState<boolean>(false);
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: 'info' | 'success' | 'warning' | 'error';
+  } | null>(null);
+  const [isRestoredFromCache, setIsRestoredFromCache] = useState<boolean>(false);
+
+  // Check for saved review state on app load
+  useEffect(() => {
+    const restoreReviewState = async () => {
+      if (!config) return;
+
+      const savedState = loadReviewState();
+      if (savedState) {
+        setIsRestoringState(true);
+        try {
+          // Restore the MR details and feedback
+          setMrDetails(savedState.mrDetails);
+          setFeedback(savedState.feedback);
+          setIsRestoredFromCache(true);
+
+          // Show notification that state was restored
+          setNotification({
+            message: 'Review state restored from previous session',
+            type: 'info',
+          });
+
+          // Optional: Refresh the MR details in the background to get latest changes
+          try {
+            const refreshedResult = await fetchMrDetailsOnly(savedState.url, config);
+            if (refreshedResult?.mrDetails) {
+              // Merge the refreshed MR details with preserved feedback
+              setMrDetails(refreshedResult.mrDetails);
+
+              // Combine existing saved feedback with any new GitLab comments
+              const existingGitLabFeedback = refreshedResult.feedback || [];
+              const savedUserFeedback = savedState.feedback.filter((f) => !f.isExisting);
+              setFeedback([...existingGitLabFeedback, ...savedUserFeedback]);
+            }
+          } catch (refreshError) {
+            console.warn('Failed to refresh MR details, using cached state:', refreshError);
+            // Keep the saved state if refresh fails
+          }
+        } catch (error) {
+          console.error('Failed to restore review state:', error);
+          clearReviewState();
+        } finally {
+          setIsRestoringState(false);
+        }
+      }
+    };
+
+    restoreReviewState();
+  }, [config]);
 
   useEffect(() => {
     const savedTheme = loadTheme();
@@ -161,6 +222,7 @@ function App() {
       setFeedback(null);
       setMrDetails(null);
       setIsAiAnalyzing(false);
+      setIsRestoredFromCache(false); // Reset restoration flag for new reviews
 
       try {
         // Step 1: Fetch MR details quickly for immediate display
@@ -174,6 +236,9 @@ function App() {
         setFeedback(result.feedback || []); // Show existing comments right away
         setIsLoading(false); // User can now see the MR and start manual review
 
+        // Save initial state to localStorage
+        saveReviewState(result.mrDetails, result.feedback || [], url);
+
         // Step 2: Run AI review in background using the new unified API
         setIsAiAnalyzing(true);
         try {
@@ -182,7 +247,14 @@ function App() {
           // Combine existing feedback with new AI review feedback
           setFeedback((currentFeedback) => {
             const existingFeedback = currentFeedback || result.feedback || [];
-            return [...existingFeedback, ...aiResult.feedback];
+            const combinedFeedback = [...existingFeedback, ...aiResult.feedback];
+
+            // Save updated state with AI feedback
+            if (result.mrDetails) {
+              saveReviewState(result.mrDetails, combinedFeedback, url);
+            }
+
+            return combinedFeedback;
           });
           setIsAiAnalyzing(false);
         } catch (aiError) {
@@ -263,6 +335,8 @@ function App() {
     setFeedback(null);
     setMrDetails(null);
     setError(null);
+    setIsRestoredFromCache(false);
+    clearReviewState(); // Clear saved state when starting a new review
   }, []);
 
   const handleThemeToggle = () => {
@@ -277,22 +351,32 @@ function App() {
   };
 
   const handleSetEditing = useCallback((feedbackId: string, isEditing: boolean) => {
-    setFeedback((prev) => prev!.map((f) => (f.id === feedbackId ? { ...f, isEditing } : f)));
+    setFeedback((prev) => {
+      const updated = prev!.map((f) => (f.id === feedbackId ? { ...f, isEditing } : f));
+      updateReviewStateFeedback(updated);
+      return updated;
+    });
   }, []);
 
   const handleDeleteFeedback = useCallback((feedbackId: string) => {
-    setFeedback((prev) => prev!.filter((f) => f.id !== feedbackId));
+    setFeedback((prev) => {
+      const updated = prev!.filter((f) => f.id !== feedbackId);
+      updateReviewStateFeedback(updated);
+      return updated;
+    });
   }, []);
 
   const handleUpdateFeedback = useCallback(
     (id: string, title: string, description: string, severity: Severity) => {
-      setFeedback((prev) =>
-        prev!.map((f) =>
+      setFeedback((prev) => {
+        const updated = prev!.map((f) =>
           f.id === id
             ? { ...f, title, description, severity, isEditing: false, isNewlyAdded: false }
             : f
-        )
-      );
+        );
+        updateReviewStateFeedback(updated);
+        return updated;
+      });
     },
     []
   );
@@ -316,7 +400,12 @@ function App() {
       setFeedback((currentFeedback) => {
         // Keep all current feedback (manual + existing) and add new AI results
         const existingFeedback = currentFeedback || mrDetails.existingFeedback || [];
-        return [...existingFeedback, ...aiResult.feedback];
+        const combinedFeedback = [...existingFeedback, ...aiResult.feedback];
+
+        // Save updated state with new AI feedback
+        saveReviewState(mrDetails, combinedFeedback, mrDetails.webUrl);
+
+        return combinedFeedback;
       });
     } catch (error) {
       console.error('Error during redo review:', error);
@@ -334,9 +423,13 @@ function App() {
   }, [config, mrDetails, isAiAnalyzing]);
 
   const handleToggleIgnoreFeedback = useCallback((feedbackId: string) => {
-    setFeedback((prev) =>
-      prev!.map((f) => (f.id === feedbackId ? { ...f, isIgnored: !f.isIgnored } : f))
-    );
+    setFeedback((prev) => {
+      const updated = prev!.map((f) =>
+        f.id === feedbackId ? { ...f, isIgnored: !f.isIgnored } : f
+      );
+      updateReviewStateFeedback(updated);
+      return updated;
+    });
   }, []);
 
   const handleAddCustomFeedback = useCallback(
@@ -388,9 +481,9 @@ function App() {
       };
 
       setFeedback((prev) => {
-        if (!prev) return [newFeedback];
-        // Add the new feedback while preserving all existing feedback
-        return [...prev, newFeedback];
+        const updated = prev ? [...prev, newFeedback] : [newFeedback];
+        updateReviewStateFeedback(updated);
+        return updated;
       });
     },
     [mrDetails]
@@ -528,18 +621,22 @@ function App() {
       <main className="flex-grow w-full px-2 md:px-4 lg:px-4 py-2 md:py-3 lg:py-3 h-full">
         <ResizablePane
           defaultSizePercent={mrDetails ? 25 : 33}
-          minSizePercent={20}
+          minSizePercent={10}
           maxSizePercent={50}
           className="h-full"
           storageKey="main-layout"
         >
           <div className="flex flex-col h-full">
             {mrDetails ? (
-              <MrSummary mrDetails={mrDetails} onNewReview={handleNewReview} />
+              <MrSummary
+                mrDetails={mrDetails}
+                onNewReview={handleNewReview}
+                isRestoredFromCache={isRestoredFromCache}
+              />
             ) : (
               <ReviewDashboard
                 onReview={handleReviewRequest}
-                isLoading={isLoading}
+                isLoading={isLoading || isRestoringState}
                 config={config}
                 projects={projects}
                 isLoadingProjects={isLoadingProjects}
@@ -550,7 +647,7 @@ function App() {
             <FeedbackPanel
               feedback={feedback}
               mrDetails={mrDetails}
-              isLoading={isLoading}
+              isLoading={isLoading || isRestoringState}
               error={error}
               onPostComment={handlePostComment}
               onPostAllComments={handlePostAllComments}
@@ -569,6 +666,13 @@ function App() {
           </div>
         </ResizablePane>
       </main>
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
+      )}
     </div>
   );
 }
