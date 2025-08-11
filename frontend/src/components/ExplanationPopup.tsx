@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { CloseIcon, SendIcon } from './icons';
 import { ChatMessage } from '../types';
 
@@ -27,6 +28,7 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
   const [adjustedPosition, setAdjustedPosition] = React.useState(position);
   const [newMessage, setNewMessage] = React.useState('');
   const chatHistoryRef = React.useRef<HTMLDivElement>(null);
+  const portalRoot = document.getElementById('portal-root');
 
   React.useEffect(() => {
     if (popupRef.current) {
@@ -75,7 +77,7 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
     }
   };
 
-  return (
+  const popupContent = (
     <div
       ref={popupRef}
       className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-w-2xl w-[640px] flex flex-col"
@@ -186,4 +188,11 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
       </div>
     </div>
   );
+
+  if (!portalRoot) {
+    console.error("Portal root element not found. Make sure you have a <div id='portal-root'></div> in your index.html");
+    return popupContent; // Fallback to rendering inline
+  }
+
+  return ReactDOM.createPortal(popupContent, portalRoot);
 };
