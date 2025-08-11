@@ -177,6 +177,71 @@ export class AIProviderCore {
   }
 
   /**
+   * Continue a chat conversation using Gemini API
+   */
+  public static async continueGeminiChat(
+    apiKey: string,
+    messages: { author: 'user' | 'ai'; content: string }[],
+    filePath: string,
+    fileContent?: string,
+    lineNumber?: number,
+    options: RetryOptions = {}
+  ): Promise<string> {
+    return this.retryWithCondition(async () => {
+      try {
+        const client = (await this.createGeminiClient(apiKey)) as any;
+        const model = client.getGenerativeModel({ model: 'gemini-1.5-pro' });
+
+        const prompt = this.createChatPrompt(messages, filePath, fileContent, lineNumber);
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        return this.extractExplanationFromJson(text);
+      } catch (error) {
+        throw new Error(
+          `Gemini API error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
+    }, options);
+  }
+
+  /**
+   * Continue a chat conversation using Anthropic Claude API
+   */
+  public static async continueAnthropicChat(
+    apiKey: string,
+    messages: { author: 'user' | 'ai'; content: string }[],
+    filePath: string,
+    fileContent?: string,
+    lineNumber?: number,
+    options: RetryOptions = {}
+  ): Promise<string> {
+    return this.retryWithCondition(async () => {
+      try {
+        const client = (await this.createAnthropicClient(apiKey)) as any;
+
+        const prompt = this.createChatPrompt(messages, filePath, fileContent, lineNumber);
+
+        const response = await client.messages.create({
+          model: 'claude-3-5-sonnet-20241010',
+          max_tokens: 1024,
+          temperature: 0.1,
+          messages: [{ role: 'user', content: prompt }],
+        });
+
+        const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+        return this.extractExplanationFromJson(text);
+      } catch (error) {
+        throw new Error(
+          `Anthropic API error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
+    }, options);
+  }
+
+  /**
    * Generate review using Anthropic Claude API with standard configuration
    */
   public static async generateAnthropicReview(
@@ -251,22 +316,20 @@ export class AIProviderCore {
    */
   private static extractExplanationFromJson(output: string): string {
     try {
-      // First try to extract JSON from the output
-      const jsonMatch = output.match(/\{[\s\S]*?\}/);
-      if (jsonMatch) {
-        const jsonContent = jsonMatch[0];
-        const parsed = JSON.parse(jsonContent);
+      const jsonRegex = /```json\s*(\{[\s\S]+?\})\s*```|(\{[\s\S]+\})/;
+      const match = output.match(jsonRegex);
 
-        // Check if it has an explanation field
-        if (parsed.explanation && typeof parsed.explanation === 'string') {
-          return parsed.explanation;
+      if (match) {
+        const jsonString = match[1] || match[2];
+        if (jsonString) {
+          const parsed = JSON.parse(jsonString);
+          if (parsed.explanation && typeof parsed.explanation === 'string') {
+            return parsed.explanation;
+          }
         }
       }
-
-      // Fallback: return the original text cleaned up
       return output.trim();
     } catch {
-      // JSON parsing failed, return original text
       return output.trim();
     }
   }
@@ -410,6 +473,58 @@ Focus on helping a developer understand both the "what" and the "why" of this co
 
     prompt += `
 
+IMPORTANT: Return your response as a JSON object with the following format:
+{
+  "explanation": "Your detailed explanation here..."
+}
+
+Make sure to return only valid JSON with no additional text before or after.`;
+
+    return prompt;
+  }
+
+  private static createChatPrompt(
+    messages: { author: 'user' | 'ai'; content: string }[],
+    filePath: string,
+    fileContent?: string,
+    lineNumber?: number
+  ): string {
+    const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
+    const language = this.getLanguageFromExtension(fileExtension);
+
+    const initialMessage = messages[0]?.content || '';
+    const followUpMessages = messages.slice(1);
+
+    let prompt = `You are a helpful code assistant continuing a conversation about a piece of code.
+
+**File:** ${filePath}
+**Language:** ${language}
+`;
+
+    if (lineNumber) {
+      prompt += `**Line number:** ${lineNumber}\n`;
+    }
+
+    if (fileContent) {
+      prompt += `\n**Full File Content:**\n\`\`\`${language}\n${fileContent}\n\`\`\`\n`;
+    }
+
+    prompt += `
+The user was initially asking about a line of code, and you provided the following explanation:
+---
+${initialMessage}
+---
+
+Now, the user has follow-up questions. Here is the conversation history:
+`;
+
+    followUpMessages.forEach((message) => {
+      prompt += `**${message.author === 'user' ? 'User' : 'AI'}:** ${message.content}\n`;
+    });
+
+    prompt += `
+**Instructions:**
+Based on the full file content and the conversation history, please provide a concise and helpful response to the last user message.
 IMPORTANT: Return your response as a JSON object with the following format:
 {
   "explanation": "Your detailed explanation here..."

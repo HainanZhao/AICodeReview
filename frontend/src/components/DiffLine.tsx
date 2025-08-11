@@ -1,7 +1,8 @@
 import React from 'react';
-import { explainLine } from '../services/aiReviewService';
+import { getAiChatResponse } from '../services/aiReviewService';
 import { ParsedDiffLine } from '../types';
 import { ExplanationPopup } from './ExplanationPopup';
+import { ChatMessage } from '../types';
 import { AIExplainIcon, PlusIcon } from './icons';
 import { SyntaxHighlightedCode } from './SyntaxHighlightedCode';
 
@@ -61,11 +62,11 @@ export const DiffLine: React.FC<DiffLineProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  // AI Explain state
-  const [showExplanation, setShowExplanation] = React.useState(false);
-  const [explanation, setExplanation] = React.useState('');
-  const [isLoadingExplanation, setIsLoadingExplanation] = React.useState(false);
-  const [explanationError, setExplanationError] = React.useState<string | undefined>();
+  // AI Chat state
+  const [showChat, setShowChat] = React.useState(false);
+  const [chatHistory, setChatHistory] = React.useState<ChatMessage[]>([]);
+  const [isLoadingResponse, setIsLoadingResponse] = React.useState(false);
+  const [chatError, setChatError] = React.useState<string | undefined>();
   const [popupPosition, setPopupPosition] = React.useState({ x: 0, y: 0 });
 
   const handleExplainClick = async (event: React.MouseEvent) => {
@@ -73,57 +74,85 @@ export const DiffLine: React.FC<DiffLineProps> = ({
 
     event.stopPropagation();
 
-    // Set popup position near the click
     const rect = event.currentTarget.getBoundingClientRect();
     setPopupPosition({
       x: rect.right + 10,
       y: rect.top,
     });
 
-    setShowExplanation(true);
-    setIsLoadingExplanation(true);
-    setExplanationError(undefined);
-    setExplanation('');
+    setShowChat(true);
+    setIsLoadingResponse(true);
+    setChatError(undefined);
+    setChatHistory([]);
 
     try {
-      // For deleted lines, use old file content; for other lines, use new file content
       const contentToUse = line.type === 'remove' ? (oldFileContent ?? '') : (fileContent ?? '');
       const lineNumberToUse = line.type === 'remove' ? line.oldLine : line.newLine || line.oldLine;
-
-      const result = await explainLine(line.content, filePath, lineNumberToUse, contentToUse, 5);
-      setExplanation(result);
+      const result = await getAiChatResponse(
+        [],
+        filePath,
+        lineNumberToUse,
+        contentToUse,
+        line.content
+      );
+      setChatHistory([{ author: 'ai', content: result }]);
     } catch (error) {
-      setExplanationError(error instanceof Error ? error.message : 'Failed to get explanation');
+      setChatError(error instanceof Error ? error.message : 'Failed to get explanation');
     } finally {
-      setIsLoadingExplanation(false);
+      setIsLoadingResponse(false);
     }
   };
 
-  const handleCloseExplanation = () => {
-    setShowExplanation(false);
-    setExplanation('');
-    setExplanationError(undefined);
+  const handleSendMessage = async (message: string) => {
+    const newUserMessage: ChatMessage = { author: 'user', content: message };
+    const newChatHistory = [...chatHistory, newUserMessage];
+    setChatHistory(newChatHistory);
+    setIsLoadingResponse(true);
+    setChatError(undefined);
+
+    try {
+      const contentToUse = line.type === 'remove' ? (oldFileContent ?? '') : (fileContent ?? '');
+      const lineNumberToUse = line.type === 'remove' ? line.oldLine : line.newLine || line.oldLine;
+      const response = await getAiChatResponse(
+        newChatHistory,
+        filePath,
+        lineNumberToUse,
+        contentToUse,
+        line.content
+      );
+      const aiResponse: ChatMessage = { author: 'ai', content: response };
+      setChatHistory((prev) => [...prev, aiResponse]);
+    } catch (error) {
+      setChatError(error instanceof Error ? error.message : 'Failed to get response');
+    } finally {
+      setIsLoadingResponse(false);
+    }
+  };
+
+  const handleCloseChat = () => {
+    setShowChat(false);
+    setChatHistory([]);
+    setChatError(undefined);
   };
 
   // Close popup when clicking outside or pressing Escape
   React.useEffect(() => {
-    if (!showExplanation) return;
+    if (!showChat) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      // Check if the click is outside the popup
       const target = event.target as Element;
       const popupElement = document.querySelector(
         '[role="dialog"][aria-labelledby="explanation-popup-title"]'
       );
 
       if (popupElement && !popupElement.contains(target)) {
-        setShowExplanation(false);
+        setShowChat(false);
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setShowExplanation(false);
+        setShowChat(false);
       }
     };
 
@@ -134,7 +163,7 @@ export const DiffLine: React.FC<DiffLineProps> = ({
       document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [showExplanation]);
+  }, [showChat]);
 
   return (
     <>
@@ -184,15 +213,16 @@ export const DiffLine: React.FC<DiffLineProps> = ({
         </td>
       </tr>
 
-      {/* AI Explanation Popup */}
-      {showExplanation && (
+      {/* AI Chat Popup */}
+      {showChat && (
         <ExplanationPopup
-          explanation={explanation}
+          messages={chatHistory}
           lineContent={line.content}
           filePath={filePath}
-          isLoading={isLoadingExplanation}
-          error={explanationError}
-          onClose={handleCloseExplanation}
+          isLoading={isLoadingResponse}
+          error={chatError}
+          onClose={handleCloseChat}
+          onSendMessage={handleSendMessage}
           position={popupPosition}
         />
       )}

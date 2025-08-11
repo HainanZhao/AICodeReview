@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { ReviewFeedback } from '../../../types';
-import { Config, GitLabMRDetails } from '../types';
+import { ChatMessage, Config, GitLabMRDetails } from '../types';
 import { fetchMrData } from './gitlabService';
 
 /**
@@ -167,38 +167,41 @@ export const reviewCode = async (
 /**
  * Get AI explanation for a specific line of code
  */
-export const explainLine = async (
-  lineContent: string,
+/**
+ * Get AI response for a new or existing chat conversation
+ */
+export const getAiChatResponse = async (
+  messages: ChatMessage[],
   filePath: string,
   lineNumber?: number,
   fileContent?: string,
+  lineContent?: string,
   contextLines: number = 5
 ): Promise<string> => {
-  if (!lineContent || !filePath) {
-    throw new Error('Line content and file path are required for explanation.');
-  }
-
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
 
   try {
-    const response = await fetch('/api/explain-line', {
+    const body = {
+      messages,
+      filePath,
+      lineNumber,
+      fileContent,
+      lineContent,
+      contextLines,
+    };
+
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        lineContent,
-        lineNumber,
-        filePath,
-        fileContent,
-        contextLines,
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
 
     if (!response.ok) {
-      let errorMessage = `AI Explain failed with status: ${response.status}`;
+      let errorMessage = `AI Chat failed with status: ${response.status}`;
       try {
         const errorData = await response.json();
         if (errorData && errorData.error) {
@@ -213,13 +216,13 @@ export const explainLine = async (
     const result = await response.json();
 
     if (!result.success) {
-      throw new Error(result.error || 'AI Explain failed');
+      throw new Error(result.error || 'AI Chat failed');
     }
 
     return result.explanation || 'No explanation available';
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('The AI explanation request timed out. Please try again.');
+      throw new Error('The AI chat request timed out. Please try again.');
     }
     throw error;
   } finally {

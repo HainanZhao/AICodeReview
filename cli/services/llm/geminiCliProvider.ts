@@ -63,6 +63,32 @@ export class GeminiCliProvider extends BaseLLMProvider {
   }
 
   /**
+   * Continue a chat conversation using Gemini CLI
+   */
+  public async continueChat(
+    messages: { author: 'user' | 'ai'; content: string }[],
+    filePath: string,
+    fileContent?: string,
+    lineNumber?: number
+  ): Promise<string> {
+    try {
+      const prompt = this.createChatPrompt(messages, filePath, fileContent, lineNumber);
+      const rawOutput = await GeminiCliCore.executeExplanation(prompt, { verbose: false });
+
+      const jsonExplanation = this.extractJsonExplanation(rawOutput);
+      if (jsonExplanation) {
+        return jsonExplanation;
+      }
+
+      return rawOutput.trim();
+    } catch (error) {
+      throw new Error(
+        `Gemini CLI error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
    * Generate explanation for a specific line of code using Gemini CLI
    */
   public async explainLine(
@@ -102,32 +128,20 @@ export class GeminiCliProvider extends BaseLLMProvider {
    */
   private extractJsonExplanation(output: string): string | null {
     try {
-      // Look for JSON object in the output
-      const jsonMatch = output.match(/\{[\s\S]*?\}/);
-      if (jsonMatch) {
-        const jsonContent = jsonMatch[0];
-        const parsed = JSON.parse(jsonContent);
+      const jsonRegex = /```json\s*(\{[\s\S]+?\})\s*```|(\{[\s\S]+\})/;
+      const match = output.match(jsonRegex);
 
-        // Check if it has an explanation field
-        if (parsed.explanation && typeof parsed.explanation === 'string') {
-          return parsed.explanation;
+      if (match) {
+        const jsonString = match[1] || match[2];
+        if (jsonString) {
+          const parsed = JSON.parse(jsonString);
+          if (parsed.explanation && typeof parsed.explanation === 'string') {
+            return parsed.explanation;
+          }
         }
       }
-
-      // Look for JSON with different structure
-      const arrayMatch = output.match(/\[[\s\S]*?\]/);
-      if (arrayMatch) {
-        const jsonContent = arrayMatch[0];
-        const parsed = JSON.parse(jsonContent);
-
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].explanation) {
-          return parsed[0].explanation;
-        }
-      }
-
       return null;
     } catch {
-      // JSON parsing failed, return null to use fallback
       return null;
     }
   }
@@ -229,6 +243,58 @@ Focus on helping a developer understand both the "what" and the "why" of this co
 
     prompt += `
 
+IMPORTANT: Return your response as a JSON object with the following format:
+{
+  "explanation": "Your detailed explanation here..."
+}
+
+Make sure to return only valid JSON with no additional text before or after.`;
+
+    return prompt;
+  }
+
+  private createChatPrompt(
+    messages: { author: 'user' | 'ai'; content: string }[],
+    filePath: string,
+    fileContent?: string,
+    lineNumber?: number
+  ): string {
+    const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
+    const language = this.getLanguageFromExtension(fileExtension);
+
+    const initialMessage = messages[0]?.content || '';
+    const followUpMessages = messages.slice(1);
+
+    let prompt = `You are a helpful code assistant continuing a conversation about a piece of code.
+
+**File:** ${filePath}
+**Language:** ${language}
+`;
+
+    if (lineNumber) {
+      prompt += `**Line number:** ${lineNumber}\n`;
+    }
+
+    if (fileContent) {
+      prompt += `\n**Full File Content:**\n\`\`\`${language}\n${fileContent}\n\`\`\`\n`;
+    }
+
+    prompt += `
+The user was initially asking about a line of code, and you provided the following explanation:
+---
+${initialMessage}
+---
+
+Now, the user has follow-up questions. Here is the conversation history:
+`;
+
+    followUpMessages.forEach((message) => {
+      prompt += `**${message.author === 'user' ? 'User' : 'AI'}:** ${message.content}\n`;
+    });
+
+    prompt += `
+**Instructions:**
+Based on the full file content and the conversation history, please provide a concise and helpful response to the last user message.
 IMPORTANT: Return your response as a JSON object with the following format:
 {
   "explanation": "Your detailed explanation here..."

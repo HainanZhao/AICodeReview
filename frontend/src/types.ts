@@ -21,3 +21,9 @@ export { Severity } from '../../types';
 
 // For backward compatibility, re-export GitLabConfig as Config
 export type { GitLabConfig as Config } from '../../types';
+
+// Add the ChatMessage interface
+export interface ChatMessage {
+  author: 'user' | 'ai';
+  content: string;
+}
