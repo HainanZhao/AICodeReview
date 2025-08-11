@@ -292,6 +292,10 @@ function App() {
     setError(null);
   }, []);
 
+  const handleCloseNotification = useCallback(() => {
+    setNotification(null);
+  }, []);
+
   const handlePostComment = useCallback(
     async (feedbackId: string) => {
       if (!config || !mrDetails || !feedback) return;
@@ -674,7 +678,7 @@ function App() {
         <Notification
           message={notification.message}
           type={notification.type}
-          onClose={() => setNotification(null)}
+          onClose={handleCloseNotification}
         />
       )}
     </div>
