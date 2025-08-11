@@ -72,12 +72,7 @@ export class GeminiCliProvider extends BaseLLMProvider {
     lineNumber?: number
   ): Promise<string> {
     try {
-      const prompt = this.createChatPrompt(
-        messages,
-        filePath,
-        fileContent,
-        lineNumber
-      );
+      const prompt = this.createChatPrompt(messages, filePath, fileContent, lineNumber);
       const rawOutput = await GeminiCliCore.executeExplanation(prompt, { verbose: false });
 
       const jsonExplanation = this.extractJsonExplanation(rawOutput);
@@ -293,7 +288,7 @@ ${initialMessage}
 Now, the user has follow-up questions. Here is the conversation history:
 `;
 
-    followUpMessages.forEach(message => {
+    followUpMessages.forEach((message) => {
       prompt += `**${message.author === 'user' ? 'User' : 'AI'}:** ${message.content}\n`;
     });
 

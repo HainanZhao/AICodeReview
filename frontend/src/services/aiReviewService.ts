@@ -176,7 +176,7 @@ export const getAiChatResponse = async (
   lineNumber?: number,
   fileContent?: string,
   lineContent?: string,
-  contextLines: number = 5,
+  contextLines: number = 5
 ): Promise<string> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout

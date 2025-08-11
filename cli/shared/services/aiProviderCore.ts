@@ -192,12 +192,7 @@ export class AIProviderCore {
         const client = (await this.createGeminiClient(apiKey)) as any;
         const model = client.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
-        const prompt = this.createChatPrompt(
-          messages,
-          filePath,
-          fileContent,
-          lineNumber
-        );
+        const prompt = this.createChatPrompt(messages, filePath, fileContent, lineNumber);
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -227,12 +222,7 @@ export class AIProviderCore {
       try {
         const client = (await this.createAnthropicClient(apiKey)) as any;
 
-        const prompt = this.createChatPrompt(
-          messages,
-          filePath,
-          fileContent,
-          lineNumber
-        );
+        const prompt = this.createChatPrompt(messages, filePath, fileContent, lineNumber);
 
         const response = await client.messages.create({
           model: 'claude-3-5-sonnet-20241010',
@@ -528,7 +518,7 @@ ${initialMessage}
 Now, the user has follow-up questions. Here is the conversation history:
 `;
 
-    followUpMessages.forEach(message => {
+    followUpMessages.forEach((message) => {
       prompt += `**${message.author === 'user' ? 'User' : 'AI'}:** ${message.content}\n`;
     });
 

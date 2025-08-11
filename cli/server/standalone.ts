@@ -133,7 +133,14 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     // Unified AI Chat endpoint
     app.post('/api/chat', async (req, res) => {
       try {
-        const { messages, lineContent, filePath, lineNumber, fileContent, contextLines = 5 } = req.body;
+        const {
+          messages,
+          lineContent,
+          filePath,
+          lineNumber,
+          fileContent,
+          contextLines = 5,
+        } = req.body;
 
         const isNewConversation = !messages || messages.length === 0;
 
@@ -158,21 +165,53 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
           const { GeminiCliProvider } = await import('../services/llm/geminiCliProvider.js');
           const provider = new GeminiCliProvider();
           if (isNewConversation) {
-            response = await provider.explainLine(lineContent, filePath, fileContent, contextLines, lineNumber);
+            response = await provider.explainLine(
+              lineContent,
+              filePath,
+              fileContent,
+              contextLines,
+              lineNumber
+            );
           } else {
             response = await provider.continueChat(messages, filePath, fileContent, lineNumber);
           }
         } else if (config.llm.provider === 'gemini' && config.llm.apiKey) {
           if (isNewConversation) {
-            response = await AIProviderCore.generateGeminiExplanation(config.llm.apiKey, lineContent, filePath, fileContent, contextLines, lineNumber);
+            response = await AIProviderCore.generateGeminiExplanation(
+              config.llm.apiKey,
+              lineContent,
+              filePath,
+              fileContent,
+              contextLines,
+              lineNumber
+            );
           } else {
-            response = await AIProviderCore.continueGeminiChat(config.llm.apiKey, messages, filePath, fileContent, lineNumber);
+            response = await AIProviderCore.continueGeminiChat(
+              config.llm.apiKey,
+              messages,
+              filePath,
+              fileContent,
+              lineNumber
+            );
           }
         } else if (config.llm.provider === 'anthropic' && config.llm.apiKey) {
           if (isNewConversation) {
-            response = await AIProviderCore.generateAnthropicExplanation(config.llm.apiKey, lineContent, filePath, fileContent, contextLines, lineNumber);
+            response = await AIProviderCore.generateAnthropicExplanation(
+              config.llm.apiKey,
+              lineContent,
+              filePath,
+              fileContent,
+              contextLines,
+              lineNumber
+            );
           } else {
-            response = await AIProviderCore.continueAnthropicChat(config.llm.apiKey, messages, filePath, fileContent, lineNumber);
+            response = await AIProviderCore.continueAnthropicChat(
+              config.llm.apiKey,
+              messages,
+              filePath,
+              fileContent,
+              lineNumber
+            );
           }
         } else {
           return res.status(400).json({

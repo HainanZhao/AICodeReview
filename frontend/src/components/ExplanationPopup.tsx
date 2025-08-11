@@ -110,7 +110,11 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
       </div>
 
       {/* Content */}
-      <div className="flex-grow p-3 overflow-y-auto" id="explanation-popup-content" ref={chatHistoryRef}>
+      <div
+        className="flex-grow p-3 overflow-y-auto"
+        id="explanation-popup-content"
+        ref={chatHistoryRef}
+      >
         {/* Code line */}
         <div className="mb-3">
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Code line:</p>
@@ -148,7 +152,7 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
           {isLoading && (
             <div className="flex items-center space-x-2">
               <div className="flex-shrink-0 w-6 h-6 bg-purple-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                  AI
+                AI
               </div>
               <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700">
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
@@ -190,7 +194,9 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
   );
 
   if (!portalRoot) {
-    console.error("Portal root element not found. Make sure you have a <div id='portal-root'></div> in your index.html");
+    console.error(
+      "Portal root element not found. Make sure you have a <div id='portal-root'></div> in your index.html"
+    );
     return popupContent; // Fallback to rendering inline
   }
 

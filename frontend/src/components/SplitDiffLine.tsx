@@ -160,7 +160,13 @@ export const SplitDiffLine: React.FC<SplitDiffLineProps> = ({
     try {
       const contentToUse = line.type === 'remove' ? (oldFileContent ?? '') : (fileContent ?? '');
       const lineNumberToUse = line.type === 'remove' ? line.oldLine : line.newLine || line.oldLine;
-      const result = await getAiChatResponse([], filePath, lineNumberToUse, contentToUse, line.content);
+      const result = await getAiChatResponse(
+        [],
+        filePath,
+        lineNumberToUse,
+        contentToUse,
+        line.content
+      );
       setChatHistory([{ author: 'ai', content: result }]);
     } catch (error) {
       setChatError(error instanceof Error ? error.message : 'Failed to get explanation');
@@ -178,13 +184,19 @@ export const SplitDiffLine: React.FC<SplitDiffLineProps> = ({
 
     try {
       const line = currentChatLine;
-      if (!line) throw new Error("No line selected for chat.");
+      if (!line) throw new Error('No line selected for chat.');
 
       const contentToUse = line.type === 'remove' ? (oldFileContent ?? '') : (fileContent ?? '');
       const lineNumberToUse = line.type === 'remove' ? line.oldLine : line.newLine || line.oldLine;
-      const response = await getAiChatResponse(newChatHistory, filePath, lineNumberToUse, contentToUse, line.content);
+      const response = await getAiChatResponse(
+        newChatHistory,
+        filePath,
+        lineNumberToUse,
+        contentToUse,
+        line.content
+      );
       const aiResponse: ChatMessage = { author: 'ai', content: response };
-      setChatHistory(prev => [...prev, aiResponse]);
+      setChatHistory((prev) => [...prev, aiResponse]);
     } catch (error) {
       setChatError(error instanceof Error ? error.message : 'Failed to get response');
     } finally {
