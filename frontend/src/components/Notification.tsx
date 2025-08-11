@@ -88,17 +88,73 @@ export const Notification: React.FC<NotificationProps> = ({
     }
   };
 
+  // Inline styles for fallback when Tailwind CSS is not available
+  const containerStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: '16px',
+    left: '50%',
+    transform: isVisible ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-100%)',
+    zIndex: 50,
+    transition: 'all 0.3s ease',
+    opacity: isVisible ? 1 : 0,
+  };
+
+  const notificationStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px',
+    borderRadius: '8px',
+    borderLeft: '4px solid',
+    borderLeftColor: type === 'success' ? '#10b981' : 
+                      type === 'warning' ? '#f59e0b' : 
+                      type === 'error' ? '#ef4444' : '#3b82f6',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    maxWidth: '384px',
+    backgroundColor: type === 'success' ? '#ecfdf5' : 
+                      type === 'warning' ? '#fffbeb' : 
+                      type === 'error' ? '#fef2f2' : '#eff6ff',
+    color: type === 'success' ? '#065f46' : 
+           type === 'warning' ? '#92400e' : 
+           type === 'error' ? '#991b1b' : '#1e40af',
+  };
+
+  const iconStyle: React.CSSProperties = {
+    flexShrink: 0,
+    width: '16px',
+    height: '16px',
+  };
+
+  const messageStyle: React.CSSProperties = {
+    marginLeft: '12px',
+    flex: 1,
+    fontSize: '14px',
+    fontWeight: 500,
+  };
+
+  const buttonStyle: React.CSSProperties = {
+    marginLeft: '12px',
+    flexShrink: 0,
+    opacity: 0.7,
+    cursor: 'pointer',
+    background: 'none',
+    border: 'none',
+    color: 'inherit',
+    transition: 'opacity 0.2s ease',
+  };
+
   return (
     <div
+      style={containerStyle}
       className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ${
         isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
       }`}
     >
       <div
+        style={notificationStyle}
         className={`flex items-center p-3 rounded-lg border-l-4 shadow-lg max-w-sm ${getTypeClasses()}`}
       >
-        <div className="flex-shrink-0">{getIcon()}</div>
-        <div className="ml-3 flex-1">
+        <div style={iconStyle} className="flex-shrink-0">{getIcon()}</div>
+        <div style={messageStyle} className="ml-3 flex-1">
           <p className="text-sm font-medium">{message}</p>
         </div>
         <button
@@ -106,9 +162,12 @@ export const Notification: React.FC<NotificationProps> = ({
             setIsVisible(false);
             setTimeout(() => onClose?.(), 300);
           }}
+          style={buttonStyle}
           className="ml-3 flex-shrink-0 text-current opacity-70 hover:opacity-100 transition-opacity"
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
         >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <svg style={iconStyle} fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
               d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"

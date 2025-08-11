@@ -7,7 +7,7 @@ import {
   loadReviewState,
   saveReviewState,
   updateReviewStateFeedback,
-} from '../src/services/reviewStateService';
+} from './reviewStateService';
 
 // Mock data for testing
 const mockMrDetails = {
