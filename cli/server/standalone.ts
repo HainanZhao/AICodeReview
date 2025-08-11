@@ -21,8 +21,26 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   console.log(`   • Host: ${config.server.host}`);
   console.log(`   • Mode: ${isApiOnly ? 'API-only' : 'Standalone with Web UI'}`);
 
-  // Find available port
-  const availablePort = await findAvailablePort(config.server.port, config.server.host);
+  // Find available port - but be strict about port if we're in API-only mode for frontend proxy
+  let availablePort: number;
+  const isStrictPort = isApiOnly && config.server.port === 5959; // Likely being used with frontend proxy
+  
+  if (isStrictPort) {
+    // Check if exact port is available, don't auto-adjust for frontend proxy compatibility
+    const isAvailable = await import('../utils/portUtils.js').then(m => 
+      m.isPortAvailable(config.server.port, config.server.host)
+    );
+    if (!isAvailable) {
+      console.error(`❌ Port ${config.server.port} is already in use and required for frontend proxy.`);
+      console.log(`   Please stop other services on port ${config.server.port} or use a different port.`);
+      process.exit(1);
+    }
+    availablePort = config.server.port;
+  } else {
+    // Normal auto-adjustment for standalone mode
+    availablePort = await findAvailablePort(config.server.port, config.server.host);
+  }
+  
   if (availablePort !== config.server.port) {
     console.log(`   • Port: ${config.server.port} → ${availablePort} (auto-adjusted)`);
   } else {
