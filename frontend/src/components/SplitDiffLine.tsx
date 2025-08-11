@@ -1,5 +1,5 @@
 import React from 'react';
-import { continueChat, explainLine } from '../services/aiReviewService';
+import { getAiChatResponse } from '../services/aiReviewService';
 import { ChatMessage, ParsedDiffLine } from '../types';
 import { ExplanationPopup } from './ExplanationPopup';
 import { AIExplainIcon, PlusIcon } from './icons';
@@ -160,8 +160,7 @@ export const SplitDiffLine: React.FC<SplitDiffLineProps> = ({
     try {
       const contentToUse = line.type === 'remove' ? (oldFileContent ?? '') : (fileContent ?? '');
       const lineNumberToUse = line.type === 'remove' ? line.oldLine : line.newLine || line.oldLine;
-
-      const result = await explainLine(line.content, filePath, lineNumberToUse, contentToUse, 5);
+      const result = await getAiChatResponse([], filePath, lineNumberToUse, contentToUse, line.content);
       setChatHistory([{ author: 'ai', content: result }]);
     } catch (error) {
       setChatError(error instanceof Error ? error.message : 'Failed to get explanation');
@@ -172,7 +171,8 @@ export const SplitDiffLine: React.FC<SplitDiffLineProps> = ({
 
   const handleSendMessage = async (message: string) => {
     const newUserMessage: ChatMessage = { author: 'user', content: message };
-    setChatHistory(prev => [...prev, newUserMessage]);
+    const newChatHistory = [...chatHistory, newUserMessage];
+    setChatHistory(newChatHistory);
     setIsLoadingResponse(true);
     setChatError(undefined);
 
@@ -182,7 +182,7 @@ export const SplitDiffLine: React.FC<SplitDiffLineProps> = ({
 
       const contentToUse = line.type === 'remove' ? (oldFileContent ?? '') : (fileContent ?? '');
       const lineNumberToUse = line.type === 'remove' ? line.oldLine : line.newLine || line.oldLine;
-      const response = await continueChat([...chatHistory, newUserMessage], filePath, lineNumberToUse, contentToUse);
+      const response = await getAiChatResponse(newChatHistory, filePath, lineNumberToUse, contentToUse, line.content);
       const aiResponse: ChatMessage = { author: 'ai', content: response };
       setChatHistory(prev => [...prev, aiResponse]);
     } catch (error) {

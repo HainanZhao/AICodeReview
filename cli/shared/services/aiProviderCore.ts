@@ -326,22 +326,20 @@ export class AIProviderCore {
    */
   private static extractExplanationFromJson(output: string): string {
     try {
-      // First try to extract JSON from the output
-      const jsonMatch = output.match(/\{[\s\S]*?\}/);
-      if (jsonMatch) {
-        const jsonContent = jsonMatch[0];
-        const parsed = JSON.parse(jsonContent);
+      const jsonRegex = /```json\s*(\{[\s\S]+?\})\s*```|(\{[\s\S]+\})/;
+      const match = output.match(jsonRegex);
 
-        // Check if it has an explanation field
-        if (parsed.explanation && typeof parsed.explanation === 'string') {
-          return parsed.explanation;
+      if (match) {
+        const jsonString = match[1] || match[2];
+        if (jsonString) {
+          const parsed = JSON.parse(jsonString);
+          if (parsed.explanation && typeof parsed.explanation === 'string') {
+            return parsed.explanation;
+          }
         }
       }
-
-      // Fallback: return the original text cleaned up
       return output.trim();
     } catch {
-      // JSON parsing failed, return original text
       return output.trim();
     }
   }

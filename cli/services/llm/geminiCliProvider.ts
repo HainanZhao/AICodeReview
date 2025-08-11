@@ -133,32 +133,20 @@ export class GeminiCliProvider extends BaseLLMProvider {
    */
   private extractJsonExplanation(output: string): string | null {
     try {
-      // Look for JSON object in the output
-      const jsonMatch = output.match(/\{[\s\S]*?\}/);
-      if (jsonMatch) {
-        const jsonContent = jsonMatch[0];
-        const parsed = JSON.parse(jsonContent);
+      const jsonRegex = /```json\s*(\{[\s\S]+?\})\s*```|(\{[\s\S]+\})/;
+      const match = output.match(jsonRegex);
 
-        // Check if it has an explanation field
-        if (parsed.explanation && typeof parsed.explanation === 'string') {
-          return parsed.explanation;
+      if (match) {
+        const jsonString = match[1] || match[2];
+        if (jsonString) {
+          const parsed = JSON.parse(jsonString);
+          if (parsed.explanation && typeof parsed.explanation === 'string') {
+            return parsed.explanation;
+          }
         }
       }
-
-      // Look for JSON with different structure
-      const arrayMatch = output.match(/\[[\s\S]*?\]/);
-      if (arrayMatch) {
-        const jsonContent = arrayMatch[0];
-        const parsed = JSON.parse(jsonContent);
-
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].explanation) {
-          return parsed[0].explanation;
-        }
-      }
-
       return null;
     } catch {
-      // JSON parsing failed, return null to use fallback
       return null;
     }
   }

@@ -130,16 +130,17 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       }
     });
 
-    // AI Chat endpoint
+    // Unified AI Chat endpoint
     app.post('/api/chat', async (req, res) => {
       try {
-        const { messages, filePath, lineNumber, fileContent } = req.body;
+        const { messages, lineContent, filePath, lineNumber, fileContent, contextLines = 5 } = req.body;
 
-        // Validate required parameters
-        if (!messages || !Array.isArray(messages) || messages.length === 0) {
+        const isNewConversation = !messages || messages.length === 0;
+
+        if (isNewConversation && !lineContent) {
           return res.status(400).json({
             success: false,
-            error: 'Missing or invalid messages parameter',
+            error: 'Missing lineContent for new conversation',
           });
         }
 
@@ -150,33 +151,29 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
           });
         }
 
-        // Import AI provider core for chat
         const { AIProviderCore } = await import('../shared/services/aiProviderCore.js');
-
         let response: string;
 
-        // This is a simplified logic. In a real scenario, you would have a
-        // more robust way to select and call the provider's chat function.
         if (config.llm.provider === 'gemini-cli') {
           const { GeminiCliProvider } = await import('../services/llm/geminiCliProvider.js');
           const provider = new GeminiCliProvider();
-          response = await provider.continueChat(messages, filePath, fileContent, lineNumber);
+          if (isNewConversation) {
+            response = await provider.explainLine(lineContent, filePath, fileContent, contextLines, lineNumber);
+          } else {
+            response = await provider.continueChat(messages, filePath, fileContent, lineNumber);
+          }
         } else if (config.llm.provider === 'gemini' && config.llm.apiKey) {
-          response = await AIProviderCore.continueGeminiChat(
-            config.llm.apiKey,
-            messages,
-            filePath,
-            fileContent,
-            lineNumber
-          );
+          if (isNewConversation) {
+            response = await AIProviderCore.generateGeminiExplanation(config.llm.apiKey, lineContent, filePath, fileContent, contextLines, lineNumber);
+          } else {
+            response = await AIProviderCore.continueGeminiChat(config.llm.apiKey, messages, filePath, fileContent, lineNumber);
+          }
         } else if (config.llm.provider === 'anthropic' && config.llm.apiKey) {
-          response = await AIProviderCore.continueAnthropicChat(
-            config.llm.apiKey,
-            messages,
-            filePath,
-            fileContent,
-            lineNumber
-          );
+          if (isNewConversation) {
+            response = await AIProviderCore.generateAnthropicExplanation(config.llm.apiKey, lineContent, filePath, fileContent, contextLines, lineNumber);
+          } else {
+            response = await AIProviderCore.continueAnthropicChat(config.llm.apiKey, messages, filePath, fileContent, lineNumber);
+          }
         } else {
           return res.status(400).json({
             success: false,
@@ -186,10 +183,10 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
 
         res.json({
           success: true,
-          response,
+          explanation: response, // Keep 'explanation' for consistency with frontend parsing
         });
       } catch (error) {
-        console.error('Failed to continue chat:', error);
+        console.error('AI chat/explain error:', error);
         res.status(500).json({
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -197,80 +194,6 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       }
     });
 
-    // AI Explain Line endpoint
-    app.post('/api/explain-line', async (req, res) => {
-      try {
-        const { lineContent, lineNumber, filePath, fileContent, contextLines = 5 } = req.body;
-
-        // Validate required parameters
-        if (!lineContent) {
-          return res.status(400).json({
-            success: false,
-            error: 'Missing lineContent parameter',
-          });
-        }
-
-        if (!filePath) {
-          return res.status(400).json({
-            success: false,
-            error: 'Missing filePath parameter',
-          });
-        }
-
-        // Import AI provider core for explanation
-        const { AIProviderCore } = await import('../shared/services/aiProviderCore.js');
-
-        let explanation: string;
-
-        // Use the configured LLM provider
-        if (config.llm.provider === 'gemini-cli') {
-          // Use the gemini-cli provider
-          const { GeminiCliProvider } = await import('../services/llm/geminiCliProvider.js');
-          const provider = new GeminiCliProvider();
-          explanation = await provider.explainLine(
-            lineContent,
-            filePath,
-            fileContent,
-            contextLines,
-            lineNumber
-          );
-        } else if (config.llm.provider === 'gemini' && config.llm.apiKey) {
-          explanation = await AIProviderCore.generateGeminiExplanation(
-            config.llm.apiKey,
-            lineContent,
-            filePath,
-            fileContent,
-            contextLines,
-            lineNumber
-          );
-        } else if (config.llm.provider === 'anthropic' && config.llm.apiKey) {
-          explanation = await AIProviderCore.generateAnthropicExplanation(
-            config.llm.apiKey,
-            lineContent,
-            filePath,
-            fileContent,
-            contextLines,
-            lineNumber
-          );
-        } else {
-          return res.status(400).json({
-            success: false,
-            error: `Unsupported LLM provider: ${config.llm.provider} or API key missing`,
-          });
-        }
-
-        res.json({
-          success: true,
-          explanation,
-        });
-      } catch (error) {
-        console.error('Failed to explain line:', error);
-        res.status(500).json({
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
-    });
     console.log('✅ LLM provider initialized successfully');
   } catch (error) {
     console.error('❌ Failed to initialize LLM provider:', error);
@@ -335,8 +258,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       console.log(`   • POST ${url}/api/review-mr - Unified MR review endpoint`);
       console.log(`   • POST ${url}/api/config - Configuration endpoint`);
       console.log(`   • POST ${url}/api/post-discussion - Post GitLab discussion endpoint`);
-      console.log(`   • POST ${url}/api/explain-line - AI explain code line endpoint`);
-      console.log(`   • POST ${url}/api/chat - AI chat endpoint`);
+      console.log(`   • POST ${url}/api/chat - Unified AI chat and explain endpoint`);
       console.log(`   🛑 Press Ctrl+C to stop\n`);
     } else {
       console.log('\n✅ AI Code Review is ready!');
