@@ -198,6 +198,11 @@ export const explainLine = async (
     });
 
     if (!response.ok) {
+      // Improved error handling for connection issues
+      if (response.status === 0 || !response.status) {
+        throw new Error('Unable to connect to AI service. Please check your connection and try again.');
+      }
+      
       let errorMessage = `AI Explain failed with status: ${response.status}`;
       try {
         const errorData = await response.json();
@@ -205,7 +210,12 @@ export const explainLine = async (
           errorMessage = errorData.error;
         }
       } catch {
-        // If we can't parse JSON, use default message
+        // If we can't parse JSON, use default message based on status
+        if (response.status >= 500) {
+          errorMessage = 'AI service is temporarily unavailable. Please try again later.';
+        } else if (response.status === 404) {
+          errorMessage = 'AI explain endpoint not found. Please check your configuration.';
+        }
       }
       throw new Error(errorMessage);
     }
@@ -218,8 +228,13 @@ export const explainLine = async (
 
     return result.explanation || 'No explanation available';
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('The AI explanation request timed out. Please try again.');
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('The AI explanation request timed out. Please try again.');
+      }
+      if (error.message.includes('Failed to fetch')) {
+        throw new Error('Unable to connect to AI service. Please check that the backend is running.');
+      }
     }
     throw error;
   } finally {
@@ -261,6 +276,11 @@ export const startChat = async (
     });
 
     if (!response.ok) {
+      // Improved error handling for connection issues
+      if (response.status === 0 || !response.status) {
+        throw new Error('Unable to connect to AI service. Please check your connection and try again.');
+      }
+      
       let errorMessage = `AI Chat failed with status: ${response.status}`;
       try {
         const errorData = await response.json();
@@ -268,7 +288,12 @@ export const startChat = async (
           errorMessage = errorData.error;
         }
       } catch {
-        // If we can't parse JSON, use default message
+        // If we can't parse JSON, use default message based on status
+        if (response.status >= 500) {
+          errorMessage = 'AI service is temporarily unavailable. Please try again later.';
+        } else if (response.status === 404) {
+          errorMessage = 'AI chat endpoint not found. Please check your configuration.';
+        }
       }
       throw new Error(errorMessage);
     }
@@ -285,8 +310,13 @@ export const startChat = async (
       messages: result.messages || [],
     };
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('The AI chat request timed out. Please try again.');
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('The AI chat request timed out. Please try again.');
+      }
+      if (error.message.includes('Failed to fetch')) {
+        throw new Error('Unable to connect to AI service. Please check that the backend is running.');
+      }
     }
     throw error;
   } finally {
@@ -322,6 +352,11 @@ export const continueChat = async (
     });
 
     if (!response.ok) {
+      // Improved error handling for connection issues
+      if (response.status === 0 || !response.status) {
+        throw new Error('Unable to connect to AI service. Please check your connection and try again.');
+      }
+      
       let errorMessage = `AI Chat failed with status: ${response.status}`;
       try {
         const errorData = await response.json();
@@ -329,7 +364,12 @@ export const continueChat = async (
           errorMessage = errorData.error;
         }
       } catch {
-        // If we can't parse JSON, use default message
+        // If we can't parse JSON, use default message based on status
+        if (response.status >= 500) {
+          errorMessage = 'AI service is temporarily unavailable. Please try again later.';
+        } else if (response.status === 404) {
+          errorMessage = 'Chat session not found or expired. Please start a new conversation.';
+        }
       }
       throw new Error(errorMessage);
     }
@@ -345,12 +385,37 @@ export const continueChat = async (
       messages: result.messages || [],
     };
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('The AI chat request timed out. Please try again.');
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('The AI chat request timed out. Please try again.');
+      }
+      if (error.message.includes('Failed to fetch')) {
+        throw new Error('Unable to connect to AI service. Please check that the backend is running.');
+      }
     }
     throw error;
   } finally {
     clearTimeout(timeoutId);
+  }
+};
+
+/**
+ * Test connectivity to the AI service backend
+ */
+export const testBackendConnection = async (): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    });
+    
+    return response.ok;
+  } catch (error) {
+    console.error('Backend connection test failed:', error);
+    return false;
   }
 };
 

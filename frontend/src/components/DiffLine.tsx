@@ -1,6 +1,7 @@
 import React from 'react';
-import { startChat, continueChat } from '../services/aiReviewService';
+import { explainLine, startChat, continueChat } from '../services/aiReviewService';
 import { ParsedDiffLine, ChatMessage } from '../types';
+import { ExplanationPopup } from './ExplanationPopup';
 import { ChatInterface } from './ChatInterface';
 import { AIExplainIcon, PlusIcon } from './icons';
 
@@ -37,13 +38,21 @@ export const DiffLine: React.FC<DiffLineProps> = ({
   const canComment = line.type === 'add' || line.type === 'remove' || line.type === 'context';
   const canExplain = line.type !== 'meta' && line.content.trim().length > 0;
 
-  // AI Chat state
-  const [showChat, setShowChat] = React.useState(false);
+  // UI state - both explanation and chat
+  const [showPopup, setShowPopup] = React.useState(false);
+  const [popupMode, setPopupMode] = React.useState<'explanation' | 'chat'>('explanation');
+  const [popupPosition, setPopupPosition] = React.useState({ x: 0, y: 0 });
+
+  // Explanation state (original feature)
+  const [explanation, setExplanation] = React.useState('');
+  const [isLoadingExplanation, setIsLoadingExplanation] = React.useState(false);
+  const [explanationError, setExplanationError] = React.useState<string | undefined>();
+
+  // Chat state (new feature)
   const [chatSessionId, setChatSessionId] = React.useState<string | undefined>();
   const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>([]);
   const [isLoadingChat, setIsLoadingChat] = React.useState(false);
   const [chatError, setChatError] = React.useState<string | undefined>();
-  const [popupPosition, setPopupPosition] = React.useState({ x: 0, y: 0 });
 
   const handleExplainClick = async (event: React.MouseEvent) => {
     if (!canExplain) return;
@@ -57,11 +66,39 @@ export const DiffLine: React.FC<DiffLineProps> = ({
       y: rect.top,
     });
 
-    setShowChat(true);
+    // Start with explanation mode
+    setPopupMode('explanation');
+    setShowPopup(true);
+    setIsLoadingExplanation(true);
+    setExplanationError(undefined);
+    setExplanation('');
+
+    // Reset chat state
+    setChatSessionId(undefined);
+    setChatMessages([]);
+    setChatError(undefined);
+
+    try {
+      // For deleted lines, use old file content; for other lines, use new file content
+      const contentToUse = line.type === 'remove' ? (oldFileContent ?? '') : (fileContent ?? '');
+      const lineNumberToUse = line.type === 'remove' ? line.oldLine : line.newLine || line.oldLine;
+
+      // Get initial explanation using original API
+      const result = await explainLine(line.content, filePath, lineNumberToUse, contentToUse, 5);
+      setExplanation(result);
+    } catch (error) {
+      console.error('Failed to get explanation:', error);
+      setExplanationError(error instanceof Error ? error.message : 'Failed to get explanation');
+    } finally {
+      setIsLoadingExplanation(false);
+    }
+  };
+
+  const handleStartChat = async () => {
+    setPopupMode('chat');
     setIsLoadingChat(true);
     setChatError(undefined);
     setChatMessages([]);
-    setChatSessionId(undefined);
 
     try {
       // For deleted lines, use old file content; for other lines, use new file content
@@ -72,6 +109,7 @@ export const DiffLine: React.FC<DiffLineProps> = ({
       setChatSessionId(result.sessionId);
       setChatMessages(result.messages);
     } catch (error) {
+      console.error('Failed to start chat:', error);
       setChatError(error instanceof Error ? error.message : 'Failed to start chat');
     } finally {
       setIsLoadingChat(false);
@@ -87,13 +125,17 @@ export const DiffLine: React.FC<DiffLineProps> = ({
       const result = await continueChat(chatSessionId, message);
       setChatMessages(result.messages);
     } catch (error) {
+      console.error('Failed to send message:', error);
       setChatError(error instanceof Error ? error.message : 'Failed to send message');
       throw error; // Re-throw to let ChatInterface handle the error state
     }
   };
 
-  const handleCloseChat = () => {
-    setShowChat(false);
+  const handleClosePopup = () => {
+    setShowPopup(false);
+    setPopupMode('explanation');
+    setExplanation('');
+    setExplanationError(undefined);
     setChatMessages([]);
     setChatSessionId(undefined);
     setChatError(undefined);
@@ -101,23 +143,22 @@ export const DiffLine: React.FC<DiffLineProps> = ({
 
   // Close popup when clicking outside or pressing Escape
   React.useEffect(() => {
-    if (!showChat) return;
+    if (!showPopup) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      // Check if the click is outside the popup
       const target = event.target as Element;
       const popupElement = document.querySelector(
-        '[role="dialog"][aria-labelledby="chat-interface-title"]'
+        '[role="dialog"][aria-labelledby="explanation-popup-title"], [role="dialog"][aria-labelledby="chat-interface-title"]'
       );
 
       if (popupElement && !popupElement.contains(target)) {
-        setShowChat(false);
+        handleClosePopup();
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setShowChat(false);
+        handleClosePopup();
       }
     };
 
@@ -128,7 +169,7 @@ export const DiffLine: React.FC<DiffLineProps> = ({
       document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [showChat]);
+  }, [showPopup]);
 
   return (
     <>
@@ -149,11 +190,11 @@ export const DiffLine: React.FC<DiffLineProps> = ({
               <PlusIcon className="w-3 h-3" />
             </button>
 
-            {/* AI Chat button */}
+            {/* AI Explain button */}
             {canExplain && (
               <button
                 onClick={handleExplainClick}
-                title="Start AI chat about this line"
+                title="Get AI explanation for this line"
                 className="opacity-0 bg-purple-600 text-white rounded-full p-[3px] leading-none shadow-lg hover:bg-purple-700 transition-opacity duration-150 group-hover:opacity-100"
               >
                 <AIExplainIcon className="w-3 h-3" />
@@ -173,8 +214,22 @@ export const DiffLine: React.FC<DiffLineProps> = ({
         </td>
       </tr>
 
-      {/* AI Chat Interface */}
-      {showChat && (
+      {/* AI Explanation Popup (Original Feature Enhanced) */}
+      {showPopup && popupMode === 'explanation' && (
+        <ExplanationPopup
+          explanation={explanation}
+          lineContent={line.content}
+          filePath={filePath}
+          isLoading={isLoadingExplanation}
+          error={explanationError}
+          onClose={handleClosePopup}
+          onStartChat={handleStartChat}
+          position={popupPosition}
+        />
+      )}
+
+      {/* AI Chat Interface (New Feature) */}
+      {showPopup && popupMode === 'chat' && (
         <ChatInterface
           sessionId={chatSessionId}
           messages={chatMessages}
@@ -182,7 +237,7 @@ export const DiffLine: React.FC<DiffLineProps> = ({
           filePath={filePath}
           isLoading={isLoadingChat}
           error={chatError}
-          onClose={handleCloseChat}
+          onClose={handleClosePopup}
           onSendMessage={handleSendMessage}
           position={popupPosition}
         />

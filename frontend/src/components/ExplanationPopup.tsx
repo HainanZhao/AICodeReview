@@ -8,6 +8,7 @@ interface ExplanationPopupProps {
   isLoading: boolean;
   error?: string;
   onClose: () => void;
+  onStartChat?: () => void; // New prop to start chat mode
   position: { x: number; y: number };
 }
 
@@ -18,6 +19,7 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
   isLoading,
   error,
   onClose,
+  onStartChat, // New prop
   position,
 }) => {
   // Calculate position to keep popup within viewport
@@ -130,11 +132,19 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
         </div>
       </div>
 
-      {/* Footer hint */}
-      <div className="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-b-lg">
+      {/* Footer with actions */}
+      <div className="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-b-lg flex items-center justify-between">
         <p className="text-xs text-gray-500 dark:text-gray-400">
           Click outside to close or press Escape
         </p>
+        {!isLoading && !error && explanation && onStartChat && (
+          <button
+            onClick={onStartChat}
+            className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+          >
+            💬 Start Chat
+          </button>
+        )}
       </div>
     </div>
   );
