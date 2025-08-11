@@ -1,0 +1,14 @@
+{
+  "server": {
+    "port": 5960,
+    "host": "localhost"
+  },
+  "llm": {
+    "provider": "gemini",
+    "apiKey": "dummy-api-key"
+  },
+  "ui": {
+    "theme": "light",
+    "autoOpen": true
+  }
+}

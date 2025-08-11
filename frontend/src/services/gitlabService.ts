@@ -7,6 +7,7 @@ export {
   parseDiffsToHunks,
 } from '../../../cli/shared/services/gitlabCore.js';
 import { GitLabConfig, GitLabMRDetails, ReviewFeedback } from '../types';
+import { getApiUrl } from '../utils/api';
 
 // Add new API-based method
 export const postDiscussion = async (
@@ -15,7 +16,7 @@ export const postDiscussion = async (
   reviewFeedback: ReviewFeedback
 ): Promise<any> => {
   try {
-    const response = await fetch('/api/post-discussion', {
+    const response = await fetch(getApiUrl('api/post-discussion'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -7,6 +7,7 @@ export interface LLMConfig {
 export interface ServerConfig {
   port: number;
   host: string;
+  subPath?: string;
 }
 
 export interface UIConfig {

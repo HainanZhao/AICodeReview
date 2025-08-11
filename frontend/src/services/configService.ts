@@ -1,5 +1,6 @@
 import { Config } from '../types';
 import { GitLabConfig, GitLabProject } from '../../../types';
+import { getApiUrl } from '../utils/api';
 
 const CONFIG_KEY = 'ai-code-reviewer-config-override';
 const PROJECTS_KEY = 'ai-code-reviewer-selected-projects';
@@ -92,7 +93,7 @@ export const fetchBackendConfig = async (
 > => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const response = await fetch('/api/config', {
+      const response = await fetch(getApiUrl('api/config'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

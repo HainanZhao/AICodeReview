@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { ReviewFeedback } from '../../../types';
 import { ChatMessage, Config, GitLabMRDetails } from '../types';
+import { getApiUrl } from '../utils/api';
 import { fetchMrData } from './gitlabService';
 
 /**
@@ -64,7 +65,7 @@ export const runAiReview = async (
   const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes timeout for AI review
 
   try {
-    const response = await fetch('/api/review-mr', {
+    const response = await fetch(getApiUrl('api/review-mr'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -191,7 +192,7 @@ export const getAiChatResponse = async (
       contextLines,
     };
 
-    const response = await fetch('/api/chat', {
+    const response = await fetch(getApiUrl('api/chat'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

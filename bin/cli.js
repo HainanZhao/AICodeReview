@@ -24,6 +24,7 @@ program
 program
   .option('-p, --port <number>', 'port to run the server on')
   .option('--host <host>', 'host to bind the server to')
+  .option('--sub-path <path>', 'path to run the app on')
   .option('--provider <provider>', 'LLM provider (gemini-cli, gemini, anthropic)')
   .option('--api-key <key>', 'API key for the LLM provider')
   .option('--google-cloud-project <project>', 'Google Cloud project ID for gemini-cli')
