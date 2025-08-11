@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { ReviewFeedback } from '../../../types';
-import { Config, GitLabMRDetails } from '../types';
+import { ChatMessage, Config, GitLabMRDetails } from '../types';
 import { fetchMrData } from './gitlabService';
 
 /**
@@ -220,6 +220,63 @@ export const explainLine = async (
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('The AI explanation request timed out. Please try again.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+/**
+ * Continue a chat conversation with the AI
+ */
+export const continueChat = async (
+  messages: ChatMessage[],
+  filePath: string,
+  lineNumber?: number,
+  fileContent?: string,
+): Promise<string> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages,
+        filePath,
+        lineNumber,
+        fileContent,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `AI Chat failed with status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch {
+        // If we can't parse JSON, use default message
+      }
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || 'AI Chat failed');
+    }
+
+    return result.response || 'No response available';
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('The AI chat request timed out. Please try again.');
     }
     throw error;
   } finally {

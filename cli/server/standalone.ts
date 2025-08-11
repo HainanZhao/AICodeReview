@@ -130,6 +130,73 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       }
     });
 
+    // AI Chat endpoint
+    app.post('/api/chat', async (req, res) => {
+      try {
+        const { messages, filePath, lineNumber, fileContent } = req.body;
+
+        // Validate required parameters
+        if (!messages || !Array.isArray(messages) || messages.length === 0) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing or invalid messages parameter',
+          });
+        }
+
+        if (!filePath) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing filePath parameter',
+          });
+        }
+
+        // Import AI provider core for chat
+        const { AIProviderCore } = await import('../shared/services/aiProviderCore.js');
+
+        let response: string;
+
+        // This is a simplified logic. In a real scenario, you would have a
+        // more robust way to select and call the provider's chat function.
+        if (config.llm.provider === 'gemini-cli') {
+          const { GeminiCliProvider } = await import('../services/llm/geminiCliProvider.js');
+          const provider = new GeminiCliProvider();
+          response = await provider.continueChat(messages, filePath, fileContent, lineNumber);
+        } else if (config.llm.provider === 'gemini' && config.llm.apiKey) {
+          response = await AIProviderCore.continueGeminiChat(
+            config.llm.apiKey,
+            messages,
+            filePath,
+            fileContent,
+            lineNumber
+          );
+        } else if (config.llm.provider === 'anthropic' && config.llm.apiKey) {
+          response = await AIProviderCore.continueAnthropicChat(
+            config.llm.apiKey,
+            messages,
+            filePath,
+            fileContent,
+            lineNumber
+          );
+        } else {
+          return res.status(400).json({
+            success: false,
+            error: `Unsupported LLM provider: ${config.llm.provider} or API key missing`,
+          });
+        }
+
+        res.json({
+          success: true,
+          response,
+        });
+      } catch (error) {
+        console.error('Failed to continue chat:', error);
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    });
+
     // AI Explain Line endpoint
     app.post('/api/explain-line', async (req, res) => {
       try {
@@ -269,6 +336,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       console.log(`   • POST ${url}/api/config - Configuration endpoint`);
       console.log(`   • POST ${url}/api/post-discussion - Post GitLab discussion endpoint`);
       console.log(`   • POST ${url}/api/explain-line - AI explain code line endpoint`);
+      console.log(`   • POST ${url}/api/chat - AI chat endpoint`);
       console.log(`   🛑 Press Ctrl+C to stop\n`);
     } else {
       console.log('\n✅ AI Code Review is ready!');
