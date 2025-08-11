@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-08-11
+
+### Added
+- **AI Chat Interface**: Upgraded AI explanation feature to interactive chat system
+  - Users can now ask follow-up questions about code explanations
+  - Persistent chat conversations for deeper code understanding
+  - Context-aware responses that maintain conversation history
+  - Enhanced user engagement with continuous learning capability
+
+### Enhanced
+- Improved AI interaction model from single explanations to conversational experience
+- Better user experience with chat-based code exploration
+
+## [1.3.0] - 2025-08-11
+
+### Added
+- **Split View Diff Display**: New side-by-side code comparison feature
+  - View code changes in traditional split-pane format
+  - Enhanced readability for reviewing large code modifications
+  - Toggle between unified and split view modes
+  - Improved navigation and comparison of before/after code states
+
+### Enhanced
+- Better diff visualization options for different user preferences
+- Improved code review workflow with multiple view modes
+
 ## [1.2.0] - 2025-08-06
 
 ### Added

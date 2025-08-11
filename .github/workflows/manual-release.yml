@@ -1,0 +1,102 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.4.0)'
+        required: true
+        type: string
+      publish_npm:
+        description: 'Publish to npm'
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd frontend && npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Update version in package.json
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          npm version $VERSION --no-git-tag-version
+
+      - name: Extract changelog for version
+        id: changelog
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          echo "Extracting changelog for version $VERSION"
+          
+          # Extract changelog section for this version
+          awk -v version="$VERSION" '
+            BEGIN { found=0; content="" }
+            /^## \[/ { 
+              if (found) exit
+              if ($0 ~ "\\[" version "\\]") {
+                found=1
+                next
+              }
+            }
+            found && /^## \[/ { exit }
+            found { 
+              if (content != "") content = content "\n"
+              content = content $0 
+            }
+            END { print content }
+          ' CHANGELOG.md > release_notes.md
+          
+          # If no specific version found, create a generic note
+          if [ ! -s release_notes.md ]; then
+            echo "### Release v$VERSION" > release_notes.md
+            echo "" >> release_notes.md
+            echo "See [CHANGELOG.md](./CHANGELOG.md) for full details." >> release_notes.md
+          fi
+
+      - name: Create npm package
+        run: npm pack
+
+      - name: Create and push tag
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          gh release create "v$VERSION" \
+            --title "Release v$VERSION" \
+            --notes-file release_notes.md \
+            "./aicodereview-cli-$VERSION.tgz"
+
+      - name: Publish to npm
+        if: ${{ github.event.inputs.publish_npm == 'true' }}
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

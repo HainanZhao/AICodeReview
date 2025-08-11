@@ -1,0 +1,147 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.4.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd frontend && npm ci
+
+      - name: Run tests
+        run: npm test -- --run
+
+      - name: Build project
+        run: npm run build
+
+      - name: Extract version from tag or input
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog for version
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Extracting changelog for version $VERSION"
+          
+          # Extract changelog section for this version
+          awk -v version="$VERSION" '
+            BEGIN { found=0; content="" }
+            /^## \[/ { 
+              if (found) exit
+              if ($0 ~ "\\[" version "\\]") {
+                found=1
+                next
+              }
+            }
+            found && /^## \[/ { exit }
+            found { 
+              if (content != "") content = content "\n"
+              content = content $0 
+            }
+            END { print content }
+          ' CHANGELOG.md > release_notes.md
+          
+          # If no specific version found, create a generic note
+          if [ ! -s release_notes.md ]; then
+            echo "### Release v$VERSION" > release_notes.md
+            echo "" >> release_notes.md
+            echo "See [CHANGELOG.md](./CHANGELOG.md) for full details." >> release_notes.md
+          fi
+          
+          echo "Release notes:"
+          cat release_notes.md
+
+      - name: Create npm package
+        run: npm pack
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          release_name: Release ${{ steps.version.outputs.tag }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+
+      - name: Upload npm package to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./aicodereview-cli-${{ steps.version.outputs.version }}.tgz
+          asset_name: aicodereview-cli-${{ steps.version.outputs.version }}.tgz
+          asset_content_type: application/gzip
+
+      - name: Publish to npm
+        if: ${{ !contains(steps.version.outputs.version, '-') }}
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  update-changelog:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    needs: release
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update package.json version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          npm version $VERSION --no-git-tag-version
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: bump version to ${{ github.event.inputs.version }}"
+          title: "chore: bump version to ${{ github.event.inputs.version }}"
+          body: |
+            This PR bumps the version to ${{ github.event.inputs.version }} after release.
+            
+            - Updated package.json version
+            - Triggered by release workflow
+          branch: chore/bump-version-${{ github.event.inputs.version }}
+          delete-branch: true
