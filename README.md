@@ -84,6 +84,7 @@ Options:
   -c, --config <path>               Path to configuration file
   -p, --port <number>               Port to run the server on (default: 5960)
   --host <host>                     Host to bind the server to (default: localhost)
+  --sub-path <path>                 Serve application under a subpath (e.g., /path/to)
   --provider <provider>             LLM provider: gemini-cli, gemini, anthropic (default: gemini-cli)
   --api-key <key>                   API key for the LLM provider
   --google-cloud-project <project>  Google Cloud project ID for gemini-cli
@@ -95,6 +96,32 @@ Options:
   -h, --help                        Display help
   -V, --version                     Show version
 ```
+
+### Subpath Deployment
+
+For deployment scenarios where the application needs to run under a subpath (e.g., behind a reverse proxy):
+
+```bash
+# Run with subpath
+aicodereview --sub-path /path/to
+```
+
+**Example testing workflow:**
+
+1. Start AI Code Review with subpath:
+   ```bash
+   aicodereview --sub-path /path/to
+   ```
+
+2. Start the proxy server:
+   ```bash
+   node debug/quick-proxy.cjs
+   ```
+
+3. Access through proxy:
+   - **Direct**: `http://localhost:5960/path/to`
+   - **Proxied**: `http://localhost:3000/path/to`
+   - **Health check**: `http://localhost:3000/health`
 
 ---
 

@@ -1,7 +1,7 @@
 import express from 'express';
+import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { readFileSync } from 'fs';
 import { CLIOptions, ConfigLoader } from '../config/configLoader.js';
 import { createConfigService } from '../shared/services/configService.js';
 import { openBrowser } from '../utils/browserUtils.js';
@@ -247,28 +247,41 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
 
   // Conditionally serve frontend based on mode
   if (!isApiOnly) {
-    // Serve static files (built frontend)
+    // Serve static files (built frontend) excluding index.html
     const distPath = join(__dirname, '..', 'public');
-    router.use(express.static(distPath));
+    router.use(
+      express.static(distPath, {
+        index: false, // Don't serve index.html automatically
+      })
+    );
 
     // Handle common browser requests that we expect to fail silently
     router.get('/favicon.ico', (_req: express.Request, res: express.Response) =>
       res.status(204).end()
     );
-    router.get('/robots.txt', (_req: express.Request, res: express.Response) => res.status(204).end());
+    router.get('/robots.txt', (_req: express.Request, res: express.Response) =>
+      res.status(204).end()
+    );
     router.get('/manifest.json', (_req: express.Request, res: express.Response) =>
       res.status(204).end()
     );
 
     const indexPath = join(distPath, 'index.html');
     const indexContent = readFileSync(indexPath, 'utf-8');
-    const modifiedIndex = indexContent.replace(
+    let modifiedIndex = indexContent.replace(
       '</head>',
       `  <script>
     window.SUB_PATH = '${subPath}';
   </script>
 </head>`
     );
+
+    // Update asset paths to include subpath
+    if (subPath) {
+      modifiedIndex = modifiedIndex
+        .replace(/src="\/assets\//g, `src="/${subPath}/assets/`)
+        .replace(/href="\/assets\//g, `href="/${subPath}/assets/`);
+    }
 
     // Serve index.html for all non-API routes (SPA routing)
     router.get('/', (_req: express.Request, res: express.Response) => {

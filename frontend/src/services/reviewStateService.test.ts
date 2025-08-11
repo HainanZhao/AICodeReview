@@ -1,6 +1,5 @@
-// Test file to verify reviewStateService functionality
-// This file can be run in browser console to test localStorage persistence
-
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { Severity, type GitLabMRDetails, type ReviewFeedback } from '../../../types';
 import {
   clearReviewState,
   hasValidReviewState,
@@ -9,8 +8,19 @@ import {
   updateReviewStateFeedback,
 } from './reviewStateService';
 
+// Mock localStorage
+const mockLocalStorage = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+};
+
+// Mock the global localStorage
+vi.stubGlobal('localStorage', mockLocalStorage);
+
 // Mock data for testing
-const mockMrDetails = {
+const mockMrDetails: GitLabMRDetails = {
   projectPath: 'test/project',
   mrIid: '123',
   projectId: 456,
@@ -31,12 +41,12 @@ const mockMrDetails = {
   lineMappings: {},
 };
 
-const mockFeedback = [
+const mockFeedback: ReviewFeedback[] = [
   {
     id: 'feedback-1',
     lineNumber: 10,
     filePath: 'src/test.js',
-    severity: 'Warning',
+    severity: Severity.Warning,
     title: 'Test Warning',
     description: 'This is a test warning',
     lineContent: 'console.log("test");',
@@ -50,137 +60,211 @@ const mockFeedback = [
 
 const testUrl = 'https://gitlab.example.com/test/project/-/merge_requests/123';
 
-// Test functions
-export const testSaveAndLoad = () => {
-  console.log('Testing save and load...');
+describe('reviewStateService', () => {
+  beforeEach(() => {
+    // Clear all mocks before each test
+    vi.clearAllMocks();
+  });
 
-  // Clear any existing state
-  clearReviewState();
+  describe('saveReviewState and loadReviewState', () => {
+    test('should save and load review state correctly', () => {
+      // Mock localStorage to simulate successful storage
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === 'ai-code-reviewer-review-state-timestamp') {
+          return Date.now().toString();
+        }
+        if (key === 'ai-code-reviewer-review-state') {
+          return JSON.stringify({
+            mrDetails: mockMrDetails,
+            feedback: mockFeedback,
+            timestamp: Date.now(),
+            url: testUrl,
+          });
+        }
+        return null;
+      });
 
-  // Verify no state exists
-  console.log('Has valid state (should be false):', hasValidReviewState());
+      // Save state
+      saveReviewState(mockMrDetails, mockFeedback, testUrl);
 
-  // Save state
-  saveReviewState(mockMrDetails, mockFeedback, testUrl);
+      // Verify setItem was called correctly
+      expect(mockLocalStorage.setItem).toHaveBeenCalledTimes(2);
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'ai-code-reviewer-review-state-timestamp',
+        expect.any(String)
+      );
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'ai-code-reviewer-review-state',
+        expect.stringContaining('"title":"Test MR Title"')
+      );
 
-  // Verify state exists
-  console.log('Has valid state (should be true):', hasValidReviewState());
+      // Load state
+      const loadedState = loadReviewState();
 
-  // Load state
-  const loadedState = loadReviewState();
-  console.log('Loaded state:', loadedState);
+      // Verify loaded state
+      expect(loadedState).not.toBeNull();
+      expect(loadedState?.mrDetails.title).toBe(mockMrDetails.title);
+      expect(loadedState?.feedback).toHaveLength(1);
+      expect(loadedState?.url).toBe(testUrl);
+    });
 
-  // Verify data integrity
-  const isValid =
-    loadedState &&
-    loadedState.mrDetails.title === mockMrDetails.title &&
-    loadedState.feedback.length === mockFeedback.length &&
-    loadedState.url === testUrl;
+    test('should return null when no state exists', () => {
+      mockLocalStorage.getItem.mockReturnValue(null);
 
-  console.log('Data integrity check:', isValid ? 'PASSED' : 'FAILED');
+      const loadedState = loadReviewState();
 
-  return isValid;
-};
+      expect(loadedState).toBeNull();
+    });
 
-export const testExpiry = () => {
-  console.log('Testing state expiry...');
+    test('should handle localStorage errors gracefully', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockLocalStorage.setItem.mockImplementation(() => {
+        throw new Error('Storage quota exceeded');
+      });
 
-  // Clear any existing state
-  clearReviewState();
+      // Should not throw
+      expect(() => saveReviewState(mockMrDetails, mockFeedback, testUrl)).not.toThrow();
 
-  // Save state with modified timestamp (simulate old state)
-  const oldTimestamp = Date.now() - 8 * 24 * 60 * 60 * 1000; // 8 days ago
-  localStorage.setItem('ai-code-reviewer-review-state-timestamp', oldTimestamp.toString());
-  localStorage.setItem(
-    'ai-code-reviewer-review-state',
-    JSON.stringify({
-      mrDetails: mockMrDetails,
-      feedback: mockFeedback,
-      timestamp: oldTimestamp,
-      url: testUrl,
-    })
-  );
+      consoleSpy.mockRestore();
+    });
+  });
 
-  // Try to load expired state (should return null)
-  const expiredState = loadReviewState();
-  console.log('Expired state (should be null):', expiredState);
+  describe('hasValidReviewState', () => {
+    test('should return true when valid state exists', () => {
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === 'ai-code-reviewer-review-state-timestamp') {
+          return Date.now().toString();
+        }
+        if (key === 'ai-code-reviewer-review-state') {
+          return JSON.stringify({
+            mrDetails: mockMrDetails,
+            feedback: mockFeedback,
+            timestamp: Date.now(),
+            url: testUrl,
+          });
+        }
+        return null;
+      });
 
-  // Verify state was cleared
-  const hasState = hasValidReviewState();
-  console.log('Has state after expiry (should be false):', hasState);
+      expect(hasValidReviewState()).toBe(true);
+    });
 
-  return expiredState === null && !hasState;
-};
+    test('should return false when no state exists', () => {
+      mockLocalStorage.getItem.mockReturnValue(null);
 
-export const testUpdateFeedback = () => {
-  console.log('Testing feedback update...');
+      expect(hasValidReviewState()).toBe(false);
+    });
+  });
 
-  // Start with fresh state
-  clearReviewState();
-  saveReviewState(mockMrDetails, mockFeedback, testUrl);
+  describe('clearReviewState', () => {
+    test('should remove items from localStorage', () => {
+      clearReviewState();
 
-  // Add new feedback
-  const updatedFeedback = [
-    ...mockFeedback,
-    {
-      id: 'feedback-2',
-      lineNumber: 20,
-      filePath: 'src/test2.js',
-      severity: 'Info',
-      title: 'Test Info',
-      description: 'This is test info',
-      lineContent: 'return true;',
-      position: null,
-      status: 'pending',
-      isEditing: false,
-      isIgnored: false,
-      isNewlyAdded: true,
-    },
-  ];
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('ai-code-reviewer-review-state');
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+        'ai-code-reviewer-review-state-timestamp'
+      );
+    });
 
-  // Update feedback
-  updateReviewStateFeedback(updatedFeedback);
+    test('should handle localStorage errors gracefully', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockLocalStorage.removeItem.mockImplementation(() => {
+        throw new Error('Failed to remove item');
+      });
 
-  // Load and verify
-  const loadedState = loadReviewState();
-  const isValid = loadedState && loadedState.feedback.length === 2;
+      // Should not throw
+      expect(() => clearReviewState()).not.toThrow();
 
-  console.log('Updated feedback count:', loadedState?.feedback.length);
-  console.log('Update test:', isValid ? 'PASSED' : 'FAILED');
+      consoleSpy.mockRestore();
+    });
+  });
 
-  return isValid;
-};
+  describe('state expiry', () => {
+    test('should clear expired state (older than 1 week)', () => {
+      const oneWeekAgo = Date.now() - 8 * 24 * 60 * 60 * 1000; // 8 days ago
 
-export const runAllTests = () => {
-  console.log('=== Running Review State Service Tests ===');
+      // Reset mocks to normal behavior for this test
+      mockLocalStorage.removeItem.mockImplementation(() => {});
 
-  const test1 = testSaveAndLoad();
-  const test2 = testExpiry();
-  const test3 = testUpdateFeedback();
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === 'ai-code-reviewer-review-state-timestamp') {
+          return oneWeekAgo.toString();
+        }
+        if (key === 'ai-code-reviewer-review-state') {
+          return JSON.stringify({
+            mrDetails: mockMrDetails,
+            feedback: mockFeedback,
+            timestamp: oneWeekAgo,
+            url: testUrl,
+          });
+        }
+        return null;
+      });
 
-  const allPassed = test1 && test2 && test3;
+      const loadedState = loadReviewState();
 
-  console.log('=== Test Results ===');
-  console.log('Save/Load test:', test1 ? 'PASSED' : 'FAILED');
-  console.log('Expiry test:', test2 ? 'PASSED' : 'FAILED');
-  console.log('Update feedback test:', test3 ? 'PASSED' : 'FAILED');
-  console.log('Overall result:', allPassed ? 'ALL TESTS PASSED' : 'SOME TESTS FAILED');
+      expect(loadedState).toBeNull();
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledTimes(2);
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('ai-code-reviewer-review-state');
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+        'ai-code-reviewer-review-state-timestamp'
+      );
+    });
+  });
 
-  // Clean up
-  clearReviewState();
+  describe('updateReviewStateFeedback', () => {
+    test('should update feedback in existing state', () => {
+      // Set up existing state
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === 'ai-code-reviewer-review-state-timestamp') {
+          return Date.now().toString();
+        }
+        if (key === 'ai-code-reviewer-review-state') {
+          return JSON.stringify({
+            mrDetails: mockMrDetails,
+            feedback: mockFeedback,
+            timestamp: Date.now(),
+            url: testUrl,
+          });
+        }
+        return null;
+      });
 
-  return allPassed;
-};
+      const updatedFeedback: ReviewFeedback[] = [
+        ...mockFeedback,
+        {
+          id: 'feedback-2',
+          lineNumber: 20,
+          filePath: 'src/test2.js',
+          severity: Severity.Info,
+          title: 'Test Info',
+          description: 'This is test info',
+          lineContent: 'return true;',
+          position: null,
+          status: 'pending',
+          isEditing: false,
+          isIgnored: false,
+          isNewlyAdded: true,
+        },
+      ];
 
-// Auto-run tests if this file is executed directly
-if (typeof window !== 'undefined') {
-  // Browser environment - expose to window for manual testing
-  window.reviewStateTests = {
-    testSaveAndLoad,
-    testExpiry,
-    testUpdateFeedback,
-    runAllTests,
-  };
+      updateReviewStateFeedback(updatedFeedback);
 
-  console.log('Review state tests loaded. Run window.reviewStateTests.runAllTests() to test.');
-}
+      // Should call setItem to save updated state
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'ai-code-reviewer-review-state',
+        expect.stringContaining('"feedback-2"')
+      );
+    });
+
+    test('should do nothing when no existing state', () => {
+      mockLocalStorage.getItem.mockReturnValue(null);
+
+      const updatedFeedback: ReviewFeedback[] = [...mockFeedback];
+      updateReviewStateFeedback(updatedFeedback);
+
+      // Should not call setItem since no existing state
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
+    });
+  });
+});

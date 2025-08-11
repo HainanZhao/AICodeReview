@@ -1,10 +1,10 @@
-import globals from 'globals';
-import pluginJs from '@eslint/js';
-import tseslint from 'typescript-eslint';
-import pluginReactConfig from 'eslint-plugin-react/configs/recommended.js';
 import { fixupConfigRules } from '@eslint/compat';
+import pluginJs from '@eslint/js';
 import prettierConfig from 'eslint-config-prettier';
 import pluginPrettier from 'eslint-plugin-prettier';
+import pluginReactConfig from 'eslint-plugin-react/configs/recommended.js';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
@@ -39,6 +39,16 @@ export default tseslint.config(
       react: {
         version: 'detect',
       },
+    },
+  },
+  {
+    // Override for debug files to allow CommonJS
+    files: ['debug/**/*.js'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+    languageOptions: {
+      sourceType: 'script', // Allow CommonJS in debug files
     },
   },
   {
