@@ -25,7 +25,12 @@ import {
   saveTheme,
   type ConfigSource,
 } from './services/configService';
-import { approveMergeRequest, fetchProjects, postDiscussion } from './services/gitlabService';
+import {
+  approveMergeRequest,
+  fetchProjects,
+  postDiscussion,
+  revokeApproval,
+} from './services/gitlabService';
 import {
   clearReviewState,
   loadReviewState,
@@ -39,6 +44,7 @@ function App() {
   const [mrDetails, setMrDetails] = useState<GitLabMRDetails | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isApprovingMR, setIsApprovingMR] = useState<boolean>(false);
+  const [isRevokingApproval, setIsRevokingApproval] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<Config | null>(null);
   const [configSource, setConfigSource] = useState<ConfigSource>('none');
@@ -418,6 +424,35 @@ function App() {
     }
   }, [config, mrDetails, isApprovingMR]);
 
+  const handleRevokeApproval = useCallback(async () => {
+    if (!config || !mrDetails || isRevokingApproval) return;
+
+    setIsRevokingApproval(true);
+    try {
+      const updatedMr = await revokeApproval(config, mrDetails.projectId, mrDetails.mrIid);
+
+      // Update our local state with the revoked approval information
+      setMrDetails((prevMrDetails) => {
+        if (!prevMrDetails) return null;
+
+        // Merge the new approval data into the existing mrDetails state
+        return {
+          ...prevMrDetails,
+          approvals: updatedMr.approvals,
+        };
+      });
+    } catch (error) {
+      console.error('Failed to revoke approval:', error);
+      // Show a notification to the user
+      setNotification({
+        message: 'Failed to revoke approval. Please try again.',
+        type: 'error',
+      });
+    } finally {
+      setIsRevokingApproval(false);
+    }
+  }, [config, mrDetails, isRevokingApproval]);
+
   const handleRedoReview = useCallback(async () => {
     if (!config || !mrDetails || isAiAnalyzing) return;
 
@@ -696,7 +731,9 @@ function App() {
               onToggleIgnoreFeedback={handleToggleIgnoreFeedback}
               isAiAnalyzing={isAiAnalyzing}
               isApprovingMR={isApprovingMR}
+              isRevokingApproval={isRevokingApproval}
               onApproveMR={handleApproveMR}
+              onRevokeApproval={handleRevokeApproval}
               onRedoReview={handleRedoReview}
               onClearError={handleClearError}
             />
