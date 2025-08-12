@@ -4,8 +4,7 @@
     "host": "localhost"
   },
   "llm": {
-    "provider": "gemini",
-    "apiKey": "dummy-api-key"
+    "provider": "gemini-cli"
   },
   "ui": {
     "theme": "light",
