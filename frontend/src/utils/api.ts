@@ -1,5 +1,5 @@
 const getSubPath = (): string => {
-  return (window as any).SUB_PATH || process.env.SUB_PATH || '';
+  return (window as { SUB_PATH?: string }).SUB_PATH || process.env.SUB_PATH || '';
 };
 
 export const getApiUrl = (path: string): string => {
