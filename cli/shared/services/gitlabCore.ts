@@ -690,6 +690,46 @@ export const approveMergeRequest = async (
 };
 
 /**
+ * Revokes approval for a merge request and returns the updated MR with approval details
+ */
+export const revokeApproval = async (
+  config: GitLabConfig,
+  projectId: number,
+  mrIid: string
+): Promise<
+  GitLabMergeRequest & {
+    approvals?: {
+      approved_by: Array<{ user: { name: string; username: string } }>;
+      approvals_left: number;
+      approvals_required: number;
+    };
+  }
+> => {
+  const revokeUrl = `${config.url}/api/v4/projects/${projectId}/merge_requests/${mrIid}/unapprove`;
+
+  // First, revoke the approval
+  await gitlabApiFetch(revokeUrl, config, {
+    method: 'POST',
+  });
+
+  // Then fetch the updated MR details with approval information
+  const mrUrl = `${config.url}/api/v4/projects/${projectId}/merge_requests/${mrIid}`;
+  const approvalsUrl = `${config.url}/api/v4/projects/${projectId}/merge_requests/${mrIid}/approvals`;
+
+  // Fetch both MR details and approvals in parallel
+  const [mrDetails, approvals] = await Promise.all([
+    gitlabApiFetch(mrUrl, config),
+    gitlabApiFetch(approvalsUrl, config).catch(() => null), // Approvals might not be available in all GitLab versions
+  ]);
+
+  // Combine the MR details with approval information
+  return {
+    ...mrDetails,
+    approvals: approvals,
+  };
+};
+
+/**
  * Tests the GitLab connection and authentication.
  * Fetches a simple endpoint (e.g., user projects) to verify credentials.
  */

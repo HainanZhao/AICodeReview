@@ -5,6 +5,7 @@ export {
   fetchMrData,
   fetchProjects,
   parseDiffsToHunks,
+  revokeApproval,
 } from '../../../cli/shared/services/gitlabCore.js';
 import { GitLabConfig, GitLabMRDetails, ReviewFeedback } from '../types';
 import { getApiUrl } from '../utils/api';

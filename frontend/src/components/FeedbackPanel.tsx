@@ -36,7 +36,9 @@ interface FeedbackPanelProps {
   onToggleIgnoreFeedback: (id: string) => void;
   isAiAnalyzing: boolean;
   isApprovingMR?: boolean;
+  isRevokingApproval?: boolean;
   onApproveMR?: () => void;
+  onRevokeApproval?: () => void;
   onClearError?: () => void;
 }
 
@@ -109,7 +111,9 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
     onToggleIgnoreFeedback,
     isAiAnalyzing,
     isApprovingMR,
+    isRevokingApproval,
     onApproveMR,
+    onRevokeApproval,
     onRedoReview,
     onClearError,
     ...handlers
@@ -484,39 +488,75 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
             </div>
           )}
           {mrDetails &&
-            onApproveMR &&
+            (onApproveMR || onRevokeApproval) &&
             (() => {
               const isApproved = mrDetails.approvals && mrDetails.approvals.approved_by.length > 0;
 
-              if (isApproved) {
+              if (isApproved && onRevokeApproval) {
                 return (
-                  <div className="h-[28px] px-2.5 flex items-center bg-green-200/80 dark:bg-green-800/40 text-green-900 dark:text-green-200 rounded text-sm font-medium">
-                    <CheckmarkIcon className="w-4 h-4 mr-1.5" />
-                    <span>Approved</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="h-[28px] px-2.5 flex items-center bg-green-200/80 dark:bg-green-800/40 text-green-900 dark:text-green-200 rounded text-sm font-medium">
+                      <CheckmarkIcon className="w-4 h-4 mr-1.5" />
+                      <span>Approved</span>
+                    </div>
+                    <button
+                      onClick={onRevokeApproval}
+                      disabled={isRevokingApproval}
+                      className="h-[28px] px-2.5 flex items-center bg-red-100/50 dark:bg-red-900/20 text-red-800 dark:text-red-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Revoke approval"
+                    >
+                      {isRevokingApproval ? (
+                        <>
+                          <Spinner size="sm" />
+                          <span className="ml-1.5">Revoking...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-4 h-4 mr-1.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                          <span>Revoke</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 );
               }
 
-              return (
-                <button
-                  onClick={onApproveMR}
-                  disabled={isApprovingMR}
-                  className="h-[28px] px-2.5 flex items-center bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Approve merge request"
-                >
-                  {isApprovingMR ? (
-                    <>
-                      <Spinner size="sm" />
-                      <span className="ml-1.5">Approving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <ApproveIcon className="w-4 h-4 mr-1.5" />
-                      <span>Approve MR</span>
-                    </>
-                  )}
-                </button>
-              );
+              if (!isApproved && onApproveMR) {
+                return (
+                  <button
+                    onClick={onApproveMR}
+                    disabled={isApprovingMR}
+                    className="h-[28px] px-2.5 flex items-center bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Approve merge request"
+                  >
+                    {isApprovingMR ? (
+                      <>
+                        <Spinner size="sm" />
+                        <span className="ml-1.5">Approving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ApproveIcon className="w-4 h-4 mr-1.5" />
+                        <span>Approve MR</span>
+                      </>
+                    )}
+                  </button>
+                );
+              }
+
+              return null;
             })()}
         </div>
       </div>
