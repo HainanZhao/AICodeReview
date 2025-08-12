@@ -74,16 +74,16 @@ export class ConfigLoader {
       envConfig.llm.googleCloudProject = process.env.GOOGLE_CLOUD_PROJECT;
     }
 
-    if (process.env.PORT) {
-      envConfig.server.port = parseInt(process.env.PORT, 10);
+    if (process.env.AICR_PORT) {
+      envConfig.server.port = parseInt(process.env.AICR_PORT, 10);
     }
 
-    if (process.env.HOST) {
-      envConfig.server.host = process.env.HOST;
+    if (process.env.AICR_HOST) {
+      envConfig.server.host = process.env.AICR_HOST;
     }
 
-    if (process.env.SUB_PATH) {
-      envConfig.server.subPath = process.env.SUB_PATH;
+    if (process.env.AICR_SUB_PATH) {
+      envConfig.server.subPath = process.env.AICR_SUB_PATH;
     }
 
     // GitLab environment variables

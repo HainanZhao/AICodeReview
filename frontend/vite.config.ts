@@ -4,7 +4,7 @@ import { defineConfig, loadEnv } from 'vite';
 export default defineConfig(({ mode }) => {
   // Load env file based on mode
   const env = loadEnv(mode, process.cwd(), '');
-  const subPath = env.SUB_PATH || '';
+  const subPath = env.AICR_SUB_PATH || '';
 
   return {
     base: `/${subPath}`,
@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => {
     define: {
       // Define globals for browser compatibility
       global: 'globalThis',
-      'process.env.SUB_PATH': JSON.stringify(subPath),
+      'process.env.AICR_SUB_PATH': JSON.stringify(subPath),
     },
     test: {
       globals: true,

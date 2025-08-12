@@ -177,7 +177,6 @@ aicodereview --provider anthropic --api-key YOUR_ANTHROPIC_API_KEY
     export LLM_PROVIDER=gemini
     export LLM_API_KEY=your-api-key
     export GOOGLE_CLOUD_PROJECT=your-project-id
-    export PORT=5960
     aicodereview
     ```
 

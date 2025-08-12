@@ -270,7 +270,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     let modifiedIndex = indexContent.replace(
       '</head>',
       `  <script>
-    window.SUB_PATH = '${subPath}';
+    window.AICR_SUB_PATH = '${subPath}';
   </script>
 </head>`
     );

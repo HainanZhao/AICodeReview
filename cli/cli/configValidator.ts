@@ -1,5 +1,5 @@
-import { AppConfig } from '../config/configSchema.js';
 import { ConfigLoader } from '../config/configLoader.js';
+import { AppConfig } from '../config/configSchema.js';
 import { testGitLabConnection } from '../shared/index.js';
 
 /**

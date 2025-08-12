@@ -44,7 +44,7 @@
     "start:standalone": "node bin/cli.js --api-only --port 5959",
     "build": "npm run build:cli && npm run build:frontend",
     "build:cli": "tsc -p cli/tsconfig.json",
-    "build:frontend": "SUB_PATH=${SUB_PATH:-} cd frontend && npm run build",
+    "build:frontend": "AICR_SUB_PATH=${AICR_SUB_PATH:-} cd frontend && npm run build",
     "clean": "npm run clean:cli && npm run clean:frontend",
     "clean:cli": "rm -rf dist",
     "clean:frontend": "cd frontend && npm run clean",
