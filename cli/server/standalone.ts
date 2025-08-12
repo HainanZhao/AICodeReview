@@ -30,7 +30,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     console.log(`   • Port: ${config.server.port}`);
   }
   // Sanitize the sub-path
-  const subPath = (config.server.subPath || '').replace(/^\/|\/$/g, '');
+  const subPath = (config.server.subPath || '').replace(/^\/|\/$/, '');
 
   const app = express();
   const router = express.Router();
