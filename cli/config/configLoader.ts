@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
 import { homedir } from 'os';
+import { join } from 'path';
 import { AppConfig } from './configSchema.js';
 import { DEFAULT_CONFIG } from './defaultConfig.js';
 
@@ -17,10 +17,7 @@ export interface CLIOptions {
 
 export class ConfigLoader {
   private static getConfigPaths(): string[] {
-    return [
-      join(process.cwd(), '.aicodereviewrc.json'),
-      join(homedir(), '.aicodereview', 'config.json'),
-    ];
+    return [join(homedir(), '.aicodereview', 'config.json')];
   }
 
   hasConfig(): boolean {
