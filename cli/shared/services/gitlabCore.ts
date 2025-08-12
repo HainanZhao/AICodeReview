@@ -5,7 +5,6 @@ import {
   GitLabDiscussion,
   GitLabMergeRequest,
   GitLabMRDetails,
-  GitLabPosition,
   GitLabProject,
   ParsedFileDiff,
   ParsedHunk,
@@ -651,17 +650,43 @@ export const fetchMergeRequestsForProjects = async (
 };
 
 /**
- * Approves a merge request
+ * Approves a merge request and returns the updated MR with approval details
  */
 export const approveMergeRequest = async (
   config: GitLabConfig,
   projectId: number,
   mrIid: string
-): Promise<void> => {
-  const url = `${config.url}/api/v4/projects/${projectId}/merge_requests/${mrIid}/approve`;
-  await gitlabApiFetch(url, config, {
+): Promise<
+  GitLabMergeRequest & {
+    approvals?: {
+      approved_by: Array<{ user: { name: string; username: string } }>;
+      approvals_left: number;
+      approvals_required: number;
+    };
+  }
+> => {
+  const approveUrl = `${config.url}/api/v4/projects/${projectId}/merge_requests/${mrIid}/approve`;
+
+  // First, approve the MR
+  await gitlabApiFetch(approveUrl, config, {
     method: 'POST',
   });
+
+  // Then fetch the updated MR details with approval information
+  const mrUrl = `${config.url}/api/v4/projects/${projectId}/merge_requests/${mrIid}`;
+  const approvalsUrl = `${config.url}/api/v4/projects/${projectId}/merge_requests/${mrIid}/approvals`;
+
+  // Fetch both MR details and approvals in parallel
+  const [mrDetails, approvals] = await Promise.all([
+    gitlabApiFetch(mrUrl, config),
+    gitlabApiFetch(approvalsUrl, config).catch(() => null), // Approvals might not be available in all GitLab versions
+  ]);
+
+  // Combine the MR details with approval information
+  return {
+    ...mrDetails,
+    approvals: approvals,
+  };
 };
 
 /**

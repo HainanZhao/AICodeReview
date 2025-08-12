@@ -38,6 +38,7 @@ function App() {
   const [feedback, setFeedback] = useState<ReviewFeedback[] | null>(null);
   const [mrDetails, setMrDetails] = useState<GitLabMRDetails | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isApprovingMR, setIsApprovingMR] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<Config | null>(null);
   const [configSource, setConfigSource] = useState<ConfigSource>('none');
@@ -386,9 +387,36 @@ function App() {
   );
 
   const handleApproveMR = useCallback(async () => {
-    if (!config || !mrDetails) return;
-    await approveMergeRequest(config, mrDetails.projectId, mrDetails.mrIid);
-  }, [config, mrDetails]);
+    if (!config || !mrDetails || isApprovingMR) return;
+
+    setIsApprovingMR(true);
+    try {
+      const updatedMr = await approveMergeRequest(config, mrDetails.projectId, mrDetails.mrIid);
+
+      // The approveMergeRequest now returns the updated MR details.
+      // We'll update our local state with the new approval information.
+      // This ensures the UI reflects the approved state without a full refresh.
+      setMrDetails((prevMrDetails) => {
+        if (!prevMrDetails) return null;
+
+        // Merge the new approval data into the existing mrDetails state
+        // The GitLab API returns the full MR object on approve, which includes the 'approvals' field
+        return {
+          ...prevMrDetails,
+          approvals: updatedMr.approvals,
+        };
+      });
+    } catch (error) {
+      console.error('Failed to approve merge request:', error);
+      // Optionally, show a notification to the user
+      setNotification({
+        message: 'Failed to approve merge request. Please try again.',
+        type: 'error',
+      });
+    } finally {
+      setIsApprovingMR(false);
+    }
+  }, [config, mrDetails, isApprovingMR]);
 
   const handleRedoReview = useCallback(async () => {
     if (!config || !mrDetails || isAiAnalyzing) return;
@@ -667,6 +695,7 @@ function App() {
               onExpandHunkContext={handleExpandHunkContext}
               onToggleIgnoreFeedback={handleToggleIgnoreFeedback}
               isAiAnalyzing={isAiAnalyzing}
+              isApprovingMR={isApprovingMR}
               onApproveMR={handleApproveMR}
               onRedoReview={handleRedoReview}
               onClearError={handleClearError}

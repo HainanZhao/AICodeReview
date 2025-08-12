@@ -35,6 +35,7 @@ interface FeedbackPanelProps {
   ) => void;
   onToggleIgnoreFeedback: (id: string) => void;
   isAiAnalyzing: boolean;
+  isApprovingMR?: boolean;
   onApproveMR?: () => void;
   onClearError?: () => void;
 }
@@ -107,6 +108,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
     onPostAllComments,
     onToggleIgnoreFeedback,
     isAiAnalyzing,
+    isApprovingMR,
     onApproveMR,
     onRedoReview,
     onClearError,
@@ -498,11 +500,21 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
               return (
                 <button
                   onClick={onApproveMR}
-                  className="h-[28px] px-2.5 flex items-center bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors"
+                  disabled={isApprovingMR}
+                  className="h-[28px] px-2.5 flex items-center bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Approve merge request"
                 >
-                  <ApproveIcon className="w-4 h-4 mr-1.5" />
-                  <span>Approve MR</span>
+                  {isApprovingMR ? (
+                    <>
+                      <Spinner size="sm" />
+                      <span className="ml-1.5">Approving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ApproveIcon className="w-4 h-4 mr-1.5" />
+                      <span>Approve MR</span>
+                    </>
+                  )}
                 </button>
               );
             })()}
