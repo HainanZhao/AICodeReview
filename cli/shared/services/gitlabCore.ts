@@ -657,9 +657,9 @@ export const approveMergeRequest = async (
   config: GitLabConfig,
   projectId: number,
   mrIid: string
-): Promise<void> => {
+): Promise<GitLabMergeRequest> => {
   const url = `${config.url}/api/v4/projects/${projectId}/merge_requests/${mrIid}/approve`;
-  await gitlabApiFetch(url, config, {
+  return gitlabApiFetch(url, config, {
     method: 'POST',
   });
 };

@@ -387,7 +387,31 @@ function App() {
 
   const handleApproveMR = useCallback(async () => {
     if (!config || !mrDetails) return;
-    await approveMergeRequest(config, mrDetails.projectId, mrDetails.mrIid);
+
+    try {
+      const updatedMr = await approveMergeRequest(config, mrDetails.projectId, mrDetails.mrIid);
+
+      // The approveMergeRequest now returns the updated MR details.
+      // We'll update our local state with the new approval information.
+      // This ensures the UI reflects the approved state without a full refresh.
+      setMrDetails((prevMrDetails) => {
+        if (!prevMrDetails) return null;
+
+        // Merge the new approval data into the existing mrDetails state
+        // The GitLab API returns the full MR object on approve, which includes the 'approvals' field
+        return {
+          ...prevMrDetails,
+          approvals: updatedMr.approvals,
+        };
+      });
+    } catch (error) {
+      console.error('Failed to approve merge request:', error);
+      // Optionally, show a notification to the user
+      setNotification({
+        message: 'Failed to approve merge request. Please try again.',
+        type: 'error',
+      });
+    }
   }, [config, mrDetails]);
 
   const handleRedoReview = useCallback(async () => {
