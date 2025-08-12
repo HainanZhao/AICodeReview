@@ -1,4 +1,5 @@
 import express from 'express';
+import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { CLIOptions, ConfigLoader } from '../config/configLoader.js';
@@ -28,14 +29,18 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   } else {
     console.log(`   • Port: ${config.server.port}`);
   }
+  // Sanitize the sub-path
+  const subPath = (config.server.subPath || '').replace(/^\/|\/$/, '');
 
   const app = express();
+  const router = express.Router();
+
   // Increase body size limit to handle large merge requests (default is ~100kb)
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ limit: '50mb', extended: true }));
+  router.use(express.json({ limit: '50mb' }));
+  router.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // Set security header for Private Network Access
-  app.use((req, res, next) => {
+  router.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
     // Allow all origins for development/testing. In production, restrict to specific origins.
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -61,7 +66,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   const configService = createConfigService({ isStandalone: true });
 
   // Add GitLab configuration endpoint using shared service
-  app.post('/api/config', configService.getConfigHandler());
+  router.post('/api/config', configService.getConfigHandler());
 
   // Initialize LLM provider - import from local services
   try {
@@ -74,10 +79,10 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
 
     // Set up unified API route for MR URL-based reviews
     if (llmProvider.reviewMr) {
-      app.post('/api/review-mr', llmProvider.reviewMr.bind(llmProvider));
+      router.post('/api/review-mr', llmProvider.reviewMr.bind(llmProvider));
     }
 
-    app.post('/api/post-discussion', async (req, res) => {
+    router.post('/api/post-discussion', async (req, res) => {
       try {
         const { gitlabConfig, mrDetails, feedbackItem } = req.body;
 
@@ -131,7 +136,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     });
 
     // Unified AI Chat endpoint
-    app.post('/api/chat', async (req, res) => {
+    router.post('/api/chat', async (req, res) => {
       try {
         const {
           messages,
@@ -241,37 +246,54 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
 
   // Conditionally serve frontend based on mode
   if (!isApiOnly) {
-    // Serve static files (built frontend)
+    // Serve static files (built frontend) excluding index.html
     const distPath = join(__dirname, '..', 'public');
-    app.use(express.static(distPath));
+    router.use(
+      express.static(distPath, {
+        index: false, // Don't serve index.html automatically
+      })
+    );
 
     // Handle common browser requests that we expect to fail silently
-    app.get('/favicon.ico', (_req: express.Request, res: express.Response) =>
+    router.get('/favicon.ico', (_req: express.Request, res: express.Response) =>
       res.status(204).end()
     );
-    app.get('/robots.txt', (_req: express.Request, res: express.Response) => res.status(204).end());
-    app.get('/manifest.json', (_req: express.Request, res: express.Response) =>
+    router.get('/robots.txt', (_req: express.Request, res: express.Response) =>
+      res.status(204).end()
+    );
+    router.get('/manifest.json', (_req: express.Request, res: express.Response) =>
       res.status(204).end()
     );
 
+    const indexPath = join(distPath, 'index.html');
+    const indexContent = readFileSync(indexPath, 'utf-8');
+    let modifiedIndex = indexContent.replace(
+      '</head>',
+      `  <script>
+    window.AICR_SUB_PATH = '${subPath}';
+  </script>
+</head>`
+    );
+
+    // Update asset paths to include subpath
+    if (subPath) {
+      modifiedIndex = modifiedIndex
+        .replace(/src="\/assets\//g, `src="/${subPath}/assets/`)
+        .replace(/href="\/assets\//g, `href="/${subPath}/assets/`);
+    }
+
     // Serve index.html for all non-API routes (SPA routing)
-    app.get('/', (_req: express.Request, res: express.Response) => {
-      res.sendFile(join(distPath, 'index.html'), (err: NodeJS.ErrnoException | null) => {
-        if (err) {
-          res.status(404).end();
-        }
-      });
+    router.get('/', (_req: express.Request, res: express.Response) => {
+      res.send(modifiedIndex);
     });
 
     // Handle all other non-API routes for SPA
-    app.get(/^(?!\/api).*$/, (_req: express.Request, res: express.Response) => {
-      res.sendFile(join(distPath, 'index.html'), (err: NodeJS.ErrnoException | null) => {
-        if (err) {
-          res.status(404).end();
-        }
-      });
+    router.get(/^(?!\/api).*$/, (_req: express.Request, res: express.Response) => {
+      res.send(modifiedIndex);
     });
   }
+
+  app.use(`/${subPath}`, router);
 
   // Global error handler to suppress common 404 errors
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -288,7 +310,8 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
 
   // Start server
   const server = app.listen(availablePort, config.server.host, async () => {
-    const url = `http://${config.server.host}:${availablePort}`;
+    const baseUrl = `http://${config.server.host}:${availablePort}`;
+    const url = subPath ? `${baseUrl}/${subPath}` : baseUrl;
 
     if (isApiOnly) {
       console.log('\n✅ AI Code Review API Server is ready!');

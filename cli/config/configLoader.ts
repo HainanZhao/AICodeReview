@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
 import { homedir } from 'os';
+import { join } from 'path';
 import { AppConfig } from './configSchema.js';
 import { DEFAULT_CONFIG } from './defaultConfig.js';
 
@@ -12,31 +12,39 @@ export interface CLIOptions {
   googleCloudProject?: string;
   open?: boolean;
   apiOnly?: boolean;
+  subPath?: string;
 }
 
 export class ConfigLoader {
-  private static getHomeConfigPath(): string {
-    return join(homedir(), '.aicodereview', 'config.json');
+  private static getConfigPaths(): string[] {
+    return [join(homedir(), '.aicodereview', 'config.json')];
   }
 
   hasConfig(): boolean {
-    return existsSync(ConfigLoader.getHomeConfigPath());
+    return ConfigLoader.getConfigPaths().some(existsSync);
   }
 
   static loadConfig(cliOptions: CLIOptions = {}): AppConfig {
     let config = { ...DEFAULT_CONFIG };
+    let loadedConfigPath: string | null = null;
 
-    // Load from home directory config file if it exists
-    const configFile = this.getHomeConfigPath();
-    if (existsSync(configFile)) {
-      try {
-        const fileConfig = JSON.parse(readFileSync(configFile, 'utf8'));
-        config = this.mergeConfigs(config, fileConfig);
-        console.log(`✓ Loaded config from: ${configFile}`);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.warn(`⚠ Warning: Could not load config file ${configFile}: ${errorMessage}`);
+    // Load config from the first path that exists
+    for (const configPath of this.getConfigPaths()) {
+      if (existsSync(configPath)) {
+        try {
+          const fileConfig = JSON.parse(readFileSync(configPath, 'utf8'));
+          config = this.mergeConfigs(config, fileConfig);
+          loadedConfigPath = configPath;
+          break; // Stop after finding the first valid config
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.warn(`⚠ Warning: Could not load config file ${configPath}: ${errorMessage}`);
+        }
       }
+    }
+
+    if (loadedConfigPath) {
+      console.log(`✓ Loaded config from: ${loadedConfigPath}`);
     }
 
     // Override with environment variables
@@ -66,12 +74,16 @@ export class ConfigLoader {
       envConfig.llm.googleCloudProject = process.env.GOOGLE_CLOUD_PROJECT;
     }
 
-    if (process.env.PORT) {
-      envConfig.server.port = parseInt(process.env.PORT, 10);
+    if (process.env.AICR_PORT) {
+      envConfig.server.port = parseInt(process.env.AICR_PORT, 10);
     }
 
-    if (process.env.HOST) {
-      envConfig.server.host = process.env.HOST;
+    if (process.env.AICR_HOST) {
+      envConfig.server.host = process.env.AICR_HOST;
+    }
+
+    if (process.env.AICR_SUB_PATH) {
+      envConfig.server.subPath = process.env.AICR_SUB_PATH;
     }
 
     // GitLab environment variables
@@ -115,6 +127,10 @@ export class ConfigLoader {
 
     if (options.open !== undefined) {
       newConfig.ui.autoOpen = options.open;
+    }
+
+    if (options.subPath) {
+      newConfig.server.subPath = options.subPath;
     }
 
     return newConfig;

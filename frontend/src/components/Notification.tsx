@@ -105,17 +105,32 @@ export const Notification: React.FC<NotificationProps> = ({
     padding: '12px',
     borderRadius: '8px',
     borderLeft: '4px solid',
-    borderLeftColor: type === 'success' ? '#10b981' : 
-                      type === 'warning' ? '#f59e0b' : 
-                      type === 'error' ? '#ef4444' : '#3b82f6',
+    borderLeftColor:
+      type === 'success'
+        ? '#10b981'
+        : type === 'warning'
+          ? '#f59e0b'
+          : type === 'error'
+            ? '#ef4444'
+            : '#3b82f6',
     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
     maxWidth: '384px',
-    backgroundColor: type === 'success' ? '#ecfdf5' : 
-                      type === 'warning' ? '#fffbeb' : 
-                      type === 'error' ? '#fef2f2' : '#eff6ff',
-    color: type === 'success' ? '#065f46' : 
-           type === 'warning' ? '#92400e' : 
-           type === 'error' ? '#991b1b' : '#1e40af',
+    backgroundColor:
+      type === 'success'
+        ? '#ecfdf5'
+        : type === 'warning'
+          ? '#fffbeb'
+          : type === 'error'
+            ? '#fef2f2'
+            : '#eff6ff',
+    color:
+      type === 'success'
+        ? '#065f46'
+        : type === 'warning'
+          ? '#92400e'
+          : type === 'error'
+            ? '#991b1b'
+            : '#1e40af',
   };
 
   const iconStyle: React.CSSProperties = {
@@ -153,7 +168,9 @@ export const Notification: React.FC<NotificationProps> = ({
         style={notificationStyle}
         className={`flex items-center p-3 rounded-lg border-l-4 shadow-lg max-w-sm ${getTypeClasses()}`}
       >
-        <div style={iconStyle} className="flex-shrink-0">{getIcon()}</div>
+        <div style={iconStyle} className="flex-shrink-0">
+          {getIcon()}
+        </div>
         <div style={messageStyle} className="ml-3 flex-1">
           <p className="text-sm font-medium">{message}</p>
         </div>

@@ -1,7 +1,7 @@
-import { createInterface } from 'readline';
-import { writeFileSync, mkdirSync, existsSync } from 'fs';
-import { join } from 'path';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
+import { join } from 'path';
+import { createInterface } from 'readline';
 import { AppConfig } from './configSchema.js';
 
 /**
@@ -43,6 +43,10 @@ export async function createConfigInteractively(): Promise<void> {
     console.log('📡 Server Configuration:');
     const port = (await question('Port (5960): ')) || '5960';
     const host = (await question('Host (localhost): ')) || 'localhost';
+    console.log(
+      'Sub-path: If you need to serve the app under a specific path (e.g., behind a proxy)'
+    );
+    const subPath = (await question('Sub-path (optional, e.g., /path/to): ')) || undefined;
 
     // LLM provider configuration
     console.log('\n🤖 LLM Provider Configuration:');
@@ -123,6 +127,7 @@ export async function createConfigInteractively(): Promise<void> {
       server: {
         port: parseInt(port, 10),
         host,
+        ...(subPath && { subPath }),
       },
       llm: {
         provider: provider as 'gemini-cli' | 'gemini' | 'anthropic',

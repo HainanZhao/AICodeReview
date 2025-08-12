@@ -4,6 +4,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   server: {
     port: 5960,
     host: 'localhost',
+    subPath: '',
   },
   llm: {
     provider: 'gemini-cli',
