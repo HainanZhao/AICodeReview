@@ -38,6 +38,7 @@ function App() {
   const [feedback, setFeedback] = useState<ReviewFeedback[] | null>(null);
   const [mrDetails, setMrDetails] = useState<GitLabMRDetails | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isApprovingMR, setIsApprovingMR] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<Config | null>(null);
   const [configSource, setConfigSource] = useState<ConfigSource>('none');
@@ -386,8 +387,9 @@ function App() {
   );
 
   const handleApproveMR = useCallback(async () => {
-    if (!config || !mrDetails) return;
+    if (!config || !mrDetails || isApprovingMR) return;
 
+    setIsApprovingMR(true);
     try {
       const updatedMr = await approveMergeRequest(config, mrDetails.projectId, mrDetails.mrIid);
 
@@ -411,8 +413,10 @@ function App() {
         message: 'Failed to approve merge request. Please try again.',
         type: 'error',
       });
+    } finally {
+      setIsApprovingMR(false);
     }
-  }, [config, mrDetails]);
+  }, [config, mrDetails, isApprovingMR]);
 
   const handleRedoReview = useCallback(async () => {
     if (!config || !mrDetails || isAiAnalyzing) return;
@@ -691,6 +695,7 @@ function App() {
               onExpandHunkContext={handleExpandHunkContext}
               onToggleIgnoreFeedback={handleToggleIgnoreFeedback}
               isAiAnalyzing={isAiAnalyzing}
+              isApprovingMR={isApprovingMR}
               onApproveMR={handleApproveMR}
               onRedoReview={handleRedoReview}
               onClearError={handleClearError}
