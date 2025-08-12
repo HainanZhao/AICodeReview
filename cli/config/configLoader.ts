@@ -82,6 +82,10 @@ export class ConfigLoader {
       envConfig.server.host = process.env.HOST;
     }
 
+    if (process.env.SUB_PATH) {
+      envConfig.server.subPath = process.env.SUB_PATH;
+    }
+
     // GitLab environment variables
     if (process.env.GITLAB_URL || process.env.GITLAB_ACCESS_TOKEN) {
       if (!envConfig.gitlab) {
