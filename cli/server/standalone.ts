@@ -13,9 +13,6 @@ const __dirname = dirname(__filename);
 export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   const isApiOnly = cliOptions.apiOnly || process.env.AI_CODEREVIEW_MODE === 'api-only';
 
-  // Sanitize the sub-path
-  const subPath = (cliOptions.subPath || '').replace(/^\/|\/$/g, '');
-
   console.log(`🚀 Starting AI Code Review in ${isApiOnly ? 'API-only' : 'standalone'} mode...\n`);
 
   // Load configuration
@@ -32,6 +29,8 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   } else {
     console.log(`   • Port: ${config.server.port}`);
   }
+  // Sanitize the sub-path
+  const subPath = (config.server.subPath || '').replace(/^\/|\/$/g, '');
 
   const app = express();
   const router = express.Router();
