@@ -11,6 +11,7 @@ import { AddCommentIcon, ChevronDownIcon } from './icons';
 import { SplitDiffLine } from './SplitDiffLine';
 
 interface SplitDiffViewProps {
+  codeTheme?: string;
   fileDiff: ParsedFileDiff;
   feedbackForFile: ReviewFeedback[];
   onPostComment: (id: string) => void;
@@ -104,6 +105,7 @@ const createSplitLinePairs = (
 };
 
 export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
+  codeTheme,
   fileDiff,
   feedbackForFile,
   onPostComment,
@@ -157,6 +159,7 @@ export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
                 filePath={fileDiff.filePath}
                 fileContent={fullFileContent}
                 oldFileContent={fullOldFileContent}
+                codeTheme={codeTheme}
               />
             );
           }
@@ -185,6 +188,7 @@ export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
             filePath={fileDiff.filePath}
             fileContent={fullFileContent}
             oldFileContent={fullOldFileContent}
+            codeTheme={codeTheme}
           />
         );
 
@@ -283,6 +287,7 @@ export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
               filePath={fileDiff.filePath}
               fileContent={fullFileContent}
               oldFileContent={fullOldFileContent}
+              codeTheme={codeTheme}
             />
           );
         }

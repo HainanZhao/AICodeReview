@@ -15,13 +15,14 @@ import { Header } from './components/Header';
 import { MrSummary } from './components/MrSummary';
 import { Notification } from './components/Notification';
 import { ResizablePane } from './components/ResizablePane';
-import { ThemeProvider } from './contexts/ThemeContext';
 import { fetchMrDetailsOnly, runAiReview } from './services/aiReviewService';
 import {
   fetchBackendConfig,
   loadConfig,
   loadProjectsFromCache,
+  loadTheme,
   saveProjectsToCache,
+  saveTheme,
   type ConfigSource,
 } from './services/configService';
 import {
@@ -55,6 +56,7 @@ function App() {
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [projects, setProjects] = useState<GitLabProject[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isRestoringState, setIsRestoringState] = useState<boolean>(false);
   const [notification, setNotification] = useState<{
     message: string;
@@ -109,6 +111,18 @@ function App() {
 
     restoreReviewState();
   }, [config]);
+
+  useEffect(() => {
+    const savedTheme = loadTheme();
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+    setTheme(initialTheme);
+    if (initialTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
 
   useEffect(() => {
     const loadConfiguration = async () => {
@@ -335,6 +349,17 @@ function App() {
     setIsRestoredFromCache(false);
     clearReviewState(); // Clear saved state when starting a new review
   }, []);
+
+  const handleThemeToggle = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    saveTheme(newTheme);
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
 
   const handleSetEditing = useCallback((feedbackId: string, isEditing: boolean) => {
     setFeedback((prev) => {
@@ -650,11 +675,14 @@ function App() {
   );
 
   return (
-    <ThemeProvider>
-      <div className="min-h-screen flex flex-col font-sans h-screen">
-        <Header onOpenSettings={() => setIsConfigModalOpen(true)} />
-        <ConfigModal
-          isOpen={isConfigModalOpen}
+    <div className="min-h-screen flex flex-col font-sans h-screen">
+      <Header
+        onOpenSettings={() => setIsConfigModalOpen(true)}
+        onToggleTheme={handleThemeToggle}
+        currentTheme={theme}
+      />
+      <ConfigModal
+        isOpen={isConfigModalOpen}
         onClose={() => setIsConfigModalOpen(false)}
         onSave={handleSaveConfig}
         initialConfig={config}
@@ -688,6 +716,7 @@ function App() {
           </div>
           <div className="flex flex-col h-full">
             <FeedbackPanel
+              codeTheme={config?.codeTheme}
               feedback={feedback}
               mrDetails={mrDetails}
               isLoading={isLoading || isRestoringState}
@@ -719,8 +748,7 @@ function App() {
           onClose={handleCloseNotification}
         />
       )}
-      </div>
-    </ThemeProvider>
+    </div>
   );
 }
 

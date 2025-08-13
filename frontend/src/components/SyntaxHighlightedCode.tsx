@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import * as prismThemes from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { detectLanguageFromPath } from '../utils/languageDetection';
 
 interface SyntaxHighlightedCodeProps {
@@ -7,6 +8,7 @@ interface SyntaxHighlightedCodeProps {
   filePath?: string;
   isDarkMode?: boolean;
   className?: string;
+  codeTheme?: string;
 }
 
 // Custom diff-optimized themes with only foreground colors
@@ -156,16 +158,29 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
   filePath,
   isDarkMode = false,
   className = '',
+  codeTheme,
 }) => {
+  const [style, setStyle] = useState<any>(isDarkMode ? diffDarkTheme : diffLightTheme);
+
+  useEffect(() => {
+    if (codeTheme && codeTheme !== 'default') {
+      const theme = (prismThemes as any)[codeTheme];
+      if (theme) {
+        setStyle(theme);
+      } else {
+        setStyle(isDarkMode ? diffDarkTheme : diffLightTheme);
+      }
+    } else {
+      setStyle(isDarkMode ? diffDarkTheme : diffLightTheme);
+    }
+  }, [codeTheme, isDarkMode]);
+
   const language = filePath ? detectLanguageFromPath(filePath) : null;
 
   // If no language detected, render plain text
   if (!language) {
     return <span className={className}>{code}</span>;
   }
-
-  // Use our custom diff-optimized themes
-  const style = isDarkMode ? diffDarkTheme : diffLightTheme;
 
   return (
     <SyntaxHighlighter

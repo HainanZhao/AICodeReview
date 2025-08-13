@@ -12,6 +12,7 @@ interface SplitDiffLineProps {
   filePath?: string;
   fileContent?: string;
   oldFileContent?: string;
+  codeTheme?: string;
 }
 
 const getLineClasses = (type?: ParsedDiffLine['type']) => {
@@ -36,7 +37,8 @@ const SplitDiffSide: React.FC<{
   onExplainClick: (event: React.MouseEvent, line: ParsedDiffLine) => void;
   filePath: string;
   isDarkMode: boolean;
-}> = ({ line, side, onAddComment, onExplainClick, filePath, isDarkMode }) => {
+  codeTheme?: string;
+}> = ({ line, side, onAddComment, onExplainClick, filePath, isDarkMode, codeTheme }) => {
   const lineClasses = getLineClasses(line?.type);
   const canComment =
     line && (line.type === 'add' || line.type === 'remove' || line.type === 'context');
@@ -92,6 +94,7 @@ const SplitDiffSide: React.FC<{
                 filePath={filePath}
                 isDarkMode={isDarkMode}
                 className="whitespace-pre-wrap break-words bg-transparent"
+                codeTheme={codeTheme}
               />
             </>
           ) : (
@@ -110,6 +113,7 @@ export const SplitDiffLine: React.FC<SplitDiffLineProps> = ({
   filePath = 'unknown',
   fileContent,
   oldFileContent,
+  codeTheme,
 }) => {
   // Detect dark mode from document class
   const [isDarkMode, setIsDarkMode] = React.useState(() => {
@@ -251,6 +255,7 @@ export const SplitDiffLine: React.FC<SplitDiffLineProps> = ({
           onExplainClick={handleExplainClick}
           filePath={filePath}
           isDarkMode={isDarkMode}
+          codeTheme={codeTheme}
         />
         <SplitDiffSide
           line={rightLine}
@@ -259,6 +264,7 @@ export const SplitDiffLine: React.FC<SplitDiffLineProps> = ({
           onExplainClick={handleExplainClick}
           filePath={filePath}
           isDarkMode={isDarkMode}
+          codeTheme={codeTheme}
         />
       </tr>
 
