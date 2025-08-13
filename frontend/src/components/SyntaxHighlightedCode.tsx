@@ -168,18 +168,26 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
 
   useEffect(() => {
     if (codeTheme && codeTheme !== 'default') {
-      const themeName = kebabToCamel(codeTheme);
-      const theme = (prismThemes as any)[themeName];
+      // First try direct name
+      let theme = (prismThemes as any)[codeTheme];
+      
+      if (!theme) {
+        // Try camelCase conversion
+        const themeName = kebabToCamel(codeTheme);
+        theme = (prismThemes as any)[themeName];
+      }
+      
+      if (!theme) {
+        // Try with 'light' suffix for some themes
+        theme = (prismThemes as any)[codeTheme + 'light'] || (prismThemes as any)[kebabToCamel(codeTheme + 'light')];
+      }
+      
       if (theme) {
         setStyle(theme);
       } else {
-        // Fallback for themes that might not follow the camelCase conversion
-        const fallbackTheme = (prismThemes as any)[codeTheme];
-        if (fallbackTheme) {
-          setStyle(fallbackTheme);
-        } else {
-          setStyle(isDarkMode ? diffDarkTheme : diffLightTheme);
-        }
+        // Fallback to default theme
+        console.warn(`Theme "${codeTheme}" not found, using default theme`);
+        setStyle(isDarkMode ? diffDarkTheme : diffLightTheme);
       }
     } else {
       setStyle(isDarkMode ? diffDarkTheme : diffLightTheme);

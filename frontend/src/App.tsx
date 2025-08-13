@@ -21,8 +21,10 @@ import {
   loadConfig,
   loadProjectsFromCache,
   loadTheme,
+  loadSyntaxTheme,
   saveProjectsToCache,
   saveTheme,
+  saveSyntaxTheme,
   type ConfigSource,
 } from './services/configService';
 import {
@@ -57,6 +59,7 @@ function App() {
   const [projects, setProjects] = useState<GitLabProject[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [syntaxTheme, setSyntaxTheme] = useState<string>('default');
   const [isRestoringState, setIsRestoringState] = useState<boolean>(false);
   const [notification, setNotification] = useState<{
     message: string;
@@ -114,9 +117,11 @@ function App() {
 
   useEffect(() => {
     const savedTheme = loadTheme();
+    const savedSyntaxTheme = loadSyntaxTheme();
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
     setTheme(initialTheme);
+    setSyntaxTheme(savedSyntaxTheme || 'default');
     if (initialTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -359,6 +364,11 @@ function App() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+  };
+
+  const handleSyntaxThemeChange = (newSyntaxTheme: string) => {
+    setSyntaxTheme(newSyntaxTheme);
+    saveSyntaxTheme(newSyntaxTheme);
   };
 
   const handleSetEditing = useCallback((feedbackId: string, isEditing: boolean) => {
@@ -679,7 +689,9 @@ function App() {
       <Header
         onOpenSettings={() => setIsConfigModalOpen(true)}
         onToggleTheme={handleThemeToggle}
+        onSyntaxThemeChange={handleSyntaxThemeChange}
         currentTheme={theme}
+        currentSyntaxTheme={syntaxTheme}
       />
       <ConfigModal
         isOpen={isConfigModalOpen}
@@ -716,7 +728,7 @@ function App() {
           </div>
           <div className="flex flex-col h-full">
             <FeedbackPanel
-              codeTheme={config?.codeTheme}
+              codeTheme={syntaxTheme}
               feedback={feedback}
               mrDetails={mrDetails}
               isLoading={isLoading || isRestoringState}
