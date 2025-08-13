@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [1.4.1] - 2025-08-13
+
+### Fixed
+- Fixed notification popup timer and auto-disappear functionality for historical review restoration
+- Fixed approve button and MR approval status update in UI
+- Fixed subpath configuration and related environment variable handling
+- Fixed various UI and configuration issues
+
+### Added
+- Added GitHub Actions workflow for automated releases
+- Added revoke function for improved access control
+
+### Changed
+- Improved release automation and CI/CD process
+
+## [1.4.0] - 2025-08-11
+
+### Added
+- Enhanced AI explanation to a chat interface for more interactive code review
+- Added support for running the application on a subpath
+
+### Fixed
+- Addressed hydration error and API 404 for chat feature
+- Fixed lint and cosmetic issues
+- Updated README and example config
+
+## [1.3.0] - 2025-08-10
+
+### Added
+- Implemented syntax highlighting for code diffs
+- Improved light and dark mode syntax highlighting contrast
+- Added feature to save and restore review state
+
+### Fixed
+- Fixed inline/split icon position and style issues
+- Fixed switch mode and review cleanup issues
+
 ## [1.2.0] - 2025-08-06
 
 ### Added
