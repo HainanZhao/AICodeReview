@@ -60,3 +60,53 @@ export const SYNTAX_THEMES = [
   { value: 'xonokai', label: 'Xonokai' },
   { value: 'zTouch', label: 'Z-Touch' },
 ];
+
+// Mapping syntax themes to app themes based on their typical appearance
+const DARK_SYNTAX_THEMES = new Set([
+  'a11yDark',
+  'atomDark',
+  'coldarkDark',
+  'darcula',
+  'dark',
+  'dracula',
+  'duotoneDark',
+  'duotoneSpace',
+  'gruvboxDark',
+  'lucario',
+  'materialDark',
+  'materialOceanic',
+  'nightOwl',
+  'nord',
+  'okaidia',
+  'oneDark',
+  'shadesOfPurple',
+  'solarizedDarkAtom',
+  'synthwave84',
+  'twilight',
+  'vsDark',
+  'vscDarkPlus',
+  'xonokai',
+]);
+
+/**
+ * Determines the appropriate app theme based on the syntax highlighting theme
+ */
+export const getAppThemeFromSyntaxTheme = (syntaxTheme: string): 'light' | 'dark' => {
+  // Check if the theme is explicitly known to be dark
+  if (DARK_SYNTAX_THEMES.has(syntaxTheme)) {
+    return 'dark';
+  }
+  
+  // For themes that explicitly contain "dark" in their name (case insensitive)
+  if (syntaxTheme.toLowerCase().includes('dark')) {
+    return 'dark';
+  }
+  
+  // For themes that explicitly contain "night" in their name
+  if (syntaxTheme.toLowerCase().includes('night')) {
+    return 'dark';
+  }
+  
+  // Default to light theme for unknown themes or light themes
+  return 'light';
+};

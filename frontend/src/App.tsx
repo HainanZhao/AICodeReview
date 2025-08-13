@@ -20,10 +20,8 @@ import {
   fetchBackendConfig,
   loadConfig,
   loadProjectsFromCache,
-  loadTheme,
   loadSyntaxTheme,
   saveProjectsToCache,
-  saveTheme,
   saveSyntaxTheme,
   type ConfigSource,
 } from './services/configService';
@@ -40,6 +38,7 @@ import {
   updateReviewStateFeedback,
 } from './services/reviewStateService';
 import { Config, ParsedDiffLine } from './types';
+import { getAppThemeFromSyntaxTheme } from './constants';
 
 function App() {
   const [feedback, setFeedback] = useState<ReviewFeedback[] | null>(null);
@@ -116,12 +115,14 @@ function App() {
   }, [config]);
 
   useEffect(() => {
-    const savedTheme = loadTheme();
     const savedSyntaxTheme = loadSyntaxTheme();
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+    const initialSyntaxTheme = savedSyntaxTheme || 'default';
+    setSyntaxTheme(initialSyntaxTheme);
+    
+    // Automatically determine app theme based on syntax theme
+    const initialTheme = getAppThemeFromSyntaxTheme(initialSyntaxTheme);
     setTheme(initialTheme);
-    setSyntaxTheme(savedSyntaxTheme || 'default');
+    
     if (initialTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -355,20 +356,19 @@ function App() {
     clearReviewState(); // Clear saved state when starting a new review
   }, []);
 
-  const handleThemeToggle = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    saveTheme(newTheme);
-    if (newTheme === 'dark') {
+  const handleSyntaxThemeChange = (newSyntaxTheme: string) => {
+    setSyntaxTheme(newSyntaxTheme);
+    saveSyntaxTheme(newSyntaxTheme);
+    
+    // Automatically update app theme based on syntax theme
+    const newAppTheme = getAppThemeFromSyntaxTheme(newSyntaxTheme);
+    setTheme(newAppTheme);
+    
+    if (newAppTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  };
-
-  const handleSyntaxThemeChange = (newSyntaxTheme: string) => {
-    setSyntaxTheme(newSyntaxTheme);
-    saveSyntaxTheme(newSyntaxTheme);
   };
 
   const handleSetEditing = useCallback((feedbackId: string, isEditing: boolean) => {
@@ -688,9 +688,7 @@ function App() {
     <div className="min-h-screen flex flex-col font-sans h-screen">
       <Header
         onOpenSettings={() => setIsConfigModalOpen(true)}
-        onToggleTheme={handleThemeToggle}
         onSyntaxThemeChange={handleSyntaxThemeChange}
-        currentTheme={theme}
         currentSyntaxTheme={syntaxTheme}
       />
       <ConfigModal
