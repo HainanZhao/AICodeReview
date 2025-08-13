@@ -1,5 +1,6 @@
 import React from 'react';
-import { MoonIcon, SettingsIcon, SunIcon } from './icons';
+import { SettingsIcon } from './icons';
+import { SYNTAX_THEMES } from '../constants';
 
 const BrainCircuitIcon = () => (
   <svg
@@ -17,11 +18,15 @@ const BrainCircuitIcon = () => (
 
 interface HeaderProps {
   onOpenSettings: () => void;
-  onToggleTheme: () => void;
-  currentTheme: 'light' | 'dark';
+  onSyntaxThemeChange: (theme: string) => void;
+  currentSyntaxTheme: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onToggleTheme, currentTheme }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  onOpenSettings, 
+  onSyntaxThemeChange,
+  currentSyntaxTheme 
+}) => {
   return (
     <header className="bg-white/80 dark:bg-brand-surface/50 backdrop-blur-sm border-b border-gray-200 dark:border-brand-primary/50 sticky top-0 z-20">
       <div className="w-full px-4 md:px-6 lg:px-8">
@@ -38,13 +43,18 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onToggleTheme, c
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <button
-              onClick={onToggleTheme}
-              className="p-2 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-gray-200 dark:hover:bg-brand-primary hover:text-gray-900 dark:hover:text-white transition-colors"
-              aria-label="Toggle theme"
+            <select
+              value={currentSyntaxTheme}
+              onChange={(e) => onSyntaxThemeChange(e.target.value)}
+              className="p-2 text-sm bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary hover:bg-gray-200 dark:hover:bg-brand-primary/80 transition-colors"
+              aria-label="Select syntax highlighting theme"
             >
-              {currentTheme === 'light' ? <MoonIcon /> : <SunIcon />}
-            </button>
+              {SYNTAX_THEMES.map((theme) => (
+                <option key={theme.value} value={theme.value}>
+                  {theme.label}
+                </option>
+              ))}
+            </select>
             <button
               onClick={onOpenSettings}
               className="p-2 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-gray-200 dark:hover:bg-brand-primary hover:text-gray-900 dark:hover:text-white transition-colors"

@@ -6,7 +6,6 @@
 export interface GitLabConfig {
   url:string;
   accessToken: string;
-  codeTheme?: string;
 }
 
 export interface GitLabPosition {

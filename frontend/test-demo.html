@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syntax Highlighting Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .demo-container { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Syntax Highlighting Demo</h1>
+    <div class="demo-container">
+        <h2>TypeScript Code Example</h2>
+        <pre><code class="language-typescript">
+interface User {
+  id: number;
+  name: string;
+  email?: string;
+}
+
+const createUser = (data: Partial&lt;User&gt;): User =&gt; {
+  return {
+    id: Date.now(),
+    name: data.name || 'Anonymous',
+    ...data
+  };
+};
+
+// Example usage
+const user = createUser({ name: 'John Doe', email: 'john@example.com' });
+console.log('Created user:', user);
+        </code></pre>
+    </div>
+    
+    <div class="demo-container">
+        <h2>Python Code Example</h2>
+        <pre><code class="language-python">
+def fibonacci(n: int) -> int:
+    """Calculate the nth Fibonacci number."""
+    if n <= 1:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+class DataProcessor:
+    def __init__(self, data: list):
+        self.data = data
+    
+    def process(self) -> dict:
+        return {"processed": True, "count": len(self.data)}
+
+# Example usage
+processor = DataProcessor([1, 2, 3, 4, 5])
+result = processor.process()
+print(f"Result: {result}")
+        </code></pre>
+    </div>
+</body>
+</html>

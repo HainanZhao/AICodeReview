@@ -7,6 +7,7 @@ const PROJECTS_KEY = 'ai-code-reviewer-selected-projects';
 const PROJECTS_CACHE_KEY = 'ai-code-reviewer-projects-cache';
 const PROJECTS_CACHE_TIMESTAMP_KEY = 'ai-code-reviewer-projects-cache-timestamp';
 const THEME_KEY = 'ai-code-reviewer-theme';
+const SYNTAX_THEME_KEY = 'ai-code-reviewer-syntax-theme';
 
 export type ConfigSource = 'localStorage' | 'backend' | 'none';
 
@@ -165,6 +166,24 @@ export const loadTheme = (): 'light' | 'dark' | null => {
   } catch (error) {
     console.error('Failed to load theme from localStorage', error);
     return null;
+  }
+};
+
+export const saveSyntaxTheme = (theme: string): void => {
+  try {
+    localStorage.setItem(SYNTAX_THEME_KEY, theme);
+  } catch (error) {
+    console.error('Failed to save syntax theme to localStorage', error);
+  }
+};
+
+export const loadSyntaxTheme = (): string | null => {
+  try {
+    const theme = localStorage.getItem(SYNTAX_THEME_KEY);
+    return theme || 'default';
+  } catch (error) {
+    console.error('Failed to load syntax theme from localStorage', error);
+    return 'default';
   }
 };
 
