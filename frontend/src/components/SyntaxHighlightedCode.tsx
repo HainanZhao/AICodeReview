@@ -153,6 +153,10 @@ const diffDarkTheme: { [key: string]: React.CSSProperties } = {
   'language-tsx': { color: '#f8f8f2' },
 };
 
+const kebabToCamel = (s: string): string => {
+  return s.replace(/-./g, (x) => x[1].toUpperCase());
+};
+
 export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
   code,
   filePath,
@@ -164,11 +168,18 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
 
   useEffect(() => {
     if (codeTheme && codeTheme !== 'default') {
-      const theme = (prismThemes as any)[codeTheme];
+      const themeName = kebabToCamel(codeTheme);
+      const theme = (prismThemes as any)[themeName];
       if (theme) {
         setStyle(theme);
       } else {
-        setStyle(isDarkMode ? diffDarkTheme : diffLightTheme);
+        // Fallback for themes that might not follow the camelCase conversion
+        const fallbackTheme = (prismThemes as any)[codeTheme];
+        if (fallbackTheme) {
+          setStyle(fallbackTheme);
+        } else {
+          setStyle(isDarkMode ? diffDarkTheme : diffLightTheme);
+        }
       }
     } else {
       setStyle(isDarkMode ? diffDarkTheme : diffLightTheme);
