@@ -1,5 +1,5 @@
 import React from 'react';
-import { MoonIcon, SettingsIcon, SunIcon } from './icons';
+import { SettingsIcon } from './icons';
 import { SYNTAX_THEMES } from '../constants';
 
 const BrainCircuitIcon = () => (
@@ -18,17 +18,13 @@ const BrainCircuitIcon = () => (
 
 interface HeaderProps {
   onOpenSettings: () => void;
-  onToggleTheme: () => void;
   onSyntaxThemeChange: (theme: string) => void;
-  currentTheme: 'light' | 'dark';
   currentSyntaxTheme: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
   onOpenSettings, 
-  onToggleTheme, 
   onSyntaxThemeChange,
-  currentTheme, 
   currentSyntaxTheme 
 }) => {
   return (
@@ -59,13 +55,6 @@ export const Header: React.FC<HeaderProps> = ({
                 </option>
               ))}
             </select>
-            <button
-              onClick={onToggleTheme}
-              className="p-2 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-gray-200 dark:hover:bg-brand-primary hover:text-gray-900 dark:hover:text-white transition-colors"
-              aria-label="Toggle theme"
-            >
-              {currentTheme === 'light' ? <MoonIcon /> : <SunIcon />}
-            </button>
             <button
               onClick={onOpenSettings}
               className="p-2 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-gray-200 dark:hover:bg-brand-primary hover:text-gray-900 dark:hover:text-white transition-colors"
