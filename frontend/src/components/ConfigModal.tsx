@@ -16,10 +16,6 @@ interface ConfigModalProps {
   configSource?: 'localStorage' | 'backend' | 'none';
 }
 
-const availableThemes = [
-  'a11y-dark', 'a11y-one-light', 'atom-dark', 'base16-ateliersulphurpool.light', 'cb', 'coldark-cold', 'coldark-dark', 'coy-without-shadows', 'coy', 'darcula', 'dark', 'dracula', 'duotone-dark', 'duotone-earth', 'duotone-forest', 'duotone-light', 'duotone-sea', 'duotone-space', 'funky', 'ghcolors', 'gruvbox-dark', 'gruvbox-light', 'holi-theme', 'hopscotch', 'lucario', 'material-dark', 'material-light', 'material-oceanic', 'night-owl', 'nord', 'okaidia', 'one-dark', 'one-light', 'pojoaque', 'prism', 'shades-of-purple', 'solarized-dark-atom', 'solarizedlight', 'synthwave84', 'tomorrow', 'twilight', 'vs-dark', 'vs', 'vsc-dark-plus', 'xonokai', 'z-touch'
-];
-
 export const ConfigModal: React.FC<ConfigModalProps> = ({
   isOpen,
   onClose,
@@ -30,7 +26,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
 }) => {
   const [gitlabUrl, setGitlabUrl] = useState('');
   const [accessToken, setAccessToken] = useState('');
-  const [codeTheme, setCodeTheme] = useState('');
   const [isBackendConfigUsed, setIsBackendConfigUsed] = useState(false);
 
   useEffect(() => {
@@ -41,19 +36,16 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
           // User has localStorage config
           setGitlabUrl(initialConfig.url);
           setAccessToken(initialConfig.accessToken);
-          setCodeTheme(initialConfig.codeTheme || 'default');
           setIsBackendConfigUsed(false);
         } else if (backendConfig?.url) {
           // Use backend config
           setGitlabUrl(backendConfig.url);
           setAccessToken(initialConfig?.accessToken || '');
-          setCodeTheme(initialConfig?.codeTheme || 'default');
           setIsBackendConfigUsed(true);
         } else {
           // No config available, use defaults
           setGitlabUrl(initialConfig?.url || 'https://gitlab.com');
           setAccessToken(initialConfig?.accessToken || '');
-          setCodeTheme(initialConfig?.codeTheme || 'default');
           setIsBackendConfigUsed(false);
         }
       };
@@ -69,7 +61,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
     const newConfig: Config = {
       url: gitlabUrl.trim().replace(/\/$/, ''),
       accessToken: accessToken.trim(),
-      codeTheme: codeTheme,
     };
     saveConfig(newConfig);
     onSave(newConfig);
@@ -150,30 +141,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
             )}
             <p className="text-xs text-gray-500 dark:text-brand-subtle mt-1">
               The base URL of your GitLab instance.
-            </p>
-          </div>
-          <div>
-            <label
-              htmlFor="code-theme"
-              className="block text-sm font-medium text-gray-600 dark:text-brand-subtle mb-2"
-            >
-              Code Highlighting Theme
-            </label>
-            <select
-              id="code-theme"
-              value={codeTheme}
-              onChange={(e) => setCodeTheme(e.target.value)}
-              className="w-full p-3 bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text font-mono text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary"
-            >
-              <option value="default">Default</option>
-              {availableThemes.map((theme) => (
-                <option key={theme} value={theme}>
-                  {theme}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 dark:text-brand-subtle mt-1">
-              Select your preferred theme for syntax highlighting.
             </p>
           </div>
           <div>
