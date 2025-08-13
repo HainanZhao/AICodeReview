@@ -15,6 +15,7 @@ import { Spinner } from './Spinner';
 import { ViewMode, ViewModeToggle } from './ViewModeToggle';
 
 interface FeedbackPanelProps {
+  codeTheme?: string;
   onRedoReview?: () => void;
   feedback: ReviewFeedback[] | null;
   mrDetails: GitLabMRDetails | null;
@@ -354,6 +355,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
           return (
             <FileDiffCard
               key={fileDiff.filePath}
+              codeTheme={props.codeTheme}
               fileDiff={fileDiff}
               feedbackForFile={feedbackForThisFile}
               onPostComment={onPostComment}

@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTheme } from '../contexts/ThemeContext';
 import { MoonIcon, SettingsIcon, SunIcon } from './icons';
 
 const BrainCircuitIcon = () => (
@@ -18,11 +17,11 @@ const BrainCircuitIcon = () => (
 
 interface HeaderProps {
   onOpenSettings: () => void;
+  onToggleTheme: () => void;
+  currentTheme: 'light' | 'dark';
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
-  const { theme, toggleTheme } = useTheme();
-
+export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onToggleTheme, currentTheme }) => {
   return (
     <header className="bg-white/80 dark:bg-brand-surface/50 backdrop-blur-sm border-b border-gray-200 dark:border-brand-primary/50 sticky top-0 z-20">
       <div className="w-full px-4 md:px-6 lg:px-8">
@@ -40,11 +39,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={toggleTheme}
+              onClick={onToggleTheme}
               className="p-2 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-gray-200 dark:hover:bg-brand-primary hover:text-gray-900 dark:hover:text-white transition-colors"
               aria-label="Toggle theme"
             >
-              {theme === 'light' ? <MoonIcon /> : <SunIcon />}
+              {currentTheme === 'light' ? <MoonIcon /> : <SunIcon />}
             </button>
             <button
               onClick={onOpenSettings}

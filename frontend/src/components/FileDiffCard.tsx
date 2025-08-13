@@ -14,6 +14,7 @@ import { ViewMode } from './ViewModeToggle';
 import { AddCommentIcon, ChevronDownIcon, ChevronUpIcon } from './icons';
 
 interface FileDiffCardProps {
+  codeTheme?: string;
   fileDiff: ParsedFileDiff;
   feedbackForFile: ReviewFeedback[];
   onPostComment: (id: string) => void;
@@ -73,6 +74,7 @@ const GapExpanderRow: React.FC<{ hiddenLineCount: number; onClick: () => void }>
 
 export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
   const {
+    codeTheme,
     fileDiff,
     feedbackForFile,
     onPostComment,
@@ -178,6 +180,12 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
               newLine: i,
               oldLine: i,
             }; // Approximation for oldLine
+            const line: ParsedDiffLine = {
+              type: 'context',
+              content: newFileContentLines[i - 1] || '',
+              newLine: i,
+              oldLine: i,
+            }; // Approximation for oldLine
             elements.push(
               <DiffLine
                 key={`gap-${gapStartLine}-line-${i}`}
@@ -186,6 +194,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
                 filePath={fileDiff.filePath}
                 fileContent={fullFileContent}
                 oldFileContent={fullOldFileContent}
+                codeTheme={codeTheme}
               />
             );
           }
@@ -217,17 +226,35 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
             // Show all feedback items (both pending and submitted/existing)
             const allFeedbackItems = feedbackItems;
 
+            // --- 2. Render Hunk ---
             elements.push(
-              <React.Fragment key={`${fileDiff.filePath}-${hunkIndex}-${lineIndex}`}>
-                <DiffLine
-                  line={line}
-                  onAddComment={() => handlers.onAddCustomFeedback(fileDiff, line)}
-                  filePath={fileDiff.filePath}
-                  fileContent={fullFileContent}
-                  oldFileContent={fullOldFileContent}
-                />
-                {allFeedbackItems.map((fb) => {
-                  const isActive = fb.id === activeFeedbackId;
+              <HunkHeader
+                key={hunk.header}
+                hunk={hunk}
+                onClick={() => handlers.onToggleHunkCollapse(fileDiff.filePath, hunkIndex)}
+              />
+            );
+            if (!hunk.isCollapsed) {
+              hunk.lines
+                .filter((l) => l.type !== 'meta')
+                .forEach((line, lineIndex) => {
+                  const key = line.newLine?.toString() || '';
+                  const feedbackItems = lineLevelFeedbackMap.get(key) || [];
+                  // Show all feedback items (both pending and submitted/existing)
+                  const allFeedbackItems = feedbackItems;
+
+                  elements.push(
+                    <React.Fragment key={`${fileDiff.filePath}-${hunkIndex}-${lineIndex}`}>
+                      <DiffLine
+                        line={line}
+                        onAddComment={() => handlers.onAddCustomFeedback(fileDiff, line)}
+                        filePath={fileDiff.filePath}
+                        fileContent={fullFileContent}
+                        oldFileContent={fullOldFileContent}
+                  codeTheme={codeTheme}
+                      />
+                      {allFeedbackItems.map((fb) => {
+                        const isActive = fb.id === activeFeedbackId;
                   return (
                     <tr
                       key={fb.id}
@@ -277,15 +304,23 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
             oldLine: i,
           }; // Approximation for oldLine
           elements.push(
-            <DiffLine
-              key={`gap-final-line-${i}`}
-              line={line}
-              onAddComment={() => handlers.onAddCustomFeedback(fileDiff, line)}
-              filePath={fileDiff.filePath}
-              fileContent={fullFileContent}
-              oldFileContent={fullOldFileContent}
-            />
-          );
+            const line: ParsedDiffLine = {
+              type: 'context',
+              content: newFileContentLines[i - 1] || '',
+              newLine: i,
+              oldLine: i,
+            }; // Approximation for oldLine
+            elements.push(
+              <DiffLine
+                key={`gap-final-line-${i}`}
+                line={line}
+                onAddComment={() => handlers.onAddCustomFeedback(fileDiff, line)}
+                filePath={fileDiff.filePath}
+                fileContent={fullFileContent}
+                oldFileContent={fullOldFileContent}
+              codeTheme={codeTheme}
+              />
+            );
         }
       } else {
         elements.push(
@@ -377,6 +412,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
         </div>
       ) : (
         <SplitDiffView
+          codeTheme={codeTheme}
           fileDiff={fileDiff}
           feedbackForFile={feedbackForFile}
           onPostComment={onPostComment}

@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTheme } from '../contexts/ThemeContext';
 import { getAiChatResponse } from '../services/aiReviewService';
 import { ParsedDiffLine } from '../types';
 import { ExplanationPopup } from './ExplanationPopup';
@@ -13,6 +12,7 @@ interface DiffLineProps {
   filePath?: string;
   fileContent?: string;
   oldFileContent?: string;
+  codeTheme?: string;
 }
 
 const getLineClasses = (type: ParsedDiffLine['type']) => {
@@ -34,14 +34,35 @@ export const DiffLine: React.FC<DiffLineProps> = ({
   filePath = 'unknown',
   fileContent,
   oldFileContent,
+  codeTheme,
 }) => {
-  const { theme } = useTheme();
-  const isDarkMode = theme === 'dark';
-
   const lineClasses = getLineClasses(line.type);
   const prefix = line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ';
   const canComment = line.type === 'add' || line.type === 'remove' || line.type === 'context';
   const canExplain = line.type !== 'meta' && line.content.trim().length > 0;
+
+  // Detect dark mode from document class
+  const [isDarkMode, setIsDarkMode] = React.useState(() => {
+    return document.documentElement.classList.contains('dark');
+  });
+
+  // Listen for theme changes
+  React.useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          setIsDarkMode(document.documentElement.classList.contains('dark'));
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   // AI Chat state
   const [showChat, setShowChat] = React.useState(false);
@@ -190,6 +211,7 @@ export const DiffLine: React.FC<DiffLineProps> = ({
             filePath={filePath}
             isDarkMode={isDarkMode}
             className="whitespace-pre-wrap break-words bg-transparent"
+            codeTheme={codeTheme}
           />
         </td>
       </tr>
