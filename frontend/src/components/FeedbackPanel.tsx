@@ -114,7 +114,7 @@ console.log('Created user:', user);`;
             </div>
           </div>
           <div className="bg-white dark:bg-brand-surface p-4 overflow-x-auto">
-            <pre className="font-mono text-sm">
+            <pre className="font-mono text-sm text-left" style={{ textAlign: 'left' }}>
               <SyntaxHighlightedCode
                 code={sampleCode}
                 filePath="example.tsx"

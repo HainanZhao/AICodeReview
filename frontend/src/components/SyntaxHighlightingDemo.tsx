@@ -146,7 +146,7 @@ export const SyntaxHighlightingDemo: React.FC<SyntaxHighlightingDemoProps> = ({
             </div>
           </div>
           <div className="bg-white dark:bg-gray-900 p-4 overflow-x-auto">
-            <pre className="font-mono text-sm">
+            <pre className="font-mono text-sm text-left" style={{ textAlign: 'left' }}>
               <SyntaxHighlightedCode
                 code={sample.code}
                 filePath={sample.filePath}

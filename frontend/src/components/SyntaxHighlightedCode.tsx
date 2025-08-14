@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import * as prismThemes from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { detectLanguageFromPath } from '../utils/languageDetection';
@@ -16,9 +16,15 @@ const diffLightTheme: { [key: string]: React.CSSProperties } = {
   // Only override base colors, let individual themes handle specific syntax highlighting
   'code[class*="language-"]': {
     color: '#24292e', // Base text color
+    textAlign: 'left',
   },
   'pre[class*="language-"]': {
     color: '#24292e', // Base text color
+    textAlign: 'left',
+    background: 'transparent',
+    backgroundColor: 'transparent',
+    margin: 0,
+    padding: 0,
   },
   // Essential syntax colors - kept minimal to allow theme variations
   comment: { color: '#6a737d' },
@@ -62,9 +68,15 @@ const diffDarkTheme: { [key: string]: React.CSSProperties } = {
   // Only override base colors, let individual themes handle specific syntax highlighting
   'code[class*="language-"]': {
     color: '#f8f8f2', // Base text color for dark mode
+    textAlign: 'left',
   },
   'pre[class*="language-"]': {
     color: '#f8f8f2', // Base text color for dark mode
+    textAlign: 'left',
+    background: 'transparent',
+    backgroundColor: 'transparent',
+    margin: 0,
+    padding: 0,
   },
   // Essential syntax colors - kept minimal to allow theme variations
   token: { color: '#f8f8f2' }, // Base token color - fallback for unspecified tokens
@@ -124,6 +136,7 @@ const mergeThemeWithDiffSupport = (baseTheme: any, diffTheme: any) => {
       // Only override background to maintain transparency for diff highlighting
       background: 'transparent',
       backgroundColor: 'transparent',
+      textAlign: 'left',
     };
   }
 
@@ -133,6 +146,9 @@ const mergeThemeWithDiffSupport = (baseTheme: any, diffTheme: any) => {
       // Only override background to maintain transparency for diff highlighting
       background: 'transparent',
       backgroundColor: 'transparent',
+      textAlign: 'left',
+      margin: 0,
+      padding: 0,
     };
   }
 
@@ -185,88 +201,100 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
 
   const language = filePath ? detectLanguageFromPath(filePath) : null;
 
-  // If no language detected, render plain text
+  // If no language detected, render plain text with proper alignment
   if (!language) {
-    return <span className={className}>{code}</span>;
+    return (
+      <span className={`${className} text-left`} style={{ textAlign: 'left' }}>
+        {code}
+      </span>
+    );
   }
 
   return (
-    <SyntaxHighlighter
-      language={language}
-      style={style}
-      customStyle={{
-        // Layout properties moved from theme objects to ensure consistent diff display
-        margin: 0,
-        padding: 0,
-        background: 'transparent',
-        backgroundColor: 'transparent',
-        fontSize: 'inherit',
-        fontFamily: 'inherit',
-        lineHeight: 'inherit',
-        display: 'inline',
-        // Additional layout properties for diff compatibility
-        textShadow: 'none',
-        direction: 'ltr',
-        textAlign: 'left',
-        whiteSpace: 'pre',
-        wordSpacing: 'normal',
-        wordBreak: 'normal',
-        overflow: 'visible',
-        // Improved font rendering
-        WebkitFontSmoothing: 'antialiased',
-        MozOsxFontSmoothing: 'grayscale',
-      }}
-      codeTagProps={{
-        style: {
-          // Layout properties for diff compatibility
+    <span className="text-left" style={{ textAlign: 'left', display: 'inline' }}>
+      <SyntaxHighlighter
+        language={language}
+        style={style}
+        customStyle={{
+          // Layout properties moved from theme objects to ensure consistent diff display
+          margin: 0,
+          padding: 0,
           background: 'transparent',
           backgroundColor: 'transparent',
-          fontFamily: 'inherit',
           fontSize: 'inherit',
+          fontFamily: 'inherit',
+          lineHeight: 'inherit',
           display: 'inline',
+          // Additional layout properties for diff compatibility
           textShadow: 'none',
           direction: 'ltr',
           textAlign: 'left',
           whiteSpace: 'pre',
           wordSpacing: 'normal',
           wordBreak: 'normal',
-          lineHeight: 'inherit',
-          padding: '0',
-          margin: '0',
+          overflow: 'visible',
           // Improved font rendering
           WebkitFontSmoothing: 'antialiased',
           MozOsxFontSmoothing: 'grayscale',
-        },
-      }}
-      PreTag={({ children, ...props }) => (
-        <span
-          {...props}
-          className={className}
-          style={{
+        }}
+        codeTagProps={{
+          style: {
+            // Layout properties for diff compatibility
             background: 'transparent',
             backgroundColor: 'transparent',
+            fontFamily: 'inherit',
+            fontSize: 'inherit',
             display: 'inline',
-            whiteSpace: 'pre-wrap',
-          }}
-        >
-          {children}
-        </span>
-      )}
-      CodeTag={({ children, ...props }) => (
-        <span
-          {...props}
-          className={className}
-          style={{
-            background: 'transparent',
-            backgroundColor: 'transparent',
-            display: 'inline',
-          }}
-        >
-          {children}
-        </span>
-      )}
-    >
-      {code}
-    </SyntaxHighlighter>
+            textShadow: 'none',
+            direction: 'ltr',
+            textAlign: 'left',
+            whiteSpace: 'pre',
+            wordSpacing: 'normal',
+            wordBreak: 'normal',
+            lineHeight: 'inherit',
+            padding: '0',
+            margin: '0',
+            // Improved font rendering
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
+          },
+        }}
+        PreTag={({ children, ...props }) => (
+          <span
+            {...props}
+            className={`${className} text-left`}
+            style={{
+              background: 'transparent',
+              backgroundColor: 'transparent',
+              display: 'inline',
+              whiteSpace: 'pre-wrap',
+              textAlign: 'left',
+              margin: 0,
+              padding: 0,
+            }}
+          >
+            {children}
+          </span>
+        )}
+        CodeTag={({ children, ...props }) => (
+          <span
+            {...props}
+            className={`${className} text-left`}
+            style={{
+              background: 'transparent',
+              backgroundColor: 'transparent',
+              display: 'inline',
+              textAlign: 'left',
+              margin: 0,
+              padding: 0,
+            }}
+          >
+            {children}
+          </span>
+        )}
+      >
+        {code}
+      </SyntaxHighlighter>
+    </span>
   );
 };

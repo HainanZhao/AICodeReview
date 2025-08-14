@@ -87,7 +87,10 @@ export const ThemeComparisonDemo: React.FC<ThemeComparisonDemoProps> = ({ isDark
             </p>
           </div>
           <div className="bg-white dark:bg-gray-900 p-4">
-            <pre className="font-mono text-sm text-gray-800 dark:text-gray-200">
+            <pre
+              className="font-mono text-sm text-gray-800 dark:text-gray-200 text-left"
+              style={{ textAlign: 'left' }}
+            >
               <code>{testCode}</code>
             </pre>
           </div>
@@ -103,7 +106,7 @@ export const ThemeComparisonDemo: React.FC<ThemeComparisonDemoProps> = ({ isDark
             </p>
           </div>
           <div className="bg-white dark:bg-gray-900 p-4">
-            <pre className="font-mono text-sm">
+            <pre className="font-mono text-sm text-left" style={{ textAlign: 'left' }}>
               <SyntaxHighlightedCode
                 code={testCode}
                 filePath="example.tsx"
