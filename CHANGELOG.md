@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.4] - 2025-08-14
+
+### Fixed
+- **Review State Storage**: Changed review state persistence from localStorage to sessionStorage for improved privacy
+  - Review state now automatically clears when browser tab closes
+  - Better data privacy as state is session-scoped only
+  - Added automatic cleanup of legacy localStorage review data
+  - Maintains same functionality for recovering work within browser session
+
+### Technical Changes
+- Updated `reviewStateService.ts` to use sessionStorage instead of localStorage
+- Updated all related tests to reflect sessionStorage usage
+- Enhanced documentation to clarify session-based storage behavior
+
 ## [1.4.3] - 2025-08-14
 
 ### Added
