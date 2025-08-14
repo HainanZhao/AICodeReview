@@ -12,6 +12,7 @@ interface DiffLineProps {
   filePath?: string;
   fileContent?: string;
   oldFileContent?: string;
+  codeTheme?: string;
 }
 
 const getLineClasses = (type: ParsedDiffLine['type']) => {
@@ -33,6 +34,7 @@ export const DiffLine: React.FC<DiffLineProps> = ({
   filePath = 'unknown',
   fileContent,
   oldFileContent,
+  codeTheme,
 }) => {
   const lineClasses = getLineClasses(line.type);
   const prefix = line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ';
@@ -209,6 +211,7 @@ export const DiffLine: React.FC<DiffLineProps> = ({
             filePath={filePath}
             isDarkMode={isDarkMode}
             className="whitespace-pre-wrap break-words bg-transparent"
+            codeTheme={codeTheme}
           />
         </td>
       </tr>

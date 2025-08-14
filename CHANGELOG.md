@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.3] - 2025-08-14
+
+### Added
+- **Dynamic App Theming**: Revolutionary theming system that makes the entire application interface match the selected code syntax highlighting theme
+  - Added comprehensive color extraction system for 13+ popular syntax themes (VS Code Dark+, Dracula, Night Owl, One Dark, etc.)
+  - Real-time CSS custom property updates for seamless theme transitions
+  - Theme-aware UI components with consistent color schemes across the entire application
+  - "Theme:" label added to syntax theme dropdown for better user experience
+
+### Enhanced
+- **Improved Theme Integration**: The app now dynamically adapts its background, surfaces, text colors, and accents to match syntax highlighting themes
+- **Simplified Configuration**: Removed legacy light/dark theme selection from CLI setup wizard, focusing on the advanced dynamic theming system
+- **Better User Experience**: Theme dropdown now includes a clear label for improved usability
+
+### Removed
+- **Legacy Theme System**: Removed outdated light/dark theme toggle functionality
+  - Removed theme configuration from CLI setup wizard (`--init`)
+  - Removed theme-related configuration schema and default values
+  - Removed manual theme localStorage persistence in favor of syntax-theme-based theming
+  - Cleaned up legacy theme initialization scripts
+
+### Technical Changes
+- Added `THEME_COLOR_CONFIGS` with comprehensive color schemes for popular syntax themes
+- Implemented `getThemeColors()` and `applyThemeColors()` functions for dynamic theme application
+- Enhanced CSS custom properties system with `--app-*` variables for real-time theming
+- Simplified theme change handlers to focus purely on syntax-theme-driven color updates
+- Updated UI configuration schema to remove theme-related properties
+- Removed `saveTheme()` and `loadTheme()` functions from config service
+
 
 ## [1.4.2] - 2025-08-13
 

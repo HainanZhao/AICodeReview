@@ -10,7 +10,6 @@ export const DEFAULT_CONFIG: AppConfig = {
     provider: 'gemini-cli',
   },
   ui: {
-    theme: 'light',
     autoOpen: true,
   },
   // gitlab config is optional and will be added via --init wizard

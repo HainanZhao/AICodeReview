@@ -15,14 +15,15 @@ import { Header } from './components/Header';
 import { MrSummary } from './components/MrSummary';
 import { Notification } from './components/Notification';
 import { ResizablePane } from './components/ResizablePane';
+import { applyThemeColors, getThemeColors } from './constants';
 import { fetchMrDetailsOnly, runAiReview } from './services/aiReviewService';
 import {
   fetchBackendConfig,
   loadConfig,
   loadProjectsFromCache,
-  loadTheme,
+  loadSyntaxTheme,
   saveProjectsToCache,
-  saveTheme,
+  saveSyntaxTheme,
   type ConfigSource,
 } from './services/configService';
 import {
@@ -56,7 +57,7 @@ function App() {
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [projects, setProjects] = useState<GitLabProject[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [syntaxTheme, setSyntaxTheme] = useState<string>('default');
   const [isRestoringState, setIsRestoringState] = useState<boolean>(false);
   const [notification, setNotification] = useState<{
     message: string;
@@ -113,15 +114,13 @@ function App() {
   }, [config]);
 
   useEffect(() => {
-    const savedTheme = loadTheme();
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
-    setTheme(initialTheme);
-    if (initialTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    const savedSyntaxTheme = loadSyntaxTheme();
+    const initialSyntaxTheme = savedSyntaxTheme || 'default';
+    setSyntaxTheme(initialSyntaxTheme);
+
+    // Apply comprehensive theme colors on startup
+    const themeColors = getThemeColors(initialSyntaxTheme);
+    applyThemeColors(themeColors);
   }, []);
 
   useEffect(() => {
@@ -350,15 +349,13 @@ function App() {
     clearReviewState(); // Clear saved state when starting a new review
   }, []);
 
-  const handleThemeToggle = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    saveTheme(newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+  const handleSyntaxThemeChange = (newSyntaxTheme: string) => {
+    setSyntaxTheme(newSyntaxTheme);
+    saveSyntaxTheme(newSyntaxTheme);
+
+    // Apply comprehensive theme colors
+    const themeColors = getThemeColors(newSyntaxTheme);
+    applyThemeColors(themeColors);
   };
 
   const handleSetEditing = useCallback((feedbackId: string, isEditing: boolean) => {
@@ -678,8 +675,8 @@ function App() {
     <div className="min-h-screen flex flex-col font-sans h-screen">
       <Header
         onOpenSettings={() => setIsConfigModalOpen(true)}
-        onToggleTheme={handleThemeToggle}
-        currentTheme={theme}
+        onSyntaxThemeChange={handleSyntaxThemeChange}
+        currentSyntaxTheme={syntaxTheme}
       />
       <ConfigModal
         isOpen={isConfigModalOpen}
@@ -716,6 +713,7 @@ function App() {
           </div>
           <div className="flex flex-col h-full">
             <FeedbackPanel
+              codeTheme={syntaxTheme}
               feedback={feedback}
               mrDetails={mrDetails}
               isLoading={isLoading || isRestoringState}

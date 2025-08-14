@@ -58,7 +58,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   }
 
   const handleSave = () => {
-    const newConfig = {
+    const newConfig: Config = {
       url: gitlabUrl.trim().replace(/\/$/, ''),
       accessToken: accessToken.trim(),
     };

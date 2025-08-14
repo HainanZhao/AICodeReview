@@ -78,7 +78,6 @@ export async function createConfigInteractively(): Promise<void> {
 
     // UI configuration
     console.log('\n🎨 UI Configuration:');
-    const theme = (await question('Theme (light/dark/auto, default: light): ')) || 'light';
     const autoOpenInput = (await question('Auto-open browser? (y/N): ')) || 'y';
     const autoOpen = autoOpenInput.toLowerCase() === 'y' || autoOpenInput.toLowerCase() === 'yes';
 
@@ -135,7 +134,6 @@ export async function createConfigInteractively(): Promise<void> {
         ...(googleCloudProject && { googleCloudProject }),
       },
       ui: {
-        theme: theme as 'light' | 'dark' | 'auto',
         autoOpen,
       },
       ...(gitlabConfig && { gitlab: gitlabConfig }),

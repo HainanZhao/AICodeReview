@@ -12,9 +12,11 @@ import { FeedbackCard } from './FeedbackCard';
 import { FileDiffCard } from './FileDiffCard';
 import { ApproveIcon, ArrowDownIcon, ArrowUpIcon, CheckmarkIcon, RefreshIcon } from './icons';
 import { Spinner } from './Spinner';
+import { SyntaxHighlightedCode } from './SyntaxHighlightedCode';
 import { ViewMode, ViewModeToggle } from './ViewModeToggle';
 
 interface FeedbackPanelProps {
+  codeTheme?: string;
   onRedoReview?: () => void;
   feedback: ReviewFeedback[] | null;
   mrDetails: GitLabMRDetails | null;
@@ -42,40 +44,95 @@ interface FeedbackPanelProps {
   onClearError?: () => void;
 }
 
-const InitialState = () => (
-  <div className="text-center">
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="mx-auto h-16 w-16 text-gray-300 dark:text-brand-primary"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={1}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M17.94,10.94a1,1,0,0,0-1.42,0l-2.29,2.29a1.44,1.44,0,0,0-.41,1V16.5a.5.5,0,0,0,.5.5h2.25a1.44,1.44,0,0,0,1-.41l2.29-2.29a1,1,0,0,0,0-1.42Z"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M6.06,13.06a1,1,0,0,0,1.42,0l2.29-2.29a1.44,1.44,0,0,0,.41-1V7.5a.5.5,0,0,0-.5-.5H7.41a1.44,1.44,0,0,0-1,.41L4.09,9.68a1,1,0,0,0,0,1.42Z"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12,3a9,9,0,0,0-9,9,1,1,0,0,0,1,1h.5a1,1,0,0,1,1,1v.5a1,1,0,0,0,1,1h5a1,1,0,0,0,1-1v-.5a1,1,0,0,1,1-1h.5a1,1,0,0,0,1-1A9,9,0,0,0,12,3Z"
-      />
-    </svg>
-    <h3 className="mt-2 text-base font-semibold text-gray-900 dark:text-white">
-      Awaiting Analysis
-    </h3>
-    <p className="mt-1 text-sm text-gray-500 dark:text-brand-subtle">
-      Select a Merge Request from the dashboard to begin.
-    </p>
-  </div>
-);
+const InitialState = ({ codeTheme, isDarkMode }: { codeTheme?: string; isDarkMode?: boolean }) => {
+  const sampleCode = `interface User {
+  id: number;
+  name: string;
+  email?: string;
+}
+
+const createUser = (data: Partial<User>): User => {
+  return {
+    id: Date.now(),
+    name: data.name || 'Anonymous',
+    ...data
+  };
+};
+
+// Example usage
+const user = createUser({ 
+  name: 'John Doe', 
+  email: 'john@example.com' 
+});
+console.log('Created user:', user);`;
+
+  return (
+    <div className="text-center space-y-6">
+      <div>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="mx-auto h-16 w-16 text-gray-300 dark:text-brand-primary"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={1}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M17.94,10.94a1,1,0,0,0-1.42,0l-2.29,2.29a1.44,1.44,0,0,0-.41,1V16.5a.5.5,0,0,0,.5.5h2.25a1.44,1.44,0,0,0,1-.41l2.29-2.29a1,1,0,0,0,0-1.42Z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M6.06,13.06a1,1,0,0,0,1.42,0l2.29-2.29a1.44,1.44,0,0,0,.41-1V7.5a.5.5,0,0,0-.5-.5H7.41a1.44,1.44,0,0,0-1,.41L4.09,9.68a1,1,0,0,0,0,1.42Z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12,3a9,9,0,0,0-9,9,1,1,0,0,0,1,1h.5a1,1,0,0,1,1,1v.5a1,1,0,0,0,1,1h5a1,1,0,0,0,1-1v-.5a1,1,0,0,1,1-1h.5a1,1,0,0,0,1-1A9,9,0,0,0,12,3Z"
+          />
+        </svg>
+        <h3 className="mt-2 text-base font-semibold text-gray-900 dark:text-white">
+          Awaiting Analysis
+        </h3>
+        <p className="mt-1 text-sm text-gray-500 dark:text-brand-subtle">
+          Select a Merge Request from the dashboard to begin.
+        </p>
+      </div>
+
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white dark:bg-brand-surface border border-gray-200 dark:border-brand-primary rounded-lg overflow-hidden">
+          <div className="bg-gray-100 dark:bg-brand-primary px-4 py-2 border-b border-gray-200 dark:border-brand-primary">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-sm font-semibold text-gray-800 dark:text-white">
+                example.tsx
+              </span>
+              <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                TypeScript
+              </span>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-brand-surface p-4 overflow-x-auto">
+            <pre className="font-mono text-sm text-left" style={{ textAlign: 'left' }}>
+              <SyntaxHighlightedCode
+                code={sampleCode}
+                filePath="example.tsx"
+                isDarkMode={isDarkMode}
+                codeTheme={codeTheme}
+                className="whitespace-pre-wrap"
+              />
+            </pre>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-brand-subtle mt-2">
+          Preview: Syntax highlighting theme is active. Select a theme from the header dropdown to
+          test different styles.
+        </p>
+      </div>
+    </div>
+  );
+};
 
 const NoIssuesFound = () => (
   <div className="text-center">
@@ -102,6 +159,7 @@ const NoIssuesFound = () => (
 
 export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   const {
+    codeTheme,
     feedback,
     mrDetails,
     isLoading,
@@ -120,6 +178,25 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   } = props;
   const [currentCommentIndex, setCurrentCommentIndex] = useState(-1);
   const [globalViewMode, setGlobalViewMode] = useState<ViewMode>(() => getStoredViewMode());
+
+  // Detect dark mode from document class
+  const [isDarkMode, setIsDarkMode] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  );
+
+  // Listen for theme changes
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleGlobalViewModeChange = (newMode: ViewMode) => {
     setGlobalViewMode(newMode);
@@ -354,6 +431,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
           return (
             <FileDiffCard
               key={fileDiff.filePath}
+              codeTheme={props.codeTheme}
               fileDiff={fileDiff}
               feedbackForFile={feedbackForThisFile}
               onPostComment={onPostComment}
@@ -455,7 +533,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
     if (!mrDetails) {
       return (
         <div className="flex items-center justify-center h-full">
-          <InitialState />
+          <InitialState codeTheme={codeTheme} isDarkMode={isDarkMode} />
         </div>
       );
     }

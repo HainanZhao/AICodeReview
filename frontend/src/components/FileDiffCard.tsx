@@ -14,6 +14,7 @@ import { ViewMode } from './ViewModeToggle';
 import { AddCommentIcon, ChevronDownIcon, ChevronUpIcon } from './icons';
 
 interface FileDiffCardProps {
+  codeTheme?: string;
   fileDiff: ParsedFileDiff;
   feedbackForFile: ReviewFeedback[];
   onPostComment: (id: string) => void;
@@ -73,6 +74,7 @@ const GapExpanderRow: React.FC<{ hiddenLineCount: number; onClick: () => void }>
 
 export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
   const {
+    codeTheme,
     fileDiff,
     feedbackForFile,
     onPostComment,
@@ -186,6 +188,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
                 filePath={fileDiff.filePath}
                 fileContent={fullFileContent}
                 oldFileContent={fullOldFileContent}
+                codeTheme={codeTheme}
               />
             );
           }
@@ -225,6 +228,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
                   filePath={fileDiff.filePath}
                   fileContent={fullFileContent}
                   oldFileContent={fullOldFileContent}
+                  codeTheme={codeTheme}
                 />
                 {allFeedbackItems.map((fb) => {
                   const isActive = fb.id === activeFeedbackId;
@@ -284,6 +288,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
               filePath={fileDiff.filePath}
               fileContent={fullFileContent}
               oldFileContent={fullOldFileContent}
+              codeTheme={codeTheme}
             />
           );
         }
@@ -377,6 +382,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
         </div>
       ) : (
         <SplitDiffView
+          codeTheme={codeTheme}
           fileDiff={fileDiff}
           feedbackForFile={feedbackForFile}
           onPostComment={onPostComment}
