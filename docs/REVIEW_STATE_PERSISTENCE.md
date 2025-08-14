@@ -7,7 +7,7 @@ This feature enhances the user experience by automatically saving and restoring 
 ### 1. Automatic State Saving
 - **When**: State is saved whenever a review is loaded or feedback is modified
 - **What**: Saves MR details, all feedback (AI + manual), and the MR URL
-- **Where**: Local storage with key `ai-code-reviewer-review-state`
+- **Where**: Session storage with key `ai-code-reviewer-review-state`
 
 ### 2. Automatic State Restoration
 - **When**: On page load, if a valid saved state exists
@@ -20,7 +20,7 @@ This feature enhances the user experience by automatically saving and restoring 
 ### 3. State Expiry
 - **Duration**: 1 week (7 days)
 - **Behavior**: Old states are automatically discarded to avoid stale data
-- **Cleanup**: Expired states are removed from localStorage
+- **Cleanup**: Expired states are removed from sessionStorage
 
 ### 4. Manual Comments Preservation
 - **AI Comments**: Distinguished from manual comments using `isExisting` flag
@@ -41,7 +41,7 @@ interface ReviewState {
 ```
 
 ### Key Functions:
-- `saveReviewState()`: Saves current review state to localStorage
+- `saveReviewState()`: Saves current review state to sessionStorage
 - `loadReviewState()`: Loads and validates saved state (handles expiry)
 - `clearReviewState()`: Removes saved state
 - `updateReviewStateFeedback()`: Updates only feedback portion of saved state
@@ -54,7 +54,7 @@ interface ReviewState {
    - Notification system for user feedback
    - All feedback modification handlers updated to persist changes
 
-2. **Feedback Handlers**: All feedback modification functions now update localStorage:
+2. **Feedback Handlers**: All feedback modification functions now update sessionStorage:
    - `handleSetEditing()`
    - `handleDeleteFeedback()`
    - `handleUpdateFeedback()`
@@ -85,22 +85,25 @@ interface ReviewState {
 - **New Review**: Automatically clears previous state
 - **Expired State**: Automatically discarded (older than 1 week)
 - **Invalid State**: Gracefully handled with fallback to clean state
+- **Session-based**: State persists only within the browser tab/session
 
 ## Benefits
 
 1. **Improved UX**: No loss of work on accidental page refresh
-2. **Productivity**: Continue review sessions across browser restarts
-3. **Data Safety**: Manual comments and edits are preserved
+2. **Productivity**: Continue review sessions within the same browser tab
+3. **Data Safety**: Manual comments and edits are preserved during the session
 4. **Performance**: Instant restoration of previous state
 5. **Reliability**: Automatic cleanup of stale data
+6. **Privacy**: Session-only storage provides better privacy (data cleared when tab closes)
 
 ## Technical Considerations
 
 - **Storage Size**: State includes full MR details and feedback arrays
-- **Privacy**: Data stored locally only, never sent to external servers
-- **Performance**: Minimal impact - localStorage operations are synchronous but fast
-- **Compatibility**: Works in all modern browsers with localStorage support
-- **Error Handling**: Graceful degradation if localStorage is unavailable
+- **Privacy**: Data stored in session only, never sent to external servers, automatically cleared when tab closes
+- **Performance**: Minimal impact - sessionStorage operations are synchronous but fast
+- **Compatibility**: Works in all modern browsers with sessionStorage support
+- **Error Handling**: Graceful degradation if sessionStorage is unavailable
+- **Session Scope**: Data persists only within the browser tab session
 
 ## Future Enhancements
 

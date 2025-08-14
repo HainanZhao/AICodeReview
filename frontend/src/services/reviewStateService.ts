@@ -11,7 +11,7 @@ export interface ReviewState {
 }
 
 /**
- * Save the current review state to localStorage
+ * Save the current review state to sessionStorage
  */
 export const saveReviewState = (
   mrDetails: GitLabMRDetails,
@@ -26,21 +26,29 @@ export const saveReviewState = (
       url,
     };
 
-    localStorage.setItem(REVIEW_STATE_KEY, JSON.stringify(state));
-    localStorage.setItem(REVIEW_STATE_TIMESTAMP_KEY, state.timestamp.toString());
+    sessionStorage.setItem(REVIEW_STATE_KEY, JSON.stringify(state));
+    sessionStorage.setItem(REVIEW_STATE_TIMESTAMP_KEY, state.timestamp.toString());
   } catch (error) {
-    console.error('Failed to save review state to localStorage', error);
+    console.error('Failed to save review state to sessionStorage', error);
   }
 };
 
 /**
- * Load the review state from localStorage
+ * Load the review state from sessionStorage
  * Returns null if no state exists or if the state is too old (older than 1 week)
  */
 export const loadReviewState = (): ReviewState | null => {
   try {
-    const stateStr = localStorage.getItem(REVIEW_STATE_KEY);
-    const timestampStr = localStorage.getItem(REVIEW_STATE_TIMESTAMP_KEY);
+    // Clean up any legacy localStorage data
+    try {
+      localStorage.removeItem(REVIEW_STATE_KEY);
+      localStorage.removeItem(REVIEW_STATE_TIMESTAMP_KEY);
+    } catch {
+      // Ignore errors when cleaning up legacy data
+    }
+
+    const stateStr = sessionStorage.getItem(REVIEW_STATE_KEY);
+    const timestampStr = sessionStorage.getItem(REVIEW_STATE_TIMESTAMP_KEY);
 
     if (!stateStr || !timestampStr) {
       return null;
@@ -65,21 +73,21 @@ export const loadReviewState = (): ReviewState | null => {
 
     return state;
   } catch (error) {
-    console.error('Failed to load review state from localStorage', error);
+    console.error('Failed to load review state from sessionStorage', error);
     clearReviewState();
     return null;
   }
 };
 
 /**
- * Clear the saved review state from localStorage
+ * Clear the saved review state from sessionStorage
  */
 export const clearReviewState = (): void => {
   try {
-    localStorage.removeItem(REVIEW_STATE_KEY);
-    localStorage.removeItem(REVIEW_STATE_TIMESTAMP_KEY);
+    sessionStorage.removeItem(REVIEW_STATE_KEY);
+    sessionStorage.removeItem(REVIEW_STATE_TIMESTAMP_KEY);
   } catch (error) {
-    console.error('Failed to clear review state from localStorage', error);
+    console.error('Failed to clear review state from sessionStorage', error);
   }
 };
 
