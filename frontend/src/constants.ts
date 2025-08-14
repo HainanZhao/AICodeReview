@@ -89,31 +89,42 @@ const DARK_SYNTAX_THEMES = new Set([
 ]);
 
 /**
- * Determines the appropriate app theme based on the syntax highlighting theme
+ * Gets theme colors for a given syntax theme, with fallback to basic light/dark
  */
-export const getAppThemeFromSyntaxTheme = (syntaxTheme: string): 'light' | 'dark' => {
-  // Check if the theme is explicitly known to be dark
-  if (DARK_SYNTAX_THEMES.has(syntaxTheme)) {
-    return 'dark';
+export const getThemeColors = (syntaxTheme: string) => {
+  // Check if we have specific color config for this theme
+  if (THEME_COLOR_CONFIGS[syntaxTheme]) {
+    return THEME_COLOR_CONFIGS[syntaxTheme];
   }
 
-  // For themes that explicitly contain "dark" in their name (case insensitive)
-  if (syntaxTheme.toLowerCase().includes('dark')) {
-    return 'dark';
-  }
+  // Fallback to basic light/dark theme colors based on syntax theme name
+  const isDark =
+    DARK_SYNTAX_THEMES.has(syntaxTheme) ||
+    syntaxTheme.toLowerCase().includes('dark') ||
+    syntaxTheme.toLowerCase().includes('night');
 
-  // For themes that explicitly contain "night" in their name
-  if (syntaxTheme.toLowerCase().includes('night')) {
-    return 'dark';
+  if (isDark) {
+    return {
+      background: '#1a1a1a',
+      surface: '#2a2a2a',
+      primary: '#3a3a3a',
+      text: '#ffffff',
+      subtle: '#888888',
+      accent: '#0ea5e9',
+      isDark: true,
+    };
+  } else {
+    return {
+      background: '#ffffff',
+      surface: '#f8fafc',
+      primary: '#e2e8f0',
+      text: '#1e293b',
+      subtle: '#64748b',
+      accent: '#0ea5e9',
+      isDark: false,
+    };
   }
-
-  // Default to light theme for unknown themes or light themes
-  return 'light';
 };
-
-/**
- * Theme color configurations extracted from popular syntax themes
- */
 const THEME_COLOR_CONFIGS: Record<
   string,
   {
@@ -246,39 +257,8 @@ const THEME_COLOR_CONFIGS: Record<
 };
 
 /**
- * Gets theme colors for a given syntax theme, with fallback to basic light/dark
+ * Theme color configurations extracted from popular syntax themes
  */
-export const getThemeColors = (syntaxTheme: string) => {
-  // Check if we have specific color config for this theme
-  if (THEME_COLOR_CONFIGS[syntaxTheme]) {
-    return THEME_COLOR_CONFIGS[syntaxTheme];
-  }
-
-  // Fallback to basic light/dark theme colors
-  const isDark = getAppThemeFromSyntaxTheme(syntaxTheme) === 'dark';
-
-  if (isDark) {
-    return {
-      background: '#1a1a1a',
-      surface: '#2a2a2a',
-      primary: '#3a3a3a',
-      text: '#ffffff',
-      subtle: '#888888',
-      accent: '#0ea5e9',
-      isDark: true,
-    };
-  } else {
-    return {
-      background: '#ffffff',
-      surface: '#f8fafc',
-      primary: '#e2e8f0',
-      text: '#1e293b',
-      subtle: '#64748b',
-      accent: '#0ea5e9',
-      isDark: false,
-    };
-  }
-};
 
 /**
  * Applies theme colors to CSS custom properties

@@ -15,7 +15,7 @@ import { Header } from './components/Header';
 import { MrSummary } from './components/MrSummary';
 import { Notification } from './components/Notification';
 import { ResizablePane } from './components/ResizablePane';
-import { applyThemeColors, getAppThemeFromSyntaxTheme, getThemeColors } from './constants';
+import { applyThemeColors, getThemeColors } from './constants';
 import { fetchMrDetailsOnly, runAiReview } from './services/aiReviewService';
 import {
   fetchBackendConfig,
@@ -57,7 +57,6 @@ function App() {
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [projects, setProjects] = useState<GitLabProject[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [syntaxTheme, setSyntaxTheme] = useState<string>('default');
   const [isRestoringState, setIsRestoringState] = useState<boolean>(false);
   const [notification, setNotification] = useState<{
@@ -122,16 +121,6 @@ function App() {
     // Apply comprehensive theme colors on startup
     const themeColors = getThemeColors(initialSyntaxTheme);
     applyThemeColors(themeColors);
-
-    // Automatically determine app theme based on syntax theme
-    const initialTheme = getAppThemeFromSyntaxTheme(initialSyntaxTheme);
-    setTheme(initialTheme);
-
-    if (initialTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
   }, []);
 
   useEffect(() => {
@@ -367,16 +356,6 @@ function App() {
     // Apply comprehensive theme colors
     const themeColors = getThemeColors(newSyntaxTheme);
     applyThemeColors(themeColors);
-
-    // Automatically update app theme based on syntax theme
-    const newAppTheme = getAppThemeFromSyntaxTheme(newSyntaxTheme);
-    setTheme(newAppTheme);
-
-    if (newAppTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
   };
 
   const handleSetEditing = useCallback((feedbackId: string, isEditing: boolean) => {

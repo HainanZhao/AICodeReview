@@ -1,12 +1,11 @@
-import { Config } from '../types';
 import { GitLabConfig, GitLabProject } from '../../../types';
+import { Config } from '../types';
 import { getApiUrl } from '../utils/api';
 
 const CONFIG_KEY = 'ai-code-reviewer-config-override';
 const PROJECTS_KEY = 'ai-code-reviewer-selected-projects';
 const PROJECTS_CACHE_KEY = 'ai-code-reviewer-projects-cache';
 const PROJECTS_CACHE_TIMESTAMP_KEY = 'ai-code-reviewer-projects-cache-timestamp';
-const THEME_KEY = 'ai-code-reviewer-theme';
 const SYNTAX_THEME_KEY = 'ai-code-reviewer-syntax-theme';
 
 export type ConfigSource = 'localStorage' | 'backend' | 'none';
@@ -144,27 +143,6 @@ export const loadSelectedProjectIds = (): number[] | null => {
     return JSON.parse(idsStr);
   } catch (error) {
     console.error('Failed to load selected project IDs', error);
-    return null;
-  }
-};
-
-export const saveTheme = (theme: 'light' | 'dark'): void => {
-  try {
-    localStorage.setItem(THEME_KEY, theme);
-  } catch (error) {
-    console.error('Failed to save theme to localStorage', error);
-  }
-};
-
-export const loadTheme = (): 'light' | 'dark' | null => {
-  try {
-    const theme = localStorage.getItem(THEME_KEY);
-    if (theme === 'light' || theme === 'dark') {
-      return theme;
-    }
-    return null;
-  } catch (error) {
-    console.error('Failed to load theme from localStorage', error);
     return null;
   }
 };

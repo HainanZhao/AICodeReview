@@ -1,6 +1,6 @@
 import React from 'react';
-import { SettingsIcon } from './icons';
 import { SYNTAX_THEMES } from '../constants';
+import { SettingsIcon } from './icons';
 
 const BrainCircuitIcon = () => (
   <svg
@@ -43,7 +43,14 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            <label
+              htmlFor="syntax-theme-select"
+              className="text-sm text-gray-600 dark:text-brand-subtle"
+            >
+              Theme:
+            </label>
             <select
+              id="syntax-theme-select"
               value={currentSyntaxTheme}
               onChange={(e) => onSyntaxThemeChange(e.target.value)}
               className="p-2 text-sm bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary hover:bg-gray-200 dark:hover:bg-brand-primary/80 transition-colors"

@@ -11,7 +11,6 @@ export interface ServerConfig {
 }
 
 export interface UIConfig {
-  theme: 'light' | 'dark' | 'auto';
   autoOpen: boolean;
 }
 
@@ -54,13 +53,9 @@ export const CONFIG_SCHEMA = {
     ui: {
       type: 'object',
       properties: {
-        theme: {
-          type: 'string',
-          enum: ['light', 'dark', 'auto'],
-        },
         autoOpen: { type: 'boolean' },
       },
-      required: ['theme', 'autoOpen'],
+      required: ['autoOpen'],
     },
     gitlab: {
       type: 'object',
