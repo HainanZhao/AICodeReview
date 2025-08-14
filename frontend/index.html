@@ -43,6 +43,33 @@
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     
     <style>
+      /* CSS Custom Properties for Dynamic Theming */
+      :root {
+        --app-bg: #f9fafb;
+        --app-surface: #ffffff;
+        --app-primary: #3b82f6;
+        --app-text: #1f2937;
+        --app-subtle: #6b7280;
+        --app-accent: #10b981;
+      }
+      
+      .dark {
+        --app-bg: #1a1a2e;
+        --app-surface: #16213e;
+        --app-primary: #0f3460;
+        --app-text: #dcdcdc;
+        --app-subtle: #a0a0a0;
+        --app-accent: #e94560;
+      }
+      
+      /* Apply dynamic theme colors */
+      .dynamic-theme-bg { background-color: var(--app-bg) !important; }
+      .dynamic-theme-surface { background-color: var(--app-surface) !important; }
+      .dynamic-theme-primary { background-color: var(--app-primary) !important; }
+      .dynamic-theme-text { color: var(--app-text) !important; }
+      .dynamic-theme-subtle { color: var(--app-subtle) !important; }
+      .dynamic-theme-accent { color: var(--app-accent) !important; }
+      
       /* Ensure syntax highlighting doesn't interfere with diff line backgrounds */
       .diff-line pre,
       .diff-line code,
@@ -97,7 +124,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-50 dark:bg-brand-bg text-gray-800 dark:text-brand-text transition-colors duration-300">
+  <body class="dynamic-theme-bg dynamic-theme-text transition-colors duration-300">
     <div id="root"></div>
     <div id="portal-root"></div>
   <script type="module" src="/src/index.tsx"></script>

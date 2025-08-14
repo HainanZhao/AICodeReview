@@ -15,6 +15,7 @@ import { Header } from './components/Header';
 import { MrSummary } from './components/MrSummary';
 import { Notification } from './components/Notification';
 import { ResizablePane } from './components/ResizablePane';
+import { applyThemeColors, getAppThemeFromSyntaxTheme, getThemeColors } from './constants';
 import { fetchMrDetailsOnly, runAiReview } from './services/aiReviewService';
 import {
   fetchBackendConfig,
@@ -38,7 +39,6 @@ import {
   updateReviewStateFeedback,
 } from './services/reviewStateService';
 import { Config, ParsedDiffLine } from './types';
-import { getAppThemeFromSyntaxTheme } from './constants';
 
 function App() {
   const [feedback, setFeedback] = useState<ReviewFeedback[] | null>(null);
@@ -118,6 +118,10 @@ function App() {
     const savedSyntaxTheme = loadSyntaxTheme();
     const initialSyntaxTheme = savedSyntaxTheme || 'default';
     setSyntaxTheme(initialSyntaxTheme);
+
+    // Apply comprehensive theme colors on startup
+    const themeColors = getThemeColors(initialSyntaxTheme);
+    applyThemeColors(themeColors);
 
     // Automatically determine app theme based on syntax theme
     const initialTheme = getAppThemeFromSyntaxTheme(initialSyntaxTheme);
@@ -359,6 +363,10 @@ function App() {
   const handleSyntaxThemeChange = (newSyntaxTheme: string) => {
     setSyntaxTheme(newSyntaxTheme);
     saveSyntaxTheme(newSyntaxTheme);
+
+    // Apply comprehensive theme colors
+    const themeColors = getThemeColors(newSyntaxTheme);
+    applyThemeColors(themeColors);
 
     // Automatically update app theme based on syntax theme
     const newAppTheme = getAppThemeFromSyntaxTheme(newSyntaxTheme);
