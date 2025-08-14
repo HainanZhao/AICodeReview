@@ -118,11 +118,11 @@ function App() {
     const savedSyntaxTheme = loadSyntaxTheme();
     const initialSyntaxTheme = savedSyntaxTheme || 'default';
     setSyntaxTheme(initialSyntaxTheme);
-    
+
     // Automatically determine app theme based on syntax theme
     const initialTheme = getAppThemeFromSyntaxTheme(initialSyntaxTheme);
     setTheme(initialTheme);
-    
+
     if (initialTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -359,11 +359,11 @@ function App() {
   const handleSyntaxThemeChange = (newSyntaxTheme: string) => {
     setSyntaxTheme(newSyntaxTheme);
     saveSyntaxTheme(newSyntaxTheme);
-    
+
     // Automatically update app theme based on syntax theme
     const newAppTheme = getAppThemeFromSyntaxTheme(newSyntaxTheme);
     setTheme(newAppTheme);
-    
+
     if (newAppTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {

@@ -96,17 +96,17 @@ export const getAppThemeFromSyntaxTheme = (syntaxTheme: string): 'light' | 'dark
   if (DARK_SYNTAX_THEMES.has(syntaxTheme)) {
     return 'dark';
   }
-  
+
   // For themes that explicitly contain "dark" in their name (case insensitive)
   if (syntaxTheme.toLowerCase().includes('dark')) {
     return 'dark';
   }
-  
+
   // For themes that explicitly contain "night" in their name
   if (syntaxTheme.toLowerCase().includes('night')) {
     return 'dark';
   }
-  
+
   // Default to light theme for unknown themes or light themes
   return 'light';
 };

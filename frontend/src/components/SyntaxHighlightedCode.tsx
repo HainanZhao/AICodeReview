@@ -11,44 +11,21 @@ interface SyntaxHighlightedCodeProps {
   codeTheme?: string;
 }
 
-// Custom diff-optimized themes with only foreground colors
+// Minimal diff-optimized themes with only essential color overrides
 const diffLightTheme: { [key: string]: React.CSSProperties } = {
+  // Only override base colors, let individual themes handle specific syntax highlighting
   'code[class*="language-"]': {
-    color: '#000000',
-    background: 'transparent',
-    textShadow: 'none',
-    fontFamily: 'inherit',
-    fontSize: 'inherit',
-    direction: 'ltr' as const,
-    textAlign: 'left',
-    whiteSpace: 'pre',
-    wordSpacing: 'normal',
-    wordBreak: 'normal',
-    lineHeight: 'inherit',
-    padding: '0',
-    margin: '0',
+    color: '#24292e', // Base text color
   },
   'pre[class*="language-"]': {
-    color: '#000000',
-    background: 'transparent',
-    textShadow: 'none',
-    fontFamily: 'inherit',
-    fontSize: 'inherit',
-    direction: 'ltr' as const,
-    textAlign: 'left',
-    whiteSpace: 'pre',
-    wordSpacing: 'normal',
-    wordBreak: 'normal',
-    lineHeight: 'inherit',
-    padding: '0',
-    margin: '0',
-    overflow: 'visible',
+    color: '#24292e', // Base text color
   },
+  // Essential syntax colors - kept minimal to allow theme variations
   comment: { color: '#6a737d' },
   prolog: { color: '#6a737d' },
   doctype: { color: '#6a737d' },
   cdata: { color: '#6a737d' },
-  punctuation: { color: '#586069' }, // Slightly lighter than main text for visibility
+  punctuation: { color: '#586069' },
   namespace: { opacity: '0.7' },
   property: { color: '#005cc5' },
   tag: { color: '#d73a49' },
@@ -82,42 +59,20 @@ const diffLightTheme: { [key: string]: React.CSSProperties } = {
 };
 
 const diffDarkTheme: { [key: string]: React.CSSProperties } = {
+  // Only override base colors, let individual themes handle specific syntax highlighting
   'code[class*="language-"]': {
-    color: '#f8f8f2',
-    background: 'transparent',
-    textShadow: 'none',
-    fontFamily: 'inherit',
-    fontSize: 'inherit',
-    direction: 'ltr' as const,
-    textAlign: 'left',
-    whiteSpace: 'pre',
-    wordSpacing: 'normal',
-    wordBreak: 'normal',
-    lineHeight: 'inherit',
+    color: '#f8f8f2', // Base text color for dark mode
   },
   'pre[class*="language-"]': {
-    color: '#f8f8f2',
-    background: 'transparent',
-    textShadow: 'none',
-    fontFamily: 'inherit',
-    fontSize: 'inherit',
-    direction: 'ltr' as const,
-    textAlign: 'left',
-    whiteSpace: 'pre',
-    wordSpacing: 'normal',
-    wordBreak: 'normal',
-    lineHeight: 'inherit',
-    padding: '0',
-    margin: '0',
-    overflow: 'visible',
+    color: '#f8f8f2', // Base text color for dark mode
   },
-  // Base token color - fallback for unspecified tokens
-  token: { color: '#f8f8f2' },
+  // Essential syntax colors - kept minimal to allow theme variations
+  token: { color: '#f8f8f2' }, // Base token color - fallback for unspecified tokens
   comment: { color: '#6272a4' },
   prolog: { color: '#6272a4' },
   doctype: { color: '#6272a4' },
   cdata: { color: '#6272a4' },
-  punctuation: { color: '#8292a2' }, // Lighter than main text for visibility
+  punctuation: { color: '#8292a2' },
   namespace: { opacity: '0.7' },
   property: { color: '#50fa7b' },
   tag: { color: '#ff79c6' },
@@ -128,7 +83,7 @@ const diffDarkTheme: { [key: string]: React.CSSProperties } = {
   deleted: { color: '#ff5555' },
   selector: { color: '#50fa7b' },
   'attr-name': { color: '#50fa7b' },
-  string: { color: '#e6db74' }, // Brighter yellow for better contrast
+  string: { color: '#e6db74' },
   char: { color: '#e6db74' },
   builtin: { color: '#8be9fd' },
   inserted: { color: '#50fa7b' },
@@ -147,14 +102,41 @@ const diffDarkTheme: { [key: string]: React.CSSProperties } = {
   brace: { color: '#8292a2' },
   bracket: { color: '#8292a2' },
   paren: { color: '#8292a2' },
-  'language-javascript': { color: '#f8f8f2' },
-  'language-typescript': { color: '#f8f8f2' },
-  'language-jsx': { color: '#f8f8f2' },
-  'language-tsx': { color: '#f8f8f2' },
 };
 
 const kebabToCamel = (s: string): string => {
   return s.replace(/-./g, (x) => x[1].toUpperCase());
+};
+
+// Merge diff-specific overrides with individual themes
+const mergeThemeWithDiffSupport = (baseTheme: any, diffTheme: any) => {
+  if (!baseTheme || typeof baseTheme !== 'object') {
+    return diffTheme;
+  }
+
+  // Create a merged theme that preserves individual theme colors while maintaining diff compatibility
+  const merged = { ...baseTheme };
+
+  // Only override essential properties for diff compatibility
+  if (diffTheme['code[class*="language-"]']) {
+    merged['code[class*="language-"]'] = {
+      ...baseTheme['code[class*="language-"]'],
+      // Only override background to maintain transparency for diff highlighting
+      background: 'transparent',
+      backgroundColor: 'transparent',
+    };
+  }
+
+  if (diffTheme['pre[class*="language-"]']) {
+    merged['pre[class*="language-"]'] = {
+      ...baseTheme['pre[class*="language-"]'],
+      // Only override background to maintain transparency for diff highlighting
+      background: 'transparent',
+      backgroundColor: 'transparent',
+    };
+  }
+
+  return merged;
 };
 
 export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
@@ -170,20 +152,27 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
     if (codeTheme && codeTheme !== 'default') {
       // First try direct name
       let theme = (prismThemes as any)[codeTheme];
-      
+
       if (!theme) {
         // Try camelCase conversion
         const themeName = kebabToCamel(codeTheme);
         theme = (prismThemes as any)[themeName];
       }
-      
+
       if (!theme) {
         // Try with 'light' suffix for some themes
-        theme = (prismThemes as any)[codeTheme + 'light'] || (prismThemes as any)[kebabToCamel(codeTheme + 'light')];
+        theme =
+          (prismThemes as any)[codeTheme + 'light'] ||
+          (prismThemes as any)[kebabToCamel(codeTheme + 'light')];
       }
-      
+
       if (theme) {
-        setStyle(theme);
+        // Merge individual theme with diff support
+        const mergedTheme = mergeThemeWithDiffSupport(
+          theme,
+          isDarkMode ? diffDarkTheme : diffLightTheme
+        );
+        setStyle(mergedTheme);
       } else {
         // Fallback to default theme
         console.warn(`Theme "${codeTheme}" not found, using default theme`);
@@ -206,6 +195,7 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
       language={language}
       style={style}
       customStyle={{
+        // Layout properties moved from theme objects to ensure consistent diff display
         margin: 0,
         padding: 0,
         background: 'transparent',
@@ -214,19 +204,36 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
         fontFamily: 'inherit',
         lineHeight: 'inherit',
         display: 'inline',
-        // Improved font rendering
+        // Additional layout properties for diff compatibility
         textShadow: 'none',
+        direction: 'ltr',
+        textAlign: 'left',
+        whiteSpace: 'pre',
+        wordSpacing: 'normal',
+        wordBreak: 'normal',
+        overflow: 'visible',
+        // Improved font rendering
         WebkitFontSmoothing: 'antialiased',
         MozOsxFontSmoothing: 'grayscale',
       }}
       codeTagProps={{
         style: {
+          // Layout properties for diff compatibility
           background: 'transparent',
           backgroundColor: 'transparent',
           fontFamily: 'inherit',
           fontSize: 'inherit',
           display: 'inline',
           textShadow: 'none',
+          direction: 'ltr',
+          textAlign: 'left',
+          whiteSpace: 'pre',
+          wordSpacing: 'normal',
+          wordBreak: 'normal',
+          lineHeight: 'inherit',
+          padding: '0',
+          margin: '0',
+          // Improved font rendering
           WebkitFontSmoothing: 'antialiased',
           MozOsxFontSmoothing: 'grayscale',
         },

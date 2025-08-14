@@ -4,7 +4,7 @@
  */
 
 export interface GitLabConfig {
-  url:string;
+  url: string;
   accessToken: string;
 }
 

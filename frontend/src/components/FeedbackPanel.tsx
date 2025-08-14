@@ -44,7 +44,7 @@ interface FeedbackPanelProps {
   onClearError?: () => void;
 }
 
-const InitialState = ({ codeTheme, isDarkMode }: { codeTheme?: string, isDarkMode?: boolean }) => {
+const InitialState = ({ codeTheme, isDarkMode }: { codeTheme?: string; isDarkMode?: boolean }) => {
   const sampleCode = `interface User {
   id: number;
   name: string;
@@ -100,7 +100,7 @@ console.log('Created user:', user);`;
           Select a Merge Request from the dashboard to begin.
         </p>
       </div>
-      
+
       <div className="max-w-2xl mx-auto">
         <div className="bg-white dark:bg-brand-surface border border-gray-200 dark:border-brand-primary rounded-lg overflow-hidden">
           <div className="bg-gray-100 dark:bg-brand-primary px-4 py-2 border-b border-gray-200 dark:border-brand-primary">
@@ -126,7 +126,8 @@ console.log('Created user:', user);`;
           </div>
         </div>
         <p className="text-xs text-gray-500 dark:text-brand-subtle mt-2">
-          Preview: Syntax highlighting theme is active. Select a theme from the header dropdown to test different styles.
+          Preview: Syntax highlighting theme is active. Select a theme from the header dropdown to
+          test different styles.
         </p>
       </div>
     </div>
@@ -177,23 +178,23 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   } = props;
   const [currentCommentIndex, setCurrentCommentIndex] = useState(-1);
   const [globalViewMode, setGlobalViewMode] = useState<ViewMode>(() => getStoredViewMode());
-  
+
   // Detect dark mode from document class
-  const [isDarkMode, setIsDarkMode] = useState(() => 
+  const [isDarkMode, setIsDarkMode] = useState(() =>
     document.documentElement.classList.contains('dark')
   );
-  
+
   // Listen for theme changes
   useEffect(() => {
     const observer = new MutationObserver(() => {
       setIsDarkMode(document.documentElement.classList.contains('dark'));
     });
-    
+
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['class']
+      attributeFilter: ['class'],
     });
-    
+
     return () => observer.disconnect();
   }, []);
 

@@ -22,10 +22,10 @@ interface HeaderProps {
   currentSyntaxTheme: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ 
-  onOpenSettings, 
+export const Header: React.FC<HeaderProps> = ({
+  onOpenSettings,
   onSyntaxThemeChange,
-  currentSyntaxTheme 
+  currentSyntaxTheme,
 }) => {
   return (
     <header className="bg-white/80 dark:bg-brand-surface/50 backdrop-blur-sm border-b border-gray-200 dark:border-brand-primary/50 sticky top-0 z-20">

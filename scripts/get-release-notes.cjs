@@ -6,7 +6,7 @@ let changelog;
 try {
   changelog = fs.readFileSync(changelogPath, 'utf8');
 } catch (err) {
-  console.error("CHANGELOG.md not found in project root");
+  console.error('CHANGELOG.md not found in project root');
   process.exit(1);
 }
 
@@ -16,5 +16,5 @@ const match = changelog.match(releaseNotesRegex);
 if (match && match[1]) {
   console.log(match[1].trim());
 } else {
-  console.log("Could not find release notes.");
+  console.log('Could not find release notes.');
 }
