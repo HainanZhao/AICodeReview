@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.5] - 2025-08-15
+
+### Enhanced
+- **Improved AI Review Intelligence**: Enhanced AI review prompt system to avoid duplicate comments and prioritize actionable code suggestions
+  - AI now checks existing comments and discussions to avoid repetition
+  - Prioritizes providing concrete code suggestions over general comments
+  - Added support for suggestion format: `\`\`\`suggestion:-X+Y` for specific code changes
+  - Improved review quality by focusing on unique, actionable feedback
+
+### Fixed
+- **AI Chat Timeout Issues**: Resolved timeout problems in AI chat interface for better user experience
+- **UI Improvements**: Removed redundant +/- signs from diff UI components for cleaner visual presentation
+  - Cleaned up `DiffLine` and `SplitDiffLine` components
+  - Improved diff visualization readability
+
 ## [1.4.4] - 2025-08-14
 
 ### Fixed
