@@ -8,15 +8,16 @@
 
 ## ✨ Features
 
-- 🎯 **Automated Code Review**: Leverage AI to analyze code quality, performance, security, and best practices.
+- 🤖 **Fully Automatic Code Review Mode**: Set it and forget it! Continuously monitors GitLab projects for new/updated merge requests and reviews them automatically.
+- 🎯 **Manual Code Review**: Leverage AI to analyze code quality, performance, security, and best practices on-demand.
 - 🚀 **CLI-First Approach**: Seamless integration into your development workflow for quick reviews.
+- 📦 **Smart Project Management**: Human-readable project names with intelligent caching for faster operations.
 - 🤖 **Multiple AI Providers**: Support for Gemini CLI (default), Google Gemini API, and Anthropic Claude.
-- 🌐 **Optional Web Interface**: A React-based UI for interactive review management.
+- 🌐 **Modern Web Interface**: A React-based UI for interactive review management with real-time updates.
 - 💡 **AI Line Explanations & Chat**: Get instant explanations and engage in direct AI conversations about any line of code in the web interface.
 - ↔️ **Flexible Diff Views**: Switch between split and inline views for code differences to suit your review style.
-
 - ⚙️ **Flexible Configuration**: Configure via CLI arguments, interactive wizard, config files, or environment variables.
-- 🔍 **GitLab Integration**: Direct merge request analysis and comment posting.
+- 🔍 **Enhanced GitLab Integration**: Direct merge request analysis, comment posting, and project monitoring.
 
 ## 🚀 Quick Start
 
@@ -57,29 +58,52 @@ aicodereview --init
 ```
 This command will guide you through setting up your configuration interactively.
 
-### Fully Automatic Mode
+### Fully Automatic Mode (🆕 v1.5.0)
 
-For continuous, unattended code reviews, you can run the tool in automatic mode. It will periodically check for new and updated merge requests in your configured projects and review them automatically.
+**Perfect for continuous integration and unattended code review!**
 
-1.  **Enable in Configuration**:
-    Run `aicodereview --init` and enable the "Automatic Review Mode".
-    -   Provide the GitLab project IDs you want to monitor.
-    -   Set a review interval (in seconds).
+The tool can now run in fully automatic mode, continuously monitoring your GitLab projects and automatically reviewing new or updated merge requests. This is ideal for:
+- **Continuous Integration**: Keep code quality high with automatic reviews
+- **Team Productivity**: Never miss a merge request that needs review
+- **24/7 Monitoring**: Automated code review even outside working hours
 
-    This will add an `autoReview` section to your `~/.aicodereview/config.json`:
-    ```json
-    "autoReview": {
-      "enabled": true,
-      "projects": [123, 456],
-      "interval": 300
-    }
-    ```
+#### Quick Setup:
 
-2.  **Run the Auto Review Command**:
-    ```bash
-    aicodereview --auto-review
-    ```
-    The tool will now run in the background, monitoring the specified projects.
+1. **Configure automatic mode**:
+   ```bash
+   aicodereview --init
+   ```
+   - Enable "Automatic Review Mode" in the wizard
+   - Select projects to monitor (you can use project names or partial matches)
+   - Set review interval (recommended: 300 seconds)
+
+2. **Start automatic monitoring**:
+   ```bash
+   aicodereview --auto
+   ```
+
+The tool will now:
+- ✅ Monitor specified projects every 5 minutes (or your configured interval)
+- 🔍 Detect new and updated merge requests automatically
+- 🤖 Generate AI-powered code reviews
+- 💬 Post review comments directly to GitLab
+- 📝 Track review state to avoid duplicate reviews
+- 🔄 Continue running until manually stopped
+
+#### Example Configuration:
+```json
+{
+  "autoReview": {
+    "enabled": true,
+    "projects": [
+      "mycompany/frontend-app",
+      "mycompany/backend-api", 
+      "mycompany/mobile-app"
+    ],
+    "interval": 300
+  }
+}
+```
 
 ### Basic Web Interface Usage
 
@@ -115,7 +139,8 @@ Options:
   --no-open                         Do not automatically open browser when running web interface
   --api-only                        Run server in API-only mode (no web interface)
   --init                            Create a configuration file interactively
-  --auto-review                     Run in fully automatic mode to monitor and review MRs continuously
+  --auto                            🆕 Run in fully automatic mode to monitor and review MRs continuously
+  --list-projects                   🆕 List all available GitLab projects for configuration
   --dry-run                         Generate AI review but do not post comments (CLI mode only)
   
   -h, --help                        Display help
@@ -224,8 +249,19 @@ aicodereview --provider anthropic --api-key YOUR_ANTHROPIC_API_KEY
         "googleCloudProject": "your-project-id"
       },
       "ui": {
-        "theme": "light",
         "autoOpen": true
+      },
+      "gitlab": {
+        "url": "https://gitlab.example.com/",
+        "accessToken": "your-gitlab-token"
+      },
+      "autoReview": {
+        "enabled": true,
+        "projects": [
+          "mycompany/frontend-app",
+          "mycompany/backend-api"
+        ],
+        "interval": 300
       }
     }
     ```
@@ -236,6 +272,18 @@ aicodereview --provider anthropic --api-key YOUR_ANTHROPIC_API_KEY
 ---
 
 ## 🐛 Troubleshooting
+
+### Project Configuration Issues (🆕 v1.5.0)
+If you're having trouble with project selection or automatic mode:
+- **Use project names instead of IDs**: The tool now uses human-readable project names (e.g., "mycompany/project" instead of "123")
+- **Project not found**: Use `aicodereview --list-projects` to see all available projects
+- **Partial matching**: You can use partial project names during setup (e.g., "frontend" to match "mycompany/frontend-app")
+- **Cache issues**: The tool caches project information for 24 hours. Delete `~/.aicodereview/projects-cache.json` to force refresh
+
+### Automatic Review Mode Issues
+- **Reviews not triggering**: Check that your projects are correctly configured and have open merge requests
+- **Duplicate reviews**: The tool tracks review state in `~/.aicodereview/review-state.json` - delete this file to reset
+- **GitLab permissions**: Ensure your access token has `api` scope for posting comments
 
 ### Port Already in Use
 The tool automatically finds an available port if the specified port is busy.
