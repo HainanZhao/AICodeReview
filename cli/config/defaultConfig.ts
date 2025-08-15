@@ -12,5 +12,10 @@ export const DEFAULT_CONFIG: AppConfig = {
   ui: {
     autoOpen: true,
   },
+  autoReview: {
+    enabled: false,
+    projects: [],
+    interval: 300,
+  },
   // gitlab config is optional and will be added via --init wizard
 };

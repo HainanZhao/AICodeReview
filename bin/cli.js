@@ -30,19 +30,30 @@ program
   .option('--google-cloud-project <project>', 'Google Cloud project ID for gemini-cli')
   .option('--no-open', 'do not automatically open browser')
   .option('--api-only', 'run server in API-only mode (no web interface)')
-  .option('--init', 'create a configuration file interactively')
   .option('--dry-run', 'generate real AI review but do not post comments to GitLab (CLI mode only)')
   .option('--mock', 'use mock AI responses for testing without API calls (CLI mode only)')
-  .option('--verbose', 'detailed operation logs (CLI mode only)')
-  .action(async (mrUrls, options) => {
+  .option('--verbose', 'detailed operation logs (CLI mode only)');
+
+program
+  .command('init')
+  .description('Create a configuration file interactively')
+  .action(async () => {
+    const { createConfigInteractively } = await import('../dist/config/configWizard.js');
+    await createConfigInteractively();
+  });
+
+program
+  .command('auto-review')
+  .description('Run in fully automatic mode to monitor and review MRs continuously')
+  .action(async () => {
+    const { AutoReviewCommand } = await import('../dist/cli/autoReviewCommand.js');
+    const command = new AutoReviewCommand();
+    await command.run();
+  });
+
+program.action(async (mrUrls, options) => {
     try {
       await checkForUpdates(packageJson.version);
-
-      if (options.init) {
-        const { createConfigInteractively } = await import('../dist/config/configWizard.js');
-        await createConfigInteractively();
-        return;
-      }
 
       // Dual mode logic: CLI review if MR URLs provided, UI server otherwise
       if (mrUrls && mrUrls.length > 0) {

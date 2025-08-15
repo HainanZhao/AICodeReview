@@ -53,9 +53,33 @@ aicodereview https://gitlab.example.com/your-group/your-project/-/merge_requests
 ### Interactive Setup (Recommended for first-time users)
 
 ```bash
-aicodereview --init
+aicodereview init
 ```
 This command will guide you through setting up your configuration interactively.
+
+### Fully Automatic Mode
+
+For continuous, unattended code reviews, you can run the tool in automatic mode. It will periodically check for new and updated merge requests in your configured projects and review them automatically.
+
+1.  **Enable in Configuration**:
+    Run `aicodereview init` and enable the "Automatic Review Mode".
+    -   Provide the GitLab project IDs you want to monitor.
+    -   Set a review interval (in seconds).
+
+    This will add an `autoReview` section to your `~/.aicodereview/config.json`:
+    ```json
+    "autoReview": {
+      "enabled": true,
+      "projects": [123, 456],
+      "interval": 300
+    }
+    ```
+
+2.  **Run the Auto Review Command**:
+    ```bash
+    aicodereview auto-review
+    ```
+    The tool will now run in the background, monitoring the specified projects.
 
 ### Basic Web Interface Usage
 
@@ -78,7 +102,11 @@ The tool will:
 ## 📋 Command Reference
 
 ```bash
-aicodereview [options] [merge-request-url]
+aicodereview [options] [command] [merge-request-url]
+
+Commands:
+  init                              Create a configuration file interactively.
+  auto-review                       Run in fully automatic mode to monitor and review MRs continuously.
 
 Options:
   -c, --config <path>               Path to configuration file
@@ -90,7 +118,6 @@ Options:
   --google-cloud-project <project>  Google Cloud project ID for gemini-cli
   --no-open                         Do not automatically open browser when running web interface
   --api-only                        Run server in API-only mode (no web interface)
-  --init                            Create a configuration file interactively
   --dry-run                         Generate AI review but do not post comments (CLI mode only)
   
   -h, --help                        Display help

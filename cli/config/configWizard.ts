@@ -121,6 +121,39 @@ export async function createConfigInteractively(): Promise<void> {
       }
     }
 
+    let autoReviewConfig:
+      | {
+          enabled: boolean;
+          projects: number[];
+          interval: number;
+        }
+      | undefined;
+
+    if (gitlabConfig) {
+      console.log('\n🤖 Automatic Review Configuration:');
+      console.log('This mode will automatically review new MRs in configured projects.');
+      const enableAutoReview = await question('Enable automatic MR review mode? (y/N): ');
+
+      if (enableAutoReview.toLowerCase() === 'y') {
+        const projectIdsStr = await question('Enter project IDs to monitor (comma-separated): ');
+        const projectIds = projectIdsStr
+          .split(',')
+          .map((id) => parseInt(id.trim(), 10))
+          .filter((id) => !isNaN(id));
+
+        const intervalStr = (await question('Review interval in seconds (default: 300): ')) || '300';
+        const interval = parseInt(intervalStr, 10);
+
+        if (projectIds.length > 0) {
+          autoReviewConfig = {
+            enabled: true,
+            projects: projectIds,
+            interval: isNaN(interval) ? 300 : interval,
+          };
+        }
+      }
+    }
+
     // Create config object
     const config: AppConfig = {
       server: {
@@ -137,6 +170,7 @@ export async function createConfigInteractively(): Promise<void> {
         autoOpen,
       },
       ...(gitlabConfig && { gitlab: gitlabConfig }),
+      ...(autoReviewConfig && { autoReview: autoReviewConfig }),
     };
 
     // Save to home directory

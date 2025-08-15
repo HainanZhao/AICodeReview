@@ -650,6 +650,18 @@ export const fetchMergeRequestsForProjects = async (
 };
 
 /**
+ * Fetches open, non-draft merge requests for a single project.
+ */
+export const fetchOpenMergeRequests = async (
+  config: GitLabConfig,
+  projectId: number
+): Promise<GitLabMergeRequest[]> => {
+  const url = `${config.url}/api/v4/projects/${projectId}/merge_requests?state=opened&wip=no&order_by=updated_at&sort=desc&per_page=50`;
+  const mrs = (await gitlabApiFetch(url, config)) as GitLabMergeRequest[];
+  return mrs;
+};
+
+/**
  * Approves a merge request and returns the updated MR with approval details
  */
 export const approveMergeRequest = async (
