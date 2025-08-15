@@ -154,6 +154,17 @@ export class ConfigLoader {
       merged.gitlab = base.gitlab;
     }
 
+    // Handle optional autoReview config
+    if (override.autoReview) {
+      merged.autoReview = {
+        enabled: override.autoReview.enabled,
+        projects: override.autoReview.projects,
+        interval: override.autoReview.interval,
+      };
+    } else if (base.autoReview) {
+      merged.autoReview = base.autoReview;
+    }
+
     return merged;
   }
 

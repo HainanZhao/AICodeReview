@@ -1,10 +1,10 @@
 import { ConfigLoader } from '../config/configLoader.js';
 import { AppConfig } from '../config/configSchema.js';
-import { fetchOpenMergeRequests, fetchMrData } from '../shared/services/gitlabCore.js';
+import { fetchMrData, fetchOpenMergeRequests } from '../shared/services/gitlabCore.js';
 import { GitLabMergeRequest } from '../shared/types/gitlab.js';
-import { getReviewedMr, updateReviewedMr, loadState } from '../state/reviewState.js';
-import { CLIReviewCommand } from './reviewCommand.js';
+import { getReviewedMr, loadState, updateReviewedMr } from '../state/reviewState.js';
 import { CLIOutputFormatter } from './outputFormatter.js';
+import { CLIReviewCommand } from './reviewCommand.js';
 
 export class AutoReviewCommand {
   private config: AppConfig;
@@ -66,7 +66,7 @@ export class AutoReviewCommand {
   private async processMergeRequest(mr: GitLabMergeRequest): Promise<void> {
     // Fetch detailed MR info to get the head_sha
     const mrDetails = await fetchMrData(this.config.gitlab!, mr.web_url);
-    
+
     const reviewedMr = getReviewedMr(mr.id);
     if (reviewedMr && reviewedMr.head_sha === mrDetails.head_sha) {
       // Already reviewed and no new changes
