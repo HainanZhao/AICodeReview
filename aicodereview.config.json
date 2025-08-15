@@ -1,11 +1,11 @@
 {
   "server": {
-    "port": 5959,
+    "port": 5960,
     "host": "localhost"
   },
   "llm": {
-    "provider": "gemini-api",
-    "apiKey": "test-key"
+    "provider": "gemini-cli",
+    "googleCloudProject": "test-project"
   },
   "ui": {
     "theme": "light",
