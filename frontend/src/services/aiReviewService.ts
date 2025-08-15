@@ -223,7 +223,9 @@ export const getAiChatResponse = async (
     return result.explanation || 'No explanation available';
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('The AI chat request timed out after 60 seconds. Please check your connection and try again.');
+      throw new Error(
+        'The AI chat request timed out after 60 seconds. Please check your connection and try again.'
+      );
     }
     throw error;
   } finally {

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Severity, type GitLabMRDetails, type ReviewFeedback } from '../../../types';
 import {
-    clearReviewState,
-    hasValidReviewState,
-    loadReviewState,
-    saveReviewState,
-    updateReviewStateFeedback,
+  clearReviewState,
+  hasValidReviewState,
+  loadReviewState,
+  saveReviewState,
+  updateReviewStateFeedback,
 } from './reviewStateService';
 
 // Mock sessionStorage
