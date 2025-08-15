@@ -1,8 +1,8 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 
-const STATE_FILE_PATH = join(homedir(), '.aicodereview_state.json');
+const STATE_FILE_PATH = join(homedir(), '.aicodereview', 'review-state.json');
 
 export interface ReviewedMrState {
   head_sha: string;
@@ -31,6 +31,10 @@ export function loadState(): ReviewState {
 }
 
 export function saveState(newState: ReviewState): void {
+  const stateDir = join(homedir(), '.aicodereview');
+  if (!existsSync(stateDir)) {
+    mkdirSync(stateDir, { recursive: true });
+  }
   writeFileSync(STATE_FILE_PATH, JSON.stringify(newState, null, 2));
   state = newState;
 }
