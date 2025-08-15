@@ -1,4 +1,4 @@
-import { ReviewFeedback, Severity, ParsedFileDiff } from '../types/gitlab.js';
+import { ParsedFileDiff, ReviewFeedback, Severity } from '../types/gitlab.js';
 
 /**
  * Core AI review service functions that can be shared between UI and CLI
@@ -97,6 +97,24 @@ Please avoid duplicating these existing comments unless you have additional insi
 6. Consider scalability and performance implications
 7. Verify proper testing coverage for new functionality
 8. Check for consistent coding style and conventions
+
+**CRITICAL: Avoid Duplicate Comments:**
+- If there are existing comments on a line or similar discussions already present, DO NOT repeat them
+- Only add new insights or different perspectives that haven't been covered
+- Check the "Existing Comments" section carefully before providing feedback
+
+**PRIORITIZE CODE SUGGESTIONS:**
+- When providing feedback that involves code changes, prioritize giving specific code suggestions
+- Use the following format for code suggestions in your description:
+  \`\`\`suggestion:-X+Y
+  actual code changes here
+  \`\`\`
+  Where X is lines to remove and Y is lines to add
+- Provide concrete, actionable code examples rather than just describing what should be changed
+- Example format: \`\`\`suggestion:-1+2
+  // Replace this line
+  const newCode = 'better implementation';
+  \`\`\`
 
 📁 **CRITICAL FILE PATH INSTRUCTIONS:**
 🔴 EXTREMELY IMPORTANT: You MUST use the EXACT file paths as shown in the section headers.
