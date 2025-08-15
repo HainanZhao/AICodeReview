@@ -1,5 +1,6 @@
 import { ConfigLoader } from '../config/configLoader.js';
 import { AppConfig } from '../config/configSchema.js';
+import { ProjectCacheService } from '../services/projectCacheService.js';
 import { fetchMrData, fetchOpenMergeRequests } from '../shared/services/gitlabCore.js';
 import { GitLabMergeRequest } from '../shared/types/gitlab.js';
 import { getReviewedMr, loadState, updateReviewedMr } from '../state/reviewState.js';
@@ -9,9 +10,11 @@ import { CLIReviewCommand } from './reviewCommand.js';
 export class AutoReviewCommand {
   private config: AppConfig;
   private running = false;
+  private projectCacheService: ProjectCacheService;
 
   constructor() {
     this.config = ConfigLoader.loadConfig({});
+    this.projectCacheService = new ProjectCacheService();
   }
 
   public async run(): Promise<void> {
@@ -45,21 +48,72 @@ export class AutoReviewCommand {
     console.log(
       CLIOutputFormatter.formatProgress('Checking for new and updated merge requests...')
     );
-    const projects = this.config.autoReview!.projects;
+    const projectNames = this.config.autoReview!.projects;
 
-    for (const projectId of projects) {
-      try {
-        const mrs = await fetchOpenMergeRequests(this.config.gitlab!, projectId);
-        for (const mr of mrs) {
-          await this.processMergeRequest(mr);
-        }
-      } catch (error) {
-        console.error(
-          CLIOutputFormatter.formatError(
-            `Failed to fetch MRs for project ${projectId}: ${error instanceof Error ? error.message : String(error)}`
+    if (!this.config.gitlab) {
+      console.error(CLIOutputFormatter.formatError('GitLab configuration is missing.'));
+      return;
+    }
+
+    try {
+      // Resolve project names to IDs using the cache
+      const resolvedProjects = await this.projectCacheService.resolveProjectNamesToIds(
+        projectNames,
+        this.config.gitlab
+      );
+
+      if (resolvedProjects.length === 0) {
+        console.log(
+          CLIOutputFormatter.formatWarning(
+            `No projects found matching: ${projectNames.join(', ')}. Please check your configuration.`
+          )
+        );
+        return;
+      }
+
+      if (resolvedProjects.length !== projectNames.length) {
+        const foundNames = resolvedProjects.map((p) => p.name);
+        const notFoundNames = projectNames.filter(
+          (name) =>
+            !foundNames.some(
+              (foundName) =>
+                foundName.toLowerCase().includes(name.toLowerCase()) ||
+                name.toLowerCase().includes(foundName.toLowerCase())
+            )
+        );
+        console.log(
+          CLIOutputFormatter.formatWarning(
+            `Some projects could not be found: ${notFoundNames.join(', ')}`
           )
         );
       }
+
+      console.log(
+        CLIOutputFormatter.formatProgress(
+          `Monitoring ${resolvedProjects.length} project(s): ${resolvedProjects.map((p) => p.name).join(', ')}`
+        )
+      );
+
+      for (const project of resolvedProjects) {
+        try {
+          const mrs = await fetchOpenMergeRequests(this.config.gitlab!, project.id);
+          for (const mr of mrs) {
+            await this.processMergeRequest(mr);
+          }
+        } catch (error) {
+          console.error(
+            CLIOutputFormatter.formatError(
+              `Failed to fetch MRs for project ${project.name} (ID: ${project.id}): ${error instanceof Error ? error.message : String(error)}`
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error(
+        CLIOutputFormatter.formatError(
+          `Failed to resolve project names: ${error instanceof Error ? error.message : String(error)}`
+        )
+      );
     }
   }
 

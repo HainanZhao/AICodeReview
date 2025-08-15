@@ -7,6 +7,14 @@ import { ConfigLoader } from './configLoader.js';
 import { AppConfig } from './configSchema.js';
 
 /**
+ * Normalizes project names by removing extra spaces around slashes
+ * e.g., "group / subgroup / project" -> "group/subgroup/project"
+ */
+function normalizeProjectName(name: string): string {
+  return name.replace(/\s*\/\s*/g, '/').trim();
+}
+
+/**
  * Formats help text with dimmed visual style
  */
 const helpText = (text: string): string => `\x1b[2m    ‣ ${text}\x1b[0m`;
@@ -32,13 +40,16 @@ async function testGitLabConnection(url: string, token: string): Promise<void> {
 }
 
 /**
- * Displays projects in a table format and returns selected project IDs
+ * Displays projects in a table format and returns selected project names
+ */
+/**
+ * Displays projects in a table format and returns selected project names
  */
 async function selectProjectsInteractively(
   gitlabConfig: { url: string; accessToken: string },
   question: (prompt: string) => Promise<string>,
-  currentProjectIds?: number[]
-): Promise<number[]> {
+  currentProjectNames?: string[]
+): Promise<string[]> {
   try {
     console.log('\n🔍 Fetching your GitLab projects...');
 
@@ -59,11 +70,8 @@ async function selectProjectsInteractively(
     console.log(helpText('Examples: "my-api", "frontend,backend", "web-app"'));
     console.log(helpText("We'll show you matching projects for confirmation\n"));
 
-    // Get current project names if available
-    const currentProjects = currentProjectIds
-      ? projects.filter((p) => currentProjectIds.includes(p.id)).map((p) => p.name)
-      : [];
-    const currentProjectsList = currentProjects.join(', ') || '';
+    // Get current project names
+    const currentProjectsList = currentProjectNames?.join(', ') || '';
 
     const projectNamesStr =
       (await question(
@@ -74,7 +82,7 @@ async function selectProjectsInteractively(
 
     if (!projectNamesStr.trim()) {
       console.log('⚠️  No project names entered.');
-      return currentProjectIds || [];
+      return currentProjectNames || [];
     }
 
     // Parse and filter projects by names
@@ -133,29 +141,31 @@ async function selectProjectsInteractively(
 
     if (confirm.toLowerCase() === 'n' || confirm.toLowerCase() === 'no') {
       console.log('❌ Project selection cancelled.');
-      return currentProjectIds || [];
+      return currentProjectNames || [];
     }
 
-    const selectedProjectIds = matchingProjects.map((p) => p.id);
-    console.log(`✅ Selected ${selectedProjectIds.length} project(s) for monitoring.`);
+    const selectedProjectNames = matchingProjects.map((p) =>
+      normalizeProjectName(p.name_with_namespace)
+    );
+    console.log(`✅ Selected ${selectedProjectNames.length} project(s) for monitoring.`);
 
-    return selectedProjectIds;
+    return selectedProjectNames;
   } catch (error) {
     console.error(
       `❌ Failed to fetch projects: ${error instanceof Error ? error.message : String(error)}`
     );
-    console.log('You can enter project IDs manually if you know them.');
+    console.log('You can enter project names manually if needed.');
 
-    const currentProjectsList = currentProjectIds?.join(', ') || '';
-    const projectIdsStr =
+    const currentProjectsList = currentProjectNames?.join(', ') || '';
+    const projectNamesStr =
       (await question(
-        `Enter project IDs manually ${currentProjectsList ? `(current: ${currentProjectsList})` : '(comma-separated)'}: `
+        `Enter project names manually ${currentProjectsList ? `(current: ${currentProjectsList})` : '(comma-separated)'}: `
       )) || currentProjectsList;
 
-    return projectIdsStr
+    return projectNamesStr
       .split(',')
-      .map((id) => parseInt(id.trim(), 10))
-      .filter((id) => !isNaN(id));
+      .map((name: string) => name.trim())
+      .filter((name: string) => name.length > 0);
   }
 }
 
@@ -350,7 +360,7 @@ export async function createConfigInteractively(): Promise<void> {
     let autoReviewConfig:
       | {
           enabled: boolean;
-          projects: number[];
+          projects: string[];
           interval: number;
         }
       | undefined;
@@ -374,7 +384,7 @@ export async function createConfigInteractively(): Promise<void> {
 
       if (enableAutoReview.toLowerCase() === 'y' || enableAutoReview.toLowerCase() === 'yes') {
         // Show projects table and let user select
-        const projectIds = await selectProjectsInteractively(
+        const projectNames = await selectProjectsInteractively(
           gitlabConfig,
           question,
           existingConfig?.autoReview?.projects
@@ -386,10 +396,10 @@ export async function createConfigInteractively(): Promise<void> {
           currentInterval;
         const interval = parseInt(intervalStr, 10);
 
-        if (projectIds.length > 0) {
+        if (projectNames.length > 0) {
           autoReviewConfig = {
             enabled: true,
-            projects: projectIds,
+            projects: projectNames,
             interval: isNaN(interval) ? 300 : interval,
           };
         } else {
