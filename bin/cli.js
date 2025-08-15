@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import checkForUpdates from '../dist/services/updateNotifier.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -52,64 +52,63 @@ program
   });
 
 program.action(async (mrUrls, options) => {
-    try {
-      await checkForUpdates(packageJson.version);
+  try {
+    await checkForUpdates(packageJson.version);
 
-      // Dual mode logic: CLI review if MR URLs provided, UI server otherwise
-      if (mrUrls && mrUrls.length > 0) {
-        // CLI Review Mode - no web UI
-        const { CLIReviewCommand } = await import('../dist/cli/reviewCommand.js');
+    // Dual mode logic: CLI review if MR URLs provided, UI server otherwise
+    if (mrUrls && mrUrls.length > 0) {
+      // CLI Review Mode - no web UI
+      const { CLIReviewCommand } = await import('../dist/cli/reviewCommand.js');
 
-        // Validate MR URL format for each provided URL
-        for (const url of mrUrls) {
-          if (!CLIReviewCommand.validateMrUrl(url)) {
-            console.error(`❌ Error: Invalid GitLab merge request URL format: ${url}`);
-            console.log('Expected format: https://gitlab.example.com/project/-/merge_requests/123');
-            process.exit(1);
-          }
+      // Validate MR URL format for each provided URL
+      for (const url of mrUrls) {
+        if (!CLIReviewCommand.validateMrUrl(url)) {
+          console.error(`❌ Error: Invalid GitLab merge request URL format: ${url}`);
+          console.log('Expected format: https://gitlab.example.com/project/-/merge_requests/123');
+          process.exit(1);
         }
-
-        await CLIReviewCommand.executeReview({
-          mrUrl: mrUrls, // Pass the array of URLs
-          dryRun: options.dryRun,
-          mock: options.mock,
-          verbose: options.verbose,
-          provider: options.provider,
-          apiKey: options.apiKey,
-          googleCloudProject: options.googleCloudProject,
-          port: options.port,
-          host: options.host,
-        });
-      } else {
-        // UI Mode - start web server
-        // Check if config exists, if not, run init wizard
-        const { ConfigLoader } = await import('../dist/config/configLoader.js');
-        const configLoader = new ConfigLoader();
-
-        if (!configLoader.hasConfig()) {
-          console.log('No configuration found. Running setup wizard...');
-          const { createConfigInteractively } = await import('../dist/config/configWizard.js');
-          await createConfigInteractively();
-          console.log('Configuration created. Starting AI Code Review...\n');
-        }
-
-        // If --api-only is specified and no port was explicitly set via CLI, use port 5959
-        const serverOptions = { ...options, apiOnly: options.apiOnly };
-
-        // Check if port was explicitly provided via CLI
-        const hasExplicitPortFromCLI =
-          process.argv.includes('--port') || process.argv.includes('-p');
-        if (options.apiOnly && !hasExplicitPortFromCLI) {
-          serverOptions.port = '5959';
-        }
-
-        const { startServer } = await import('../dist/server/standalone.js');
-        await startServer(serverOptions);
       }
-    } catch (error) {
-      console.error('Error:', error.message);
-      process.exit(1);
+
+      await CLIReviewCommand.executeReview({
+        mrUrl: mrUrls, // Pass the array of URLs
+        dryRun: options.dryRun,
+        mock: options.mock,
+        verbose: options.verbose,
+        provider: options.provider,
+        apiKey: options.apiKey,
+        googleCloudProject: options.googleCloudProject,
+        port: options.port,
+        host: options.host,
+      });
+    } else {
+      // UI Mode - start web server
+      // Check if config exists, if not, run init wizard
+      const { ConfigLoader } = await import('../dist/config/configLoader.js');
+      const configLoader = new ConfigLoader();
+
+      if (!configLoader.hasConfig()) {
+        console.log('No configuration found. Running setup wizard...');
+        const { createConfigInteractively } = await import('../dist/config/configWizard.js');
+        await createConfigInteractively();
+        console.log('Configuration created. Starting AI Code Review...\n');
+      }
+
+      // If --api-only is specified and no port was explicitly set via CLI, use port 5959
+      const serverOptions = { ...options, apiOnly: options.apiOnly };
+
+      // Check if port was explicitly provided via CLI
+      const hasExplicitPortFromCLI = process.argv.includes('--port') || process.argv.includes('-p');
+      if (options.apiOnly && !hasExplicitPortFromCLI) {
+        serverOptions.port = '5959';
+      }
+
+      const { startServer } = await import('../dist/server/standalone.js');
+      await startServer(serverOptions);
     }
-  });
+  } catch (error) {
+    console.error('Error:', error.message);
+    process.exit(1);
+  }
+});
 
 program.parse();
