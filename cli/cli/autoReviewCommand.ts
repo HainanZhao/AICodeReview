@@ -1,6 +1,6 @@
 import { ConfigLoader } from '../config/configLoader.js';
 import { AppConfig } from '../config/configSchema.js';
-import { fetchOpenMergeRequests } from '../shared/services/gitlabCore.js';
+import { fetchOpenMergeRequests, fetchMrData } from '../shared/services/gitlabCore.js';
 import { GitLabMergeRequest } from '../shared/types/gitlab.js';
 import { getReviewedMr, updateReviewedMr, loadState } from '../state/reviewState.js';
 import { CLIReviewCommand } from './reviewCommand.js';
@@ -64,8 +64,11 @@ export class AutoReviewCommand {
   }
 
   private async processMergeRequest(mr: GitLabMergeRequest): Promise<void> {
+    // Fetch detailed MR info to get the head_sha
+    const mrDetails = await fetchMrData(this.config.gitlab!, mr.web_url);
+    
     const reviewedMr = getReviewedMr(mr.id);
-    if (reviewedMr && reviewedMr.head_sha === mr.sha) {
+    if (reviewedMr && reviewedMr.head_sha === mrDetails.head_sha) {
       // Already reviewed and no new changes
       return;
     }
@@ -82,7 +85,7 @@ export class AutoReviewCommand {
         apiKey: this.config.llm.apiKey,
         googleCloudProject: this.config.llm.googleCloudProject,
       });
-      updateReviewedMr(mr.id, mr.sha);
+      updateReviewedMr(mr.id, mrDetails.head_sha);
       console.log(CLIOutputFormatter.formatSuccess(`Successfully reviewed MR: ${mr.web_url}`));
     } catch (error) {
       console.error(
