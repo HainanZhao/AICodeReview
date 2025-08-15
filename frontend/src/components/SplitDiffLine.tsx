@@ -45,7 +45,6 @@ const SplitDiffSide: React.FC<{
   const canExplain = line && line.type !== 'meta' && line.content.trim().length > 0;
 
   const lineNumber = side === 'left' ? line?.oldLine : line?.newLine;
-  const prefix = line?.type === 'add' ? '+' : line?.type === 'remove' ? '-' : ' ';
 
   return (
     <td
@@ -88,7 +87,6 @@ const SplitDiffSide: React.FC<{
         <div className="flex-1 pr-2 font-mono text-xs">
           {line ? (
             <>
-              {line.type !== 'meta' && <span className="mr-1 select-none">{prefix}</span>}
               <SyntaxHighlightedCode
                 code={line.content}
                 filePath={filePath}

@@ -37,7 +37,6 @@ export const DiffLine: React.FC<DiffLineProps> = ({
   codeTheme,
 }) => {
   const lineClasses = getLineClasses(line.type);
-  const prefix = line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ';
   const canComment = line.type === 'add' || line.type === 'remove' || line.type === 'context';
   const canExplain = line.type !== 'meta' && line.content.trim().length > 0;
 
@@ -205,7 +204,6 @@ export const DiffLine: React.FC<DiffLineProps> = ({
           {line.newLine || ''}
         </td>
         <td className="w-full pr-2 align-middle font-mono text-xs h-4">
-          {line.type !== 'meta' && <span className="mr-1 select-none">{prefix}</span>}
           <SyntaxHighlightedCode
             code={line.content}
             filePath={filePath}
