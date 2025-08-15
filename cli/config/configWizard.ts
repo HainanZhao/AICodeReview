@@ -141,7 +141,8 @@ export async function createConfigInteractively(): Promise<void> {
           .map((id) => parseInt(id.trim(), 10))
           .filter((id) => !isNaN(id));
 
-        const intervalStr = (await question('Review interval in seconds (default: 300): ')) || '300';
+        const intervalStr =
+          (await question('Review interval in seconds (default: 300): ')) || '300';
         const interval = parseInt(intervalStr, 10);
 
         if (projectIds.length > 0) {

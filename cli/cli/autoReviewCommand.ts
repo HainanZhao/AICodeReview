@@ -16,7 +16,9 @@ export class AutoReviewCommand {
 
   public async run(): Promise<void> {
     if (!this.config.autoReview?.enabled) {
-      console.log(CLIOutputFormatter.formatWarning('Auto review mode is disabled in the configuration.'));
+      console.log(
+        CLIOutputFormatter.formatWarning('Auto review mode is disabled in the configuration.')
+      );
       return;
     }
 
@@ -40,7 +42,9 @@ export class AutoReviewCommand {
   }
 
   private async runReviewLoop(): Promise<void> {
-    console.log(CLIOutputFormatter.formatProgress('Checking for new and updated merge requests...'));
+    console.log(
+      CLIOutputFormatter.formatProgress('Checking for new and updated merge requests...')
+    );
     const projects = this.config.autoReview!.projects;
 
     for (const projectId of projects) {
@@ -50,7 +54,11 @@ export class AutoReviewCommand {
           await this.processMergeRequest(mr);
         }
       } catch (error) {
-        console.error(CLIOutputFormatter.formatError(`Failed to fetch MRs for project ${projectId}: ${error instanceof Error ? error.message : String(error)}`));
+        console.error(
+          CLIOutputFormatter.formatError(
+            `Failed to fetch MRs for project ${projectId}: ${error instanceof Error ? error.message : String(error)}`
+          )
+        );
       }
     }
   }
@@ -77,7 +85,11 @@ export class AutoReviewCommand {
       updateReviewedMr(mr.id, mr.sha);
       console.log(CLIOutputFormatter.formatSuccess(`Successfully reviewed MR: ${mr.web_url}`));
     } catch (error) {
-      console.error(CLIOutputFormatter.formatError(`Failed to review MR ${mr.web_url}: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        CLIOutputFormatter.formatError(
+          `Failed to review MR ${mr.web_url}: ${error instanceof Error ? error.message : String(error)}`
+        )
+      );
     }
   }
 }
