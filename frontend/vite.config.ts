@@ -38,6 +38,9 @@ export default defineConfig(({ mode }) => {
       global: 'globalThis',
       'process.env.AICR_SUB_PATH': JSON.stringify(subPath),
     },
+    optimizeDeps: {
+      include: ['uuid'],
+    },
     test: {
       globals: true,
     },
