@@ -20,11 +20,18 @@ export interface GitLabConfig {
   defaultProject?: string;
 }
 
+export interface AutoReviewConfig {
+  enabled: boolean;
+  projects: string[]; // Changed from number[] to string[] to store project names
+  interval: number;
+}
+
 export interface AppConfig {
   server: ServerConfig;
   llm: LLMConfig;
   ui: UIConfig;
   gitlab?: GitLabConfig; // Optional GitLab section
+  autoReview?: AutoReviewConfig;
 }
 
 export const CONFIG_SCHEMA = {
@@ -65,6 +72,18 @@ export const CONFIG_SCHEMA = {
         defaultProject: { type: 'string' },
       },
       required: ['url', 'accessToken'],
+    },
+    autoReview: {
+      type: 'object',
+      properties: {
+        enabled: { type: 'boolean' },
+        projects: {
+          type: 'array',
+          items: { type: 'string' }, // Changed from number to string
+        },
+        interval: { type: 'number', minimum: 30 }, // Minimum 30 seconds
+      },
+      required: ['enabled', 'projects', 'interval'],
     },
   },
   required: ['server', 'llm', 'ui'],

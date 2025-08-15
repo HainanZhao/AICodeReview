@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import checkForUpdates from '../dist/services/updateNotifier.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -31,6 +31,11 @@ program
   .option('--no-open', 'do not automatically open browser')
   .option('--api-only', 'run server in API-only mode (no web interface)')
   .option('--init', 'create a configuration file interactively')
+  .option(
+    '--list-projects',
+    'list your GitLab projects and their IDs for auto-review configuration'
+  )
+  .option('--auto', 'run in fully automatic mode to monitor and review MRs continuously')
   .option('--dry-run', 'generate real AI review but do not post comments to GitLab (CLI mode only)')
   .option('--mock', 'use mock AI responses for testing without API calls (CLI mode only)')
   .option('--verbose', 'detailed operation logs (CLI mode only)')
@@ -41,6 +46,19 @@ program
       if (options.init) {
         const { createConfigInteractively } = await import('../dist/config/configWizard.js');
         await createConfigInteractively();
+        return;
+      }
+
+      if (options.listProjects) {
+        const { ListProjectsCommand } = await import('../dist/cli/listProjectsCommand.js');
+        await ListProjectsCommand.run();
+        return;
+      }
+
+      if (options.auto) {
+        const { AutoReviewCommand } = await import('../dist/cli/autoReviewCommand.js');
+        const command = new AutoReviewCommand();
+        await command.run();
         return;
       }
 

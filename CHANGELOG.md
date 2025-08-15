@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2025-08-15
+
+### Added
+- **Fully Automatic Code Review Mode**: Revolutionary new feature that enables continuous, unattended code review
+  - Automatically monitors specified GitLab projects for new and updated merge requests
+  - Configurable review intervals with intelligent state tracking
+  - Prevents duplicate reviews by tracking last reviewed commit SHAs
+  - Interactive setup wizard for easy configuration of automatic mode
+  - New `--auto` CLI flag to start automatic review mode
+  - Comprehensive state management system with `.aicodereview_state.json`
+
+- **Enhanced Project Management System**: Complete overhaul of project handling for better usability
+  - **Project Cache Service**: New intelligent caching system with 24-hour automatic refresh
+  - **Normalized Project Names**: Clean project names without extra spaces (e.g., "group/project" instead of "group / project")
+  - **Smart Project Resolution**: Supports both normalized and original GitLab project name formats
+  - **Efficient API Usage**: Cache-first approach reduces GitLab API calls significantly
+  - **Backward Compatibility**: Seamless handling of existing configurations
+
+- **Configuration Migration Service**: Automatic handling of configuration schema updates
+  - Intelligent migration from project IDs to project names
+  - Preserves existing configurations while upgrading functionality
+  - Automatic detection and conversion of legacy configuration formats
+
+### Enhanced
+- **Project Selection Experience**: Dramatically improved project configuration workflow
+  - Users can now use readable project names instead of cryptic project IDs
+  - Partial name matching for easier project discovery
+  - Enhanced project search and filtering capabilities
+  - Better project display with normalized, readable names
+
+- **GitLab Integration**: Strengthened GitLab service capabilities
+  - New `fetchOpenMergeRequests()` function for automatic review mode
+  - Improved project fetching with enhanced caching
+  - Better error handling and connection management
+  - Enhanced merge request filtering (open, non-draft only)
+
+- **Configuration Schema**: Updated to support new automatic review features
+  - New `autoReview` configuration section with projects, interval, and enabled flags
+  - Changed project storage from numeric IDs to human-readable names
+  - Enhanced validation and type safety for new configuration options
+
+### Technical Improvements
+- **State Management**: Robust state persistence system for automatic review mode
+- **Error Handling**: Enhanced error handling throughout the automatic review pipeline
+- **Performance**: Optimized project lookup and caching for faster operation
+- **Code Quality**: Improved TypeScript types and interfaces for better maintainability
+
+### Configuration Changes
+- Project configuration now uses names instead of IDs in the `autoReview.projects` array
+- Added new `autoReview` section to configuration schema
+- Automatic migration of existing configurations with project IDs to project names
+- Enhanced configuration wizard with automatic review setup
+
 ## [1.4.5] - 2025-08-15
 
 ### Enhanced
