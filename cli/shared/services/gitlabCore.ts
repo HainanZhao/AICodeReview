@@ -758,6 +758,76 @@ export const revokeApproval = async (
   };
 };
 
+export const STATE_SNIPPET_TITLE = 'AI Code Review State';
+
+/**
+ * Finds the state snippet for a given project.
+ */
+export const findStateSnippet = async (
+  config: GitLabConfig,
+  projectId: number
+): Promise<GitLabSnippet | null> => {
+  const url = `${config.url}/api/v4/projects/${projectId}/snippets`;
+  const snippets = (await gitlabApiFetch(url, config)) as GitLabSnippet[];
+  return snippets.find((s) => s.title === STATE_SNIPPET_TITLE) || null;
+};
+
+/**
+ * Gets the raw content of a snippet.
+ */
+export const getSnippetContent = async (
+  config: GitLabConfig,
+  projectId: number,
+  snippetId: number
+): Promise<string> => {
+  const url = `${config.url}/api/v4/projects/${projectId}/snippets/${snippetId}/raw`;
+  const content = await gitlabApiFetch(url, config, {}, 'text');
+  return content as string;
+};
+
+/**
+ * Creates a new state snippet.
+ */
+export const createStateSnippet = async (
+  config: GitLabConfig,
+  projectId: number,
+  content: string
+): Promise<GitLabSnippet> => {
+  const url = `${config.url}/api/v4/projects/${projectId}/snippets`;
+  const payload = {
+    title: STATE_SNIPPET_TITLE,
+    file_name: 'review-state.json',
+    content,
+    visibility: 'private',
+    description: 'Stores the review state for the AI Code Review tool. Do not delete.',
+  };
+  const snippet = await gitlabApiFetch(url, config, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return snippet as GitLabSnippet;
+};
+
+/**
+ * Updates the content of an existing state snippet.
+ */
+export const updateSnippetContent = async (
+  config: GitLabConfig,
+  projectId: number,
+  snippetId: number,
+  content: string
+): Promise<GitLabSnippet> => {
+  const url = `${config.url}/api/v4/projects/${projectId}/snippets/${snippetId}`;
+  const payload = {
+    content,
+  };
+  const snippet = await gitlabApiFetch(url, config, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+  return snippet as GitLabSnippet;
+};
+
 /**
  * Tests the GitLab connection and authentication.
  * Fetches a simple endpoint (e.g., user projects) to verify credentials.

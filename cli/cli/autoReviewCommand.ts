@@ -6,13 +6,12 @@ import {
   fetchMrData,
   fetchOpenMergeRequests,
 } from '../shared/services/gitlabCore.js';
-import { GitLabMergeRequest } from '../shared/types/gitlab.js';
+import { GitLabMergeRequest, GitLabMRDetails } from '../shared/types/gitlab.js';
 import {
-  getReviewedMr,
-  loadState,
-  pruneClosedMrStates,
-  updateReviewedMr,
-} from '../state/reviewState.js';
+  getStateProvider,
+  ProjectReviewState,
+  StateProvider,
+} from '../state/stateProviders.js';
 import { CLIOutputFormatter } from './outputFormatter.js';
 import { CLIReviewCommand } from './reviewCommand.js';
 
@@ -20,10 +19,12 @@ export class AutoReviewCommand {
   private config: AppConfig;
   private running = false;
   private projectCacheService: ProjectCacheService;
+  private stateProvider: StateProvider;
 
   constructor() {
     this.config = ConfigLoader.loadConfig({});
     this.projectCacheService = new ProjectCacheService();
+    this.stateProvider = getStateProvider(this.config);
   }
 
   public async run(): Promise<void> {
@@ -46,7 +47,11 @@ export class AutoReviewCommand {
 
     this.running = true;
     console.log(CLIOutputFormatter.formatProgress('Starting auto review mode...'));
-    loadState(); // Initial load of state
+    console.log(
+      CLIOutputFormatter.formatInfo(
+        `Using state storage: ${this.config.state?.storage || 'local'}`
+      )
+    );
 
     const interval = this.config.autoReview.interval * 1000;
     this.runReviewLoop();
@@ -54,30 +59,17 @@ export class AutoReviewCommand {
   }
 
   private async runReviewLoop(): Promise<void> {
+    console.log(
+      CLIOutputFormatter.formatProgress('Checking for new and updated merge requests...')
+    );
+    const projectNames = this.config.autoReview!.projects;
+
     if (!this.config.gitlab) {
       console.error(CLIOutputFormatter.formatError('GitLab configuration is missing.'));
       return;
     }
 
     try {
-      // First, run the cleanup job for all tracked MRs
-      console.log(CLIOutputFormatter.formatProgress('Cleaning up state file...'));
-      await pruneClosedMrStates({ gitlab: this.config.gitlab }, fetchMergeRequestsByIids);
-    } catch (error) {
-      console.error(
-        CLIOutputFormatter.formatError(
-          `Failed during state cleanup: ${error instanceof Error ? error.message : String(error)}`
-        )
-      );
-    }
-
-    console.log(
-      CLIOutputFormatter.formatProgress('Checking for new and updated merge requests...')
-    );
-    const projectNames = this.config.autoReview!.projects;
-
-    try {
-      // Resolve project names to IDs using the cache
       const resolvedProjects = await this.projectCacheService.resolveProjectNamesToIds(
         projectNames,
         this.config.gitlab
@@ -92,23 +84,6 @@ export class AutoReviewCommand {
         return;
       }
 
-      if (resolvedProjects.length !== projectNames.length) {
-        const foundNames = resolvedProjects.map((p) => p.name);
-        const notFoundNames = projectNames.filter(
-          (name) =>
-            !foundNames.some(
-              (foundName) =>
-                foundName.toLowerCase().includes(name.toLowerCase()) ||
-                name.toLowerCase().includes(foundName.toLowerCase())
-            )
-        );
-        console.log(
-          CLIOutputFormatter.formatWarning(
-            `Some projects could not be found: ${notFoundNames.join(', ')}`
-          )
-        );
-      }
-
       console.log(
         CLIOutputFormatter.formatProgress(
           `Monitoring ${resolvedProjects.length} project(s): ${resolvedProjects.map((p) => p.name).join(', ')}`
@@ -117,14 +92,45 @@ export class AutoReviewCommand {
 
       for (const project of resolvedProjects) {
         try {
-          const mrs = await fetchOpenMergeRequests(this.config.gitlab!, project.id);
-          for (const mr of mrs) {
-            await this.processMergeRequest(mr);
+          console.log(
+            CLIOutputFormatter.formatProgress(`Processing project: ${project.name_with_namespace}`)
+          );
+
+          // Prune state for the current project
+          let projectState = await this.stateProvider.loadState(project.id);
+          const originalStateSize = Object.keys(projectState).length;
+
+          const mrIidsToPrune = Object.keys(projectState);
+          if (mrIidsToPrune.length > 0) {
+            const fetchedMrs = await fetchMergeRequestsByIids(
+              this.config.gitlab,
+              project.id,
+              mrIidsToPrune
+            );
+            for (const mr of fetchedMrs) {
+              if (mr.state === 'closed' || mr.state === 'merged') {
+                delete projectState[mr.iid];
+              }
+            }
           }
+
+          const newStateSize = Object.keys(projectState).length;
+          if (newStateSize < originalStateSize) {
+              console.log(CLIOutputFormatter.formatInfo(`Pruned ${originalStateSize - newStateSize} closed/merged MR(s) from state for project ${project.name_with_namespace}`));
+          }
+
+          // Fetch open MRs and process them
+          const openMrs = await fetchOpenMergeRequests(this.config.gitlab, project.id);
+          for (const mr of openMrs) {
+            projectState = await this.processMergeRequest(mr, projectState);
+          }
+
+          // Save the final state for the project
+          await this.stateProvider.saveState(project.id, projectState);
         } catch (error) {
           console.error(
             CLIOutputFormatter.formatError(
-              `Failed to fetch MRs for project ${project.name} (ID: ${project.id}): ${error instanceof Error ? error.message : String(error)}`
+              `Failed to process project ${project.name}: ${error instanceof Error ? error.message : String(error)}`
             )
           );
         }
@@ -138,14 +144,17 @@ export class AutoReviewCommand {
     }
   }
 
-  private async processMergeRequest(mr: GitLabMergeRequest): Promise<void> {
+  private async processMergeRequest(
+    mr: GitLabMergeRequest,
+    projectState: ProjectReviewState
+  ): Promise<ProjectReviewState> {
     // Fetch detailed MR info to get the head_sha
     const mrDetails = await fetchMrData(this.config.gitlab!, mr.web_url);
 
-    const reviewedMr = getReviewedMr(mr.id);
+    const reviewedMr = projectState[mr.iid];
     if (reviewedMr && reviewedMr.head_sha === mrDetails.head_sha) {
       // Already reviewed and no new changes
-      return;
+      return projectState;
     }
 
     console.log(CLIOutputFormatter.formatProgress(`New or updated MR found: ${mr.web_url}`));
@@ -160,17 +169,21 @@ export class AutoReviewCommand {
         apiKey: this.config.llm.apiKey,
         googleCloudProject: this.config.llm.googleCloudProject,
       });
-      updateReviewedMr(mr.id, mrDetails.head_sha, {
-        projectId: mrDetails.projectId,
-        mrIid: Number(mrDetails.mrIid),
-      });
+
+      const newState = { ...projectState };
+      newState[mr.iid] = {
+        head_sha: mrDetails.head_sha,
+        reviewed_at: new Date().toISOString(),
+      };
       console.log(CLIOutputFormatter.formatSuccess(`Successfully reviewed MR: ${mr.web_url}`));
+      return newState;
     } catch (error) {
       console.error(
         CLIOutputFormatter.formatError(
           `Failed to review MR ${mr.web_url}: ${error instanceof Error ? error.message : String(error)}`
         )
       );
+      return projectState; // Return original state on error
     }
   }
 }

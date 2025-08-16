@@ -26,12 +26,17 @@ export interface AutoReviewConfig {
   interval: number;
 }
 
+export interface StateConfig {
+  storage: 'local' | 'snippet';
+}
+
 export interface AppConfig {
   server: ServerConfig;
   llm: LLMConfig;
   ui: UIConfig;
   gitlab?: GitLabConfig; // Optional GitLab section
   autoReview?: AutoReviewConfig;
+  state?: StateConfig;
 }
 
 export const CONFIG_SCHEMA = {
@@ -84,6 +89,16 @@ export const CONFIG_SCHEMA = {
         interval: { type: 'number', minimum: 30 }, // Minimum 30 seconds
       },
       required: ['enabled', 'projects', 'interval'],
+    },
+    state: {
+      type: 'object',
+      properties: {
+        storage: {
+          type: 'string',
+          enum: ['local', 'snippet'],
+        },
+      },
+      required: ['storage'],
     },
   },
   required: ['server', 'llm', 'ui'],

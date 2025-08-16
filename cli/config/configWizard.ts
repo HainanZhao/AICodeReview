@@ -365,6 +365,8 @@ export async function createConfigInteractively(): Promise<void> {
         }
       | undefined;
 
+    let stateConfig: { storage: 'local' | 'snippet' } | undefined;
+
     if (gitlabConfig) {
       console.log('\n🤖 Automatic Review Configuration:');
       console.log(helpText('This mode will automatically review new MRs in configured projects.'));
@@ -402,6 +404,23 @@ export async function createConfigInteractively(): Promise<void> {
             projects: projectNames,
             interval: isNaN(interval) ? 300 : interval,
           };
+
+          // Ask for state storage type
+          console.log('\n💾 State Storage Configuration:');
+          console.log(helpText('This determines where to save the state of reviewed MRs.'));
+          console.log(helpText('1. Local file (default, stored in ~/.aicodereview)'));
+          console.log(helpText('2. GitLab snippet (stored in each project, allows for distributed use)'));
+
+          const defaultStateStorage = existingConfig?.state?.storage === 'snippet' ? '2' : '1';
+          const stateStorageChoice = await question(
+            `Choose state storage (1-2, current: ${defaultStateStorage}): `
+          ) || defaultStateStorage;
+
+          stateConfig = {
+            storage: stateStorageChoice === '2' ? 'snippet' : 'local',
+          }
+          console.log(`✅ State storage set to: ${stateConfig.storage}`);
+
         } else {
           console.log('⚠️  No valid projects selected. Auto-review mode will be disabled.');
         }
@@ -425,6 +444,7 @@ export async function createConfigInteractively(): Promise<void> {
       },
       ...(gitlabConfig && { gitlab: gitlabConfig }),
       ...(autoReviewConfig && { autoReview: autoReviewConfig }),
+      ...(stateConfig && { state: stateConfig }),
     };
 
     // Save to home directory
