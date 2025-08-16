@@ -22,7 +22,7 @@ export interface GitLabConfig {
 
 export interface AutoReviewConfig {
   enabled: boolean;
-  projects: string[]; // Changed from number[] to string[] to store project names
+  projects: string[];
   interval: number;
   state?: StateConfig;
 }
@@ -97,6 +97,8 @@ export const CONFIG_SCHEMA = {
           },
           required: ['storage'],
         },
+        dryRun: { type: 'boolean' },
+        verbose: { type: 'boolean' },
       },
       required: ['enabled', 'projects', 'interval'],
     },

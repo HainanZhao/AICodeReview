@@ -52,8 +52,10 @@ export class AutoReviewCommand {
     );
 
     const interval = this.config.autoReview.interval * 1000;
-    this.runReviewLoop();
-    setInterval(() => this.runReviewLoop(), interval);
+    await this.runReviewLoop();
+    setInterval(async () => {
+      await this.runReviewLoop();
+    }, interval);
   }
 
   private async runReviewLoop(): Promise<void> {
@@ -206,12 +208,12 @@ export class AutoReviewCommand {
       try {
         await CLIReviewCommand.executeReview({
           mrUrl: [mr.web_url],
-          dryRun: this.config.dryRun,
-          mock: this.config.mock,
-          verbose: this.config.verbose,
-          provider: this.config.provider,
-          apiKey: this.config.apiKey,
-          googleCloudProject: this.config.googleCloudProject,
+          dryRun: false,
+          mock: false, // mock should not be used in auto-review
+          verbose: false,
+          provider: this.config.llm.provider,
+          apiKey: this.config.llm.apiKey,
+          googleCloudProject: this.config.llm.googleCloudProject,
         });
 
         // Store the reviewed MR state
