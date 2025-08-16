@@ -147,3 +147,7 @@ export interface GitLabMergeRequest {
   web_url: string;
   project_name?: string;
 }
+
+export interface GitLabMergeRequestWithState extends GitLabMergeRequest {
+  state: 'opened' | 'closed' | 'locked' | 'merged';
+}

@@ -1,9 +1,18 @@
 import { ConfigLoader } from '../config/configLoader.js';
 import { AppConfig } from '../config/configSchema.js';
 import { ProjectCacheService } from '../services/projectCacheService.js';
-import { fetchMrData, fetchOpenMergeRequests } from '../shared/services/gitlabCore.js';
+import {
+  fetchMergeRequestsByIids,
+  fetchMrData,
+  fetchOpenMergeRequests,
+} from '../shared/services/gitlabCore.js';
 import { GitLabMergeRequest } from '../shared/types/gitlab.js';
-import { getReviewedMr, loadState, updateReviewedMr } from '../state/reviewState.js';
+import {
+  getReviewedMr,
+  loadState,
+  pruneClosedMrStates,
+  updateReviewedMr,
+} from '../state/reviewState.js';
 import { CLIOutputFormatter } from './outputFormatter.js';
 import { CLIReviewCommand } from './reviewCommand.js';
 
@@ -45,15 +54,27 @@ export class AutoReviewCommand {
   }
 
   private async runReviewLoop(): Promise<void> {
-    console.log(
-      CLIOutputFormatter.formatProgress('Checking for new and updated merge requests...')
-    );
-    const projectNames = this.config.autoReview!.projects;
-
     if (!this.config.gitlab) {
       console.error(CLIOutputFormatter.formatError('GitLab configuration is missing.'));
       return;
     }
+
+    try {
+      // First, run the cleanup job for all tracked MRs
+      console.log(CLIOutputFormatter.formatProgress('Cleaning up state file...'));
+      await pruneClosedMrStates({ gitlab: this.config.gitlab }, fetchMergeRequestsByIids);
+    } catch (error) {
+      console.error(
+        CLIOutputFormatter.formatError(
+          `Failed during state cleanup: ${error instanceof Error ? error.message : String(error)}`
+        )
+      );
+    }
+
+    console.log(
+      CLIOutputFormatter.formatProgress('Checking for new and updated merge requests...')
+    );
+    const projectNames = this.config.autoReview!.projects;
 
     try {
       // Resolve project names to IDs using the cache
@@ -121,7 +142,7 @@ export class AutoReviewCommand {
     // Fetch detailed MR info to get the head_sha
     const mrDetails = await fetchMrData(this.config.gitlab!, mr.web_url);
 
-    const reviewedMr = getReviewedMr(mr.id);
+    const reviewedMr = getReviewedMr(mrDetails.projectId, Number(mrDetails.mrIid));
     if (reviewedMr && reviewedMr.head_sha === mrDetails.head_sha) {
       // Already reviewed and no new changes
       return;
@@ -139,7 +160,7 @@ export class AutoReviewCommand {
         apiKey: this.config.llm.apiKey,
         googleCloudProject: this.config.llm.googleCloudProject,
       });
-      updateReviewedMr(mr.id, mrDetails.head_sha);
+      updateReviewedMr(mrDetails.projectId, Number(mrDetails.mrIid), mrDetails.head_sha);
       console.log(CLIOutputFormatter.formatSuccess(`Successfully reviewed MR: ${mr.web_url}`));
     } catch (error) {
       console.error(
