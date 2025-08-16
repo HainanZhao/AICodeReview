@@ -786,7 +786,7 @@ export const createStateSnippet = async (
   const url = `${config.url}/api/v4/projects/${projectId}/snippets`;
   const payload = {
     title: STATE_SNIPPET_TITLE,
-    file_name: 'review-state.json',
+    file_name: 'aicodereview-state.json',
     content,
     visibility: 'private' as const,
     description: 'Stores the review state for the AI Code Review tool. Do not delete.',

@@ -3,26 +3,21 @@ import { homedir } from 'os';
 import { join } from 'path';
 import { GitLabConfig } from '../config/configSchema.js';
 import {
-  createStateSnippet,
-  findStateSnippet,
-  getSnippetContent,
-  updateSnippetContent,
+    createStateSnippet,
+    findStateSnippet,
+    getSnippetContent,
+    updateSnippetContent,
 } from '../shared/services/gitlabCore.js';
 
 // The basic state for a single reviewed MR.
 export interface ReviewedMrState {
   head_sha: string;
   reviewed_at: string;
-}
-
-// The structure of the local review-state.json file.
-// Keyed by global MR ID. Must contain project info for cleanup and migration.
-export interface LocalReviewedMrState extends ReviewedMrState {
-  projectId: number;
-  mrIid: number;
+  project_id: number;
+  mr_iid: number;
 }
 export interface LocalState {
-  [mrId: string]: LocalReviewedMrState;
+  [mrId: string]: ReviewedMrState;
 }
 
 // The structure of a GitLab snippet for a single project.

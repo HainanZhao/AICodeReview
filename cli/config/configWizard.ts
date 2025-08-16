@@ -5,7 +5,7 @@ import { createInterface } from 'readline';
 import { fetchProjects, gitlabApiFetch } from '../shared/services/gitlabCore.js';
 import { GitLabConfig, GitLabMergeRequest, GitLabProject } from '../shared/types/gitlab.js';
 import { Util } from '../shared/utils/Util.js';
-import { loadLocalState, saveSnippetState } from '../state/state.js';
+import { loadLocalState, ReviewedMrState, saveSnippetState } from '../state/state.js';
 import { ConfigLoader } from './configLoader.js';
 import { AppConfig } from './configSchema.js';
 
@@ -74,23 +74,19 @@ async function migrateLocalStateToSnippets(
     console.log(`✅ Built mapping for ${mrIdToProjectMap.size} total MRs`);
 
     // Group MRs by project using the prebuilt mapping
-    const stateByProject: Record<
-      string,
-      Record<number, { head_sha: string; reviewed_at: string }>
-    > = {};
+    const stateByProject: Record<string, Record<number, ReviewedMrState>> = {};
 
     for (const mrId in localState) {
       const reviewedMr = localState[mrId];
       let projectId: number | undefined;
       let mrIid: number | undefined;
-
-      if (reviewedMr.projectId && reviewedMr.mrIid) {
+      // Look up MR in the prebuilt mapping
+      const mrIdNum = parseInt(mrId, 10);
+      if (reviewedMr.project_id && reviewedMr.mr_iid) {
         // Use existing project ID and MR IID if available
-        projectId = reviewedMr.projectId;
-        mrIid = reviewedMr.mrIid;
+        projectId = reviewedMr.project_id;
+        mrIid = reviewedMr.mr_iid;
       } else {
-        // Look up MR in the prebuilt mapping
-        const mrIdNum = parseInt(mrId, 10);
         if (isNaN(mrIdNum)) {
           console.warn(`⚠️  Invalid MR ID format: ${mrId}, skipping.`);
           continue;
@@ -108,9 +104,11 @@ async function migrateLocalStateToSnippets(
         if (!stateByProject[projectId]) {
           stateByProject[projectId] = {};
         }
-        stateByProject[projectId][mrIid] = {
+        stateByProject[projectId][mrIdNum] = {
           head_sha: reviewedMr.head_sha,
           reviewed_at: reviewedMr.reviewed_at,
+          project_id: projectId,
+          mr_iid: mrIid,
         };
       } else {
         console.warn(`⚠️  Could not find project for MR ${mrId}, skipping.`);

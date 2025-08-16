@@ -7,8 +7,8 @@ const STATE_FILE_PATH = join(homedir(), '.aicodereview', 'review-state.json');
 export interface ReviewedMrState {
   head_sha: string;
   reviewed_at: string;
-  projectId: number;
-  mrIid: number;
+  project_id: number;
+  mr_iid: number;
 }
 
 export interface ReviewState {
@@ -56,8 +56,8 @@ export function updateReviewedMr(
   currentState[mrId] = {
     head_sha,
     reviewed_at: new Date().toISOString(),
-    projectId,
-    mrIid,
+    project_id: projectId,
+    mr_iid: mrIid,
   };
   saveState(currentState);
 }

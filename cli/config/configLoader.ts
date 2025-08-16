@@ -165,6 +165,15 @@ export class ConfigLoader {
       merged.autoReview = base.autoReview;
     }
 
+    // Handle optional state config
+    if (override.state) {
+      merged.state = {
+        storage: override.state.storage,
+      };
+    } else if (base.state) {
+      merged.state = base.state;
+    }
+
     return merged;
   }
 
