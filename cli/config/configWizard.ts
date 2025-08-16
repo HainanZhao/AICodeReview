@@ -2,16 +2,29 @@ import { existsSync, mkdirSync, renameSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { createInterface } from 'readline';
-import { fetchProjects } from '../shared/services/gitlabCore.js';
-import { GitLabConfig } from '../shared/types/gitlab.js';
+import { fetchProjects, gitlabApiFetch } from '../shared/services/gitlabCore.js';
+import { GitLabConfig, GitLabMergeRequest, GitLabProject } from '../shared/types/gitlab.js';
 import { Util } from '../shared/utils/Util.js';
 import { loadLocalState, saveSnippetState } from '../state/state.js';
 import { ConfigLoader } from './configLoader.js';
 import { AppConfig } from './configSchema.js';
 
+/**
+ * Helper function to fetch all merge requests from a project (including closed/merged)
+ */
+async function fetchAllMergeRequestsFromProject(
+  config: GitLabConfig,
+  projectId: number
+): Promise<GitLabMergeRequest[]> {
+  const url = `${config.url}/api/v4/projects/${projectId}/merge_requests?state=all&order_by=updated_at&sort=desc&per_page=100`;
+  const mrs = (await gitlabApiFetch(url, config)) as GitLabMergeRequest[];
+  return mrs;
+}
+
 async function migrateLocalStateToSnippets(
   gitlabConfig: GitLabConfig,
-  question: (prompt: string) => Promise<string>
+  question: (prompt: string) => Promise<string>,
+  configuredProjects: GitLabProject[] = []
 ): Promise<void> {
   const localState = loadLocalState();
   if (Object.keys(localState).length === 0) {
@@ -28,19 +41,79 @@ async function migrateLocalStateToSnippets(
 
   console.log('🚀 Starting migration...');
   try {
-    // Group MRs by project
-    const stateByProject: Record<string, any> = {};
+    if (configuredProjects.length === 0) {
+      console.warn('⚠️  No projects available for migration.');
+      return;
+    }
+
+    console.log(`📋 Building MR mapping across ${configuredProjects.length} projects...`);
+
+    // Build MR ID to project mapping by fetching all MRs from all configured projects
+    const mrIdToProjectMap = new Map<number, { projectId: number; mrIid: number }>();
+
+    for (const project of configuredProjects) {
+      try {
+        console.log(`Scanning project ${project.name_with_namespace}...`);
+        const projectMrs = await fetchAllMergeRequestsFromProject(gitlabConfig, project.id);
+
+        for (const mr of projectMrs) {
+          mrIdToProjectMap.set(mr.id, {
+            projectId: project.id,
+            mrIid: mr.iid,
+          });
+        }
+
+        console.log(`✅ Found ${projectMrs.length} MRs in project ${project.name_with_namespace}`);
+      } catch (error) {
+        console.warn(
+          `⚠️  Error scanning project ${project.name_with_namespace}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+
+    console.log(`✅ Built mapping for ${mrIdToProjectMap.size} total MRs`);
+
+    // Group MRs by project using the prebuilt mapping
+    const stateByProject: Record<
+      string,
+      Record<number, { head_sha: string; reviewed_at: string }>
+    > = {};
+
     for (const mrId in localState) {
       const reviewedMr = localState[mrId];
+      let projectId: number | undefined;
+      let mrIid: number | undefined;
+
       if (reviewedMr.projectId && reviewedMr.mrIid) {
-        const projectId = reviewedMr.projectId;
+        // Use existing project ID and MR IID if available
+        projectId = reviewedMr.projectId;
+        mrIid = reviewedMr.mrIid;
+      } else {
+        // Look up MR in the prebuilt mapping
+        const mrIdNum = parseInt(mrId, 10);
+        if (isNaN(mrIdNum)) {
+          console.warn(`⚠️  Invalid MR ID format: ${mrId}, skipping.`);
+          continue;
+        }
+
+        const mapping = mrIdToProjectMap.get(mrIdNum);
+        if (mapping) {
+          projectId = mapping.projectId;
+          mrIid = mapping.mrIid;
+          console.log(`✅ Found MR ${mrId} in project ${projectId} (IID: ${mrIid})`);
+        }
+      }
+
+      if (projectId && mrIid) {
         if (!stateByProject[projectId]) {
           stateByProject[projectId] = {};
         }
-        stateByProject[projectId][reviewedMr.mrIid] = {
+        stateByProject[projectId][mrIid] = {
           head_sha: reviewedMr.head_sha,
           reviewed_at: reviewedMr.reviewed_at,
         };
+      } else {
+        console.warn(`⚠️  Could not find project for MR ${mrId}, skipping.`);
       }
     }
 
@@ -106,16 +179,13 @@ async function testGitLabConnection(url: string, token: string): Promise<void> {
 }
 
 /**
- * Displays projects in a table format and returns selected project names
- */
-/**
- * Displays projects in a table format and returns selected project names
+ * Displays projects in a table format and returns selected project objects
  */
 async function selectProjectsInteractively(
   gitlabConfig: { url: string; accessToken: string },
   question: (prompt: string) => Promise<string>,
   currentProjectNames?: string[]
-): Promise<string[]> {
+): Promise<{ projects: GitLabProject[]; projectNames: string[] }> {
   try {
     console.log('\n🔍 Fetching your GitLab projects...');
 
@@ -125,7 +195,7 @@ async function selectProjectsInteractively(
       console.log(
         '⚠️  No projects found. Make sure you have at least Developer access to some projects.'
       );
-      return [];
+      return { projects: [], projectNames: [] };
     }
 
     console.log(`\n📋 Found ${projects.length} projects available.\n`);
@@ -148,7 +218,10 @@ async function selectProjectsInteractively(
 
     if (!projectNamesStr.trim()) {
       console.log('⚠️  No project names entered.');
-      return currentProjectNames || [];
+      return {
+        projects: [],
+        projectNames: currentProjectNames || [],
+      };
     }
 
     // Parse and filter projects by names
@@ -169,7 +242,7 @@ async function selectProjectsInteractively(
     if (matchingProjects.length === 0) {
       console.log(`❌ No projects found matching: ${searchNames.join(', ')}`);
       console.log('Please try with different project names or partial names.');
-      return [];
+      return { projects: [], projectNames: [] };
     }
 
     // Show filtered results for confirmation
@@ -207,7 +280,10 @@ async function selectProjectsInteractively(
 
     if (confirm.toLowerCase() === 'n' || confirm.toLowerCase() === 'no') {
       console.log('❌ Project selection cancelled.');
-      return currentProjectNames || [];
+      return {
+        projects: [],
+        projectNames: currentProjectNames || [],
+      };
     }
 
     const selectedProjectNames = matchingProjects.map((p) =>
@@ -215,7 +291,10 @@ async function selectProjectsInteractively(
     );
     console.log(`✅ Selected ${selectedProjectNames.length} project(s) for monitoring.`);
 
-    return selectedProjectNames;
+    return {
+      projects: matchingProjects,
+      projectNames: selectedProjectNames,
+    };
   } catch (error) {
     console.error(
       `❌ Failed to fetch projects: ${error instanceof Error ? error.message : String(error)}`
@@ -228,10 +307,15 @@ async function selectProjectsInteractively(
         `Enter project names manually ${currentProjectsList ? `(current: ${currentProjectsList})` : '(comma-separated)'}: `
       )) || currentProjectsList;
 
-    return projectNamesStr
+    const manualProjectNames = projectNamesStr
       .split(',')
       .map((name: string) => name.trim())
       .filter((name: string) => name.length > 0);
+
+    return {
+      projects: [], // No project objects available in manual entry mode
+      projectNames: manualProjectNames,
+    };
   }
 }
 
@@ -452,7 +536,7 @@ export async function createConfigInteractively(): Promise<void> {
 
       if (enableAutoReview.toLowerCase() === 'y' || enableAutoReview.toLowerCase() === 'yes') {
         // Show projects table and let user select
-        const projectNames = await selectProjectsInteractively(
+        const selectedProjects = await selectProjectsInteractively(
           gitlabConfig,
           question,
           existingConfig?.autoReview?.projects
@@ -464,10 +548,10 @@ export async function createConfigInteractively(): Promise<void> {
           currentInterval;
         const interval = parseInt(intervalStr, 10);
 
-        if (projectNames.length > 0) {
+        if (selectedProjects.projectNames.length > 0) {
           autoReviewConfig = {
             enabled: true,
-            projects: projectNames,
+            projects: selectedProjects.projectNames,
             interval: isNaN(interval) ? 300 : interval,
           };
 
@@ -493,7 +577,8 @@ export async function createConfigInteractively(): Promise<void> {
 
           // If user chose snippet storage, check for local state and offer to migrate
           if (storageType === 'snippet' && existingConfig?.state?.storage !== 'snippet') {
-            await migrateLocalStateToSnippets(gitlabConfig, question);
+            // Pass the selected projects directly to avoid refetching
+            await migrateLocalStateToSnippets(gitlabConfig, question, selectedProjects.projects);
           }
         } else {
           console.log('⚠️  No valid projects selected. Auto-review mode will be disabled.');

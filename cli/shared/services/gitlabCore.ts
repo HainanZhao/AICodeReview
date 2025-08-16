@@ -792,10 +792,16 @@ export const createStateSnippet = async (
     description: 'Stores the review state for the AI Code Review tool. Do not delete.',
   };
   // Swallow 404s in case project is not found
-  const snippet = await gitlabApiFetch(url, config, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  }, 'json', true);
+  const snippet = await gitlabApiFetch(
+    url,
+    config,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    'json',
+    true
+  );
   return snippet as GitLabSnippet | null;
 };
 
@@ -812,10 +818,16 @@ export const updateSnippetContent = async (
   const payload = {
     content,
   };
-  const snippet = await gitlabApiFetch(url, config, {
-    method: 'PUT',
-    body: JSON.stringify(payload),
-  }, 'json', true);
+  const snippet = await gitlabApiFetch(
+    url,
+    config,
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    },
+    'json',
+    true
+  );
   return snippet as GitLabSnippet | null;
 };
 

@@ -68,7 +68,9 @@ export class AutoReviewCommand {
   }
 
   private async runLocalFileReviewLoop(): Promise<void> {
-    console.log(CLIOutputFormatter.formatProgress('Checking for new and updated merge requests...'));
+    console.log(
+      CLIOutputFormatter.formatProgress('Checking for new and updated merge requests...')
+    );
     if (!this.config.autoReview?.projects || !this.config.gitlab) return;
 
     const allProjects = await this.projectCacheService.resolveProjectNamesToIds(
@@ -76,33 +78,37 @@ export class AutoReviewCommand {
       this.config.gitlab
     );
     if (allProjects.length === 0) {
-      console.log(CLIOutputFormatter.formatWarning(`No projects found matching your configuration.`));
+      console.log(
+        CLIOutputFormatter.formatWarning(`No projects found matching your configuration.`)
+      );
       return;
     }
 
-    let localState = loadLocalState();
+    const localState = loadLocalState();
 
     // Prune state
     const mrsToPruneByProject: Record<string, string[]> = {};
     for (const mrId in localState) {
-        const mrState = localState[mrId];
-        if (mrState.projectId) {
-            if (!mrsToPruneByProject[mrState.projectId]) {
-                mrsToPruneByProject[mrState.projectId] = [];
-            }
-            mrsToPruneByProject[mrState.projectId].push(String(mrState.mrIid));
+      const mrState = localState[mrId];
+      if (mrState.projectId) {
+        if (!mrsToPruneByProject[mrState.projectId]) {
+          mrsToPruneByProject[mrState.projectId] = [];
         }
+        mrsToPruneByProject[mrState.projectId].push(String(mrState.mrIid));
+      }
     }
     for (const projectIdStr in mrsToPruneByProject) {
-        const projectId = parseInt(projectIdStr, 10);
-        const iids = mrsToPruneByProject[projectIdStr];
-        const fetchedMrs = await fetchMergeRequestsByIids(this.config.gitlab, projectId, iids);
-        for (const mr of fetchedMrs) {
-            const globalMrId = Object.keys(localState).find(id => localState[id].mrIid === mr.iid && localState[id].projectId === projectId);
-            if (globalMrId && (mr.state === 'closed' || mr.state === 'merged')) {
-                delete localState[globalMrId];
-            }
+      const projectId = parseInt(projectIdStr, 10);
+      const iids = mrsToPruneByProject[projectIdStr];
+      const fetchedMrs = await fetchMergeRequestsByIids(this.config.gitlab, projectId, iids);
+      for (const mr of fetchedMrs) {
+        const globalMrId = Object.keys(localState).find(
+          (id) => localState[id].mrIid === mr.iid && localState[id].projectId === projectId
+        );
+        if (globalMrId && (mr.state === 'closed' || mr.state === 'merged')) {
+          delete localState[globalMrId];
         }
+      }
     }
 
     for (const project of allProjects) {
@@ -115,7 +121,7 @@ export class AutoReviewCommand {
         }
         console.log(CLIOutputFormatter.formatProgress(`New or updated MR found: ${mr.web_url}`));
         try {
-          await CLIReviewCommand.executeReview({ mrUrl: [mr.web_url], /* ... other options */ });
+          await CLIReviewCommand.executeReview({ mrUrl: [mr.web_url] /* ... other options */ });
           localState[mr.id] = {
             head_sha: mrDetails.head_sha,
             reviewed_at: new Date().toISOString(),
@@ -124,7 +130,11 @@ export class AutoReviewCommand {
           };
           console.log(CLIOutputFormatter.formatSuccess(`Successfully reviewed MR: ${mr.web_url}`));
         } catch (error) {
-          console.error(CLIOutputFormatter.formatError(`Failed to review MR ${mr.web_url}: ${error instanceof Error ? error.message : String(error)}`));
+          console.error(
+            CLIOutputFormatter.formatError(
+              `Failed to review MR ${mr.web_url}: ${error instanceof Error ? error.message : String(error)}`
+            )
+          );
         }
       }
     }
@@ -133,7 +143,9 @@ export class AutoReviewCommand {
   }
 
   private async runSnippetReviewLoop(): Promise<void> {
-    console.log(CLIOutputFormatter.formatProgress('Checking for new and updated merge requests...'));
+    console.log(
+      CLIOutputFormatter.formatProgress('Checking for new and updated merge requests...')
+    );
     if (!this.config.autoReview?.projects || !this.config.gitlab) return;
 
     const allProjects = await this.projectCacheService.resolveProjectNamesToIds(
@@ -141,21 +153,27 @@ export class AutoReviewCommand {
       this.config.gitlab
     );
     if (allProjects.length === 0) {
-        console.log(CLIOutputFormatter.formatWarning(`No projects found matching your configuration.`));
-        return;
+      console.log(
+        CLIOutputFormatter.formatWarning(`No projects found matching your configuration.`)
+      );
+      return;
     }
 
     for (const project of allProjects) {
       try {
-        let projectState = await loadSnippetState(this.config.gitlab, project.id);
+        const projectState = await loadSnippetState(this.config.gitlab, project.id);
         const iidsToPrune = Object.keys(projectState);
         if (iidsToPrune.length > 0) {
-            const fetchedMrs = await fetchMergeRequestsByIids(this.config.gitlab, project.id, iidsToPrune);
-            for (const mr of fetchedMrs) {
-                if (mr.state === 'closed' || mr.state === 'merged') {
-                    delete projectState[mr.iid];
-                }
+          const fetchedMrs = await fetchMergeRequestsByIids(
+            this.config.gitlab,
+            project.id,
+            iidsToPrune
+          );
+          for (const mr of fetchedMrs) {
+            if (mr.state === 'closed' || mr.state === 'merged') {
+              delete projectState[mr.iid];
             }
+          }
         }
 
         const openMrs = await fetchOpenMergeRequests(this.config.gitlab, project.id);
@@ -167,19 +185,29 @@ export class AutoReviewCommand {
           }
           console.log(CLIOutputFormatter.formatProgress(`New or updated MR found: ${mr.web_url}`));
           try {
-            await CLIReviewCommand.executeReview({ mrUrl: [mr.web_url], /* ... other options */ });
+            await CLIReviewCommand.executeReview({ mrUrl: [mr.web_url] /* ... other options */ });
             projectState[mr.iid] = {
               head_sha: mrDetails.head_sha,
               reviewed_at: new Date().toISOString(),
             };
-            console.log(CLIOutputFormatter.formatSuccess(`Successfully reviewed MR: ${mr.web_url}`));
+            console.log(
+              CLIOutputFormatter.formatSuccess(`Successfully reviewed MR: ${mr.web_url}`)
+            );
           } catch (error) {
-            console.error(CLIOutputFormatter.formatError(`Failed to review MR ${mr.web_url}: ${error instanceof Error ? error.message : String(error)}`));
+            console.error(
+              CLIOutputFormatter.formatError(
+                `Failed to review MR ${mr.web_url}: ${error instanceof Error ? error.message : String(error)}`
+              )
+            );
           }
         }
         await saveSnippetState(this.config.gitlab, project.id, projectState);
       } catch (error) {
-        console.error(CLIOutputFormatter.formatError(`Failed to process project ${project.name}: ${error instanceof Error ? error.message : String(error)}`));
+        console.error(
+          CLIOutputFormatter.formatError(
+            `Failed to process project ${project.name}: ${error instanceof Error ? error.message : String(error)}`
+          )
+        );
       }
     }
   }
