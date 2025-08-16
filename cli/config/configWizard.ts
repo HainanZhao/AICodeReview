@@ -1,8 +1,10 @@
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, renameSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { createInterface } from 'readline';
 import { fetchProjects } from '../shared/services/gitlabCore.js';
+import { GitLabConfig } from '../shared/types/gitlab.js';
+import { GitLabSnippetStateProvider, LocalFileStateProvider } from '../state/stateProviders.js';
 import { ConfigLoader } from './configLoader.js';
 import { AppConfig } from './configSchema.js';
 

@@ -48,7 +48,7 @@ export class AutoReviewCommand {
     this.running = true;
     console.log(CLIOutputFormatter.formatProgress('Starting auto review mode...'));
     console.log(
-      CLIOutputFormatter.formatInfo(
+      CLIOutputFormatter.formatProgress(
         `Using state storage: ${this.config.state?.storage || 'local'}`
       )
     );
@@ -93,7 +93,7 @@ export class AutoReviewCommand {
       for (const project of resolvedProjects) {
         try {
           console.log(
-            CLIOutputFormatter.formatProgress(`Processing project: ${project.name_with_namespace}`)
+            CLIOutputFormatter.formatProgress(`Processing project: ${project.name}`)
           );
 
           let projectState = await this.stateProvider.loadState(project.id);
@@ -115,7 +115,7 @@ export class AutoReviewCommand {
 
           const newStateSize = Object.keys(projectState).length;
           if (newStateSize < originalStateSize) {
-              console.log(CLIOutputFormatter.formatInfo(`Pruned ${originalStateSize - newStateSize} closed/merged MR(s) from state for project ${project.name_with_namespace}`));
+              console.log(CLIOutputFormatter.formatProgress(`Pruned ${originalStateSize - newStateSize} closed/merged MR(s) from state for project ${project.name}`));
           }
 
           const openMrs = await fetchOpenMergeRequests(this.config.gitlab, project.id);
