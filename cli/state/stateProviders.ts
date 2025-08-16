@@ -8,6 +8,7 @@ import {
   getSnippetContent,
   updateSnippetContent,
 } from '../shared/services/gitlabCore.js';
+import { GitLabSnippet } from '../shared/types/gitlab.js';
 
 export interface ReviewedMrState {
   head_sha: string;
@@ -40,9 +41,14 @@ export class LocalFileStateProvider implements StateProvider {
       try {
         const fileContent = readFileSync(STATE_FILE_PATH, 'utf-8');
         this.globalState = JSON.parse(fileContent) as GlobalReviewState;
-        return this.globalState!;
+        // Basic validation to check if it's in the new format
+        if (this.globalState && typeof this.globalState === 'object' && !Array.isArray(this.globalState)) {
+            return this.globalState;
+        }
+        console.warn('Local review state file is in an old, unsupported format and will be ignored.');
+
       } catch (e) {
-        console.warn('Could not parse local review state file. Starting fresh.', e);
+        console.warn('Could not parse local review state file. It will be ignored.', e);
       }
     }
     this.globalState = {};
@@ -72,17 +78,29 @@ export class LocalFileStateProvider implements StateProvider {
 
 export class GitLabSnippetStateProvider implements StateProvider {
   private config: GitLabConfig;
+  private snippetCache: Record<number, GitLabSnippet | null> = {};
 
   constructor(config: GitLabConfig) {
     this.config = config;
   }
 
+  private async findStateSnippet(projectId: number): Promise<GitLabSnippet | null> {
+      if (this.snippetCache[projectId] !== undefined) {
+          return this.snippetCache[projectId];
+      }
+      const snippet = await findStateSnippet(this.config, projectId);
+      this.snippetCache[projectId] = snippet;
+      return snippet;
+  }
+
   async loadState(projectId: number): Promise<ProjectReviewState> {
     try {
-      const snippet = await findStateSnippet(this.config, projectId);
+      const snippet = await this.findStateSnippet(projectId);
       if (snippet) {
         const content = await getSnippetContent(this.config, projectId, snippet.id);
-        return JSON.parse(content) as ProjectReviewState;
+        if (content) {
+            return JSON.parse(content) as ProjectReviewState;
+        }
       }
     } catch (e) {
       console.error(`Failed to load state from snippet for project ${projectId}`, e);
@@ -93,15 +111,15 @@ export class GitLabSnippetStateProvider implements StateProvider {
   async saveState(projectId: number, state: ProjectReviewState): Promise<void> {
     const content = JSON.stringify(state, null, 2);
     try {
-      const snippet = await findStateSnippet(this.config, projectId);
+      const snippet = await this.findStateSnippet(projectId);
       if (snippet) {
-        // Only update if content has changed to avoid unnecessary API calls
         const currentContent = await getSnippetContent(this.config, projectId, snippet.id);
         if (currentContent !== content) {
           await updateSnippetContent(this.config, projectId, snippet.id, content);
         }
       } else {
-        await createStateSnippet(this.config, projectId, content);
+        const newSnippet = await createStateSnippet(this.config, projectId, content);
+        this.snippetCache[projectId] = newSnippet;
       }
     } catch (e) {
       console.error(`Failed to save state to snippet for project ${projectId}`, e);

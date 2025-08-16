@@ -6,7 +6,7 @@ import {
   fetchMrData,
   fetchOpenMergeRequests,
 } from '../shared/services/gitlabCore.js';
-import { GitLabMergeRequest, GitLabMRDetails } from '../shared/types/gitlab.js';
+import { GitLabMergeRequest } from '../shared/types/gitlab.js';
 import {
   getStateProvider,
   ProjectReviewState,
@@ -96,10 +96,9 @@ export class AutoReviewCommand {
             CLIOutputFormatter.formatProgress(`Processing project: ${project.name_with_namespace}`)
           );
 
-          // Prune state for the current project
           let projectState = await this.stateProvider.loadState(project.id);
-          const originalStateSize = Object.keys(projectState).length;
 
+          const originalStateSize = Object.keys(projectState).length;
           const mrIidsToPrune = Object.keys(projectState);
           if (mrIidsToPrune.length > 0) {
             const fetchedMrs = await fetchMergeRequestsByIids(
@@ -119,13 +118,11 @@ export class AutoReviewCommand {
               console.log(CLIOutputFormatter.formatInfo(`Pruned ${originalStateSize - newStateSize} closed/merged MR(s) from state for project ${project.name_with_namespace}`));
           }
 
-          // Fetch open MRs and process them
           const openMrs = await fetchOpenMergeRequests(this.config.gitlab, project.id);
           for (const mr of openMrs) {
             projectState = await this.processMergeRequest(mr, projectState);
           }
 
-          // Save the final state for the project
           await this.stateProvider.saveState(project.id, projectState);
         } catch (error) {
           console.error(
@@ -148,12 +145,10 @@ export class AutoReviewCommand {
     mr: GitLabMergeRequest,
     projectState: ProjectReviewState
   ): Promise<ProjectReviewState> {
-    // Fetch detailed MR info to get the head_sha
     const mrDetails = await fetchMrData(this.config.gitlab!, mr.web_url);
 
     const reviewedMr = projectState[mr.iid];
     if (reviewedMr && reviewedMr.head_sha === mrDetails.head_sha) {
-      // Already reviewed and no new changes
       return projectState;
     }
 
@@ -183,7 +178,7 @@ export class AutoReviewCommand {
           `Failed to review MR ${mr.web_url}: ${error instanceof Error ? error.message : String(error)}`
         )
       );
-      return projectState; // Return original state on error
+      return projectState;
     }
   }
 }

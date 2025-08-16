@@ -6,6 +6,51 @@ import { fetchProjects } from '../shared/services/gitlabCore.js';
 import { ConfigLoader } from './configLoader.js';
 import { AppConfig } from './configSchema.js';
 
+const STATE_FILE_PATH = join(homedir(), '.aicodereview', 'review-state.json');
+
+async function migrateLocalStateToSnippets(
+  gitlabConfig: GitLabConfig,
+  question: (prompt: string) => Promise<string>
+): Promise<void> {
+  if (!existsSync(STATE_FILE_PATH)) {
+    return; // No local state to migrate
+  }
+
+  console.log(helpText('Found existing local review state file.'));
+  const confirm = await question('Do you want to migrate it to GitLab snippets? (Y/n): ');
+
+  if (confirm.toLowerCase() === 'n' || confirm.toLowerCase() === 'no') {
+    console.log('Skipping migration.');
+    return;
+  }
+
+  console.log('🚀 Starting migration...');
+  try {
+    const localProvider = new LocalFileStateProvider();
+    const snippetProvider = new GitLabSnippetStateProvider(gitlabConfig);
+
+    // This is a bit of a hack, but we need to get the whole state object
+    // which is not exposed by the provider interface directly.
+    const globalState = (localProvider as any).readGlobalState();
+
+    for (const projectIdStr in globalState) {
+      const projectId = parseInt(projectIdStr, 10);
+      const projectState = globalState[projectIdStr];
+      if (projectState && Object.keys(projectState).length > 0) {
+        console.log(`Migrating state for project ${projectId}...`);
+        await snippetProvider.saveState(projectId, projectState);
+      }
+    }
+
+    // Rename the old file to prevent re-migration
+    renameSync(STATE_FILE_PATH, `${STATE_FILE_PATH}.migrated`);
+    console.log('✅ Migration successful! Renamed local state file to review-state.json.migrated');
+  } catch (error) {
+    console.error(`❌ Migration failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+
 /**
  * Normalizes project names by removing extra spaces around slashes
  * e.g., "group / subgroup / project" -> "group/subgroup/project"
@@ -412,15 +457,21 @@ export async function createConfigInteractively(): Promise<void> {
           console.log(helpText('2. GitLab snippet (stored in each project, allows for distributed use)'));
 
           const defaultStateStorage = existingConfig?.state?.storage === 'snippet' ? '2' : '1';
-          const stateStorageChoice = await question(
-            `Choose state storage (1-2, current: ${defaultStateStorage}): `
-          ) || defaultStateStorage;
+          const storageChoice =
+            (await question(`Choose state storage (1-2, current: ${defaultStateStorage}): `)) ||
+            defaultStateStorage;
+
+          const storageType = storageChoice === '2' ? 'snippet' : 'local';
 
           stateConfig = {
-            storage: stateStorageChoice === '2' ? 'snippet' : 'local',
-          }
+            storage: storageType,
+          };
           console.log(`✅ State storage set to: ${stateConfig.storage}`);
 
+          // If user chose snippet storage, check for local state and offer to migrate
+          if (storageType === 'snippet' && existingConfig?.state?.storage !== 'snippet') {
+            await migrateLocalStateToSnippets(gitlabConfig, question);
+          }
         } else {
           console.log('⚠️  No valid projects selected. Auto-review mode will be disabled.');
         }

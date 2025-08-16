@@ -662,23 +662,6 @@ export const fetchOpenMergeRequests = async (
 };
 
 /**
- * Fetches merge requests by their IIDs for a specific project.
- */
-export const fetchMergeRequestsByIids = async (
-  config: GitLabConfig,
-  projectId: number,
-  mrIids: string[]
-): Promise<GitLabMergeRequestWithState[]> => {
-  if (mrIids.length === 0) {
-    return [];
-  }
-  const queryParams = mrIids.map((iid) => `iids[]=${iid}`).join('&');
-  const url = `${config.url}/api/v4/projects/${projectId}/merge_requests?${queryParams}`;
-  const mrs = (await gitlabApiFetch(url, config)) as GitLabMergeRequestWithState[];
-  return mrs;
-};
-
-/**
  * Approves a merge request and returns the updated MR with approval details
  */
 export const approveMergeRequest = async (
@@ -826,6 +809,23 @@ export const updateSnippetContent = async (
     body: JSON.stringify(payload),
   });
   return snippet as GitLabSnippet;
+};
+
+/**
+ * Fetches merge requests by their IIDs for a specific project.
+ */
+export const fetchMergeRequestsByIids = async (
+  config: GitLabConfig,
+  projectId: number,
+  mrIids: string[]
+): Promise<GitLabMergeRequestWithState[]> => {
+  if (mrIids.length === 0) {
+    return [];
+  }
+  const queryParams = mrIids.map((iid) => `iids[]=${iid}`).join('&');
+  const url = `${config.url}/api/v4/projects/${projectId}/merge_requests?${queryParams}`;
+  const mrs = (await gitlabApiFetch(url, config)) as GitLabMergeRequestWithState[];
+  return mrs;
 };
 
 /**
