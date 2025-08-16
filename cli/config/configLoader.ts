@@ -160,18 +160,10 @@ export class ConfigLoader {
         enabled: override.autoReview.enabled,
         projects: override.autoReview.projects,
         interval: override.autoReview.interval,
+        state: override.autoReview.state,
       };
     } else if (base.autoReview) {
       merged.autoReview = base.autoReview;
-    }
-
-    // Handle optional state config
-    if (override.state) {
-      merged.state = {
-        storage: override.state.storage,
-      };
-    } else if (base.state) {
-      merged.state = base.state;
     }
 
     return merged;

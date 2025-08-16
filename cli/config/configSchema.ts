@@ -24,6 +24,7 @@ export interface AutoReviewConfig {
   enabled: boolean;
   projects: string[]; // Changed from number[] to string[] to store project names
   interval: number;
+  state?: StateConfig;
 }
 
 export interface StateConfig {
@@ -36,7 +37,6 @@ export interface AppConfig {
   ui: UIConfig;
   gitlab?: GitLabConfig; // Optional GitLab section
   autoReview?: AutoReviewConfig;
-  state?: StateConfig;
 }
 
 export const CONFIG_SCHEMA = {
@@ -87,18 +87,18 @@ export const CONFIG_SCHEMA = {
           items: { type: 'string' }, // Changed from number to string
         },
         interval: { type: 'number', minimum: 30 }, // Minimum 30 seconds
-      },
-      required: ['enabled', 'projects', 'interval'],
-    },
-    state: {
-      type: 'object',
-      properties: {
-        storage: {
-          type: 'string',
-          enum: ['local', 'snippet'],
+        state: {
+          type: 'object',
+          properties: {
+            storage: {
+              type: 'string',
+              enum: ['local', 'snippet'],
+            },
+          },
+          required: ['storage'],
         },
       },
-      required: ['storage'],
+      required: ['enabled', 'projects', 'interval'],
     },
   },
   required: ['server', 'llm', 'ui'],

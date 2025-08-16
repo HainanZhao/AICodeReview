@@ -47,7 +47,7 @@ export class AutoReviewCommand {
     console.log(CLIOutputFormatter.formatProgress('Starting auto review mode...'));
     console.log(
       CLIOutputFormatter.formatProgress(
-        `Using state storage: ${this.config.state?.storage || 'local'}`
+        `Using state storage: ${this.config.autoReview?.state?.storage || 'local'}`
       )
     );
 
@@ -57,7 +57,7 @@ export class AutoReviewCommand {
   }
 
   private async runReviewLoop(): Promise<void> {
-    const storageMode = this.config.state?.storage || 'local';
+    const storageMode = this.config.autoReview?.state?.storage || 'local';
     await this.runUnifiedReviewLoop(storageMode);
   }
 
@@ -132,16 +132,35 @@ export class AutoReviewCommand {
         const projectState = await loadSnippetState(this.config.gitlab!, project.id);
 
         // Prune state for this project
-        const iidsToPrune = Object.keys(projectState);
-        if (iidsToPrune.length > 0) {
-          const fetchedMrs = await fetchMergeRequestsByIids(
-            this.config.gitlab!,
-            project.id,
-            iidsToPrune
-          );
-          for (const mr of fetchedMrs) {
-            if (mr.state === 'closed' || mr.state === 'merged') {
-              delete projectState[mr.iid];
+        const stateKeys = Object.keys(projectState);
+        if (stateKeys.length > 0) {
+          // Extract IIDs from the state entries to check MR status
+          const iidsToPrune: string[] = [];
+          const globalIdToIidMap: Record<string, string> = {};
+
+          for (const globalId of stateKeys) {
+            const stateEntry = projectState[globalId];
+            if (stateEntry && stateEntry.mr_iid) {
+              const iid = stateEntry.mr_iid.toString();
+              iidsToPrune.push(iid);
+              globalIdToIidMap[iid] = globalId;
+            }
+          }
+
+          if (iidsToPrune.length > 0) {
+            const fetchedMrs = await fetchMergeRequestsByIids(
+              this.config.gitlab!,
+              project.id,
+              iidsToPrune
+            );
+            for (const mr of fetchedMrs) {
+              if (mr.state === 'closed' || mr.state === 'merged') {
+                // Remove by global MR ID (consistent with both storage modes)
+                const globalId = globalIdToIidMap[mr.iid.toString()];
+                if (globalId) {
+                  delete projectState[globalId];
+                }
+              }
             }
           }
         }
@@ -170,8 +189,8 @@ export class AutoReviewCommand {
     for (const mr of openMrs) {
       const mrDetails = await fetchMrData(this.config.gitlab!, mr.web_url);
 
-      // Get the key and check if already reviewed
-      const stateKey = storageMode === 'local' ? mr.id : mr.iid;
+      // Get the key and check if already reviewed (both storage modes use global MR ID)
+      const stateKey = mr.id;
       const reviewedMr = state[stateKey];
 
       if (reviewedMr && reviewedMr.head_sha === mrDetails.head_sha) {

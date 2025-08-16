@@ -745,6 +745,7 @@ export const revokeApproval = async (
 };
 
 export const STATE_SNIPPET_TITLE = 'AI Code Review State';
+export const STATE_SNIPPET_FILE_NAME = 'aicodereview-state.json';
 
 /**
  * Finds the state snippet for a given project.
@@ -759,7 +760,11 @@ export const findStateSnippet = async (
   if (!snippets) {
     return null;
   }
-  return snippets.find((s) => s.title === STATE_SNIPPET_TITLE) || null;
+  return (
+    snippets.find(
+      (s) => s.title === STATE_SNIPPET_TITLE && s.file_name === STATE_SNIPPET_FILE_NAME
+    ) || null
+  );
 };
 
 /**
@@ -786,7 +791,7 @@ export const createStateSnippet = async (
   const url = `${config.url}/api/v4/projects/${projectId}/snippets`;
   const payload = {
     title: STATE_SNIPPET_TITLE,
-    file_name: 'aicodereview-state.json',
+    file_name: STATE_SNIPPET_FILE_NAME,
     content,
     visibility: 'private' as const,
     description: 'Stores the review state for the AI Code Review tool. Do not delete.',

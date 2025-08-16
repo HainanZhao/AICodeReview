@@ -510,10 +510,9 @@ export async function createConfigInteractively(): Promise<void> {
           enabled: boolean;
           projects: string[];
           interval: number;
+          state?: { storage: 'local' | 'snippet' };
         }
       | undefined;
-
-    let stateConfig: { storage: 'local' | 'snippet' } | undefined;
 
     if (gitlabConfig) {
       console.log('\n🤖 Automatic Review Configuration:');
@@ -547,12 +546,6 @@ export async function createConfigInteractively(): Promise<void> {
         const interval = parseInt(intervalStr, 10);
 
         if (selectedProjects.projectNames.length > 0) {
-          autoReviewConfig = {
-            enabled: true,
-            projects: selectedProjects.projectNames,
-            interval: isNaN(interval) ? 300 : interval,
-          };
-
           // Ask for state storage type
           console.log('\n💾 State Storage Configuration:');
           console.log(helpText('This determines where to save the state of reviewed MRs.'));
@@ -561,20 +554,29 @@ export async function createConfigInteractively(): Promise<void> {
             helpText('2. GitLab snippet (stored in each project, allows for distributed use)')
           );
 
-          const defaultStateStorage = existingConfig?.state?.storage === 'snippet' ? '2' : '1';
+          const defaultStateStorage =
+            existingConfig?.autoReview?.state?.storage === 'snippet' ? '2' : '1';
           const storageChoice =
             (await question(`Choose state storage (1-2, current: ${defaultStateStorage}): `)) ||
             defaultStateStorage;
 
           const storageType = storageChoice === '2' ? 'snippet' : 'local';
 
-          stateConfig = {
-            storage: storageType,
+          autoReviewConfig = {
+            enabled: true,
+            projects: selectedProjects.projectNames,
+            interval: isNaN(interval) ? 300 : interval,
+            state: {
+              storage: storageType,
+            },
           };
-          console.log(`✅ State storage set to: ${stateConfig.storage}`);
+          console.log(`✅ State storage set to: ${storageType}`);
 
           // If user chose snippet storage, check for local state and offer to migrate
-          if (storageType === 'snippet' && existingConfig?.state?.storage !== 'snippet') {
+          if (
+            storageType === 'snippet' &&
+            existingConfig?.autoReview?.state?.storage !== 'snippet'
+          ) {
             // Pass the selected projects directly to avoid refetching
             await migrateLocalStateToSnippets(gitlabConfig, question, selectedProjects.projects);
           }
@@ -601,7 +603,6 @@ export async function createConfigInteractively(): Promise<void> {
       },
       ...(gitlabConfig && { gitlab: gitlabConfig }),
       ...(autoReviewConfig && { autoReview: autoReviewConfig }),
-      ...(stateConfig && { state: stateConfig }),
     };
 
     // Save to home directory

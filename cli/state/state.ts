@@ -21,9 +21,9 @@ export interface LocalState {
 }
 
 // The structure of a GitLab snippet for a single project.
-// Keyed by MR IID. Project ID is known from the context of the snippet.
+// Keyed by global MR ID for consistency with LocalState.
 export interface SnippetState {
-  [mrIid: string]: ReviewedMrState;
+  [mrId: string]: ReviewedMrState;
 }
 
 const STATE_FILE_PATH = join(homedir(), '.aicodereview', 'review-state.json');
