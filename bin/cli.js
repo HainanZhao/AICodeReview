@@ -30,7 +30,10 @@ program
   .option('--google-cloud-project <project>', 'Google Cloud project ID for gemini-cli')
   .option('--no-open', 'do not automatically open browser')
   .option('--api-only', 'run server in API-only mode (no web interface)')
-  .option('--init', 'create a configuration file interactively')
+  .option(
+    '--init [section]',
+    'create a configuration file interactively, optionally for a specific section (server, llm, ui, gitlab, autoReview)'
+  )
   .option(
     '--list-projects',
     'list your GitLab projects and their IDs for auto-review configuration'
@@ -43,9 +46,10 @@ program
     try {
       await checkForUpdates(packageJson.version);
 
-      if (options.init) {
+      if (options.init !== undefined) {
         const { createConfigInteractively } = await import('../dist/config/configWizard.js');
-        await createConfigInteractively();
+        const section = typeof options.init === 'string' ? options.init : undefined;
+        await createConfigInteractively(section);
         return;
       }
 

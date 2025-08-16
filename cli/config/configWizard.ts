@@ -317,7 +317,300 @@ async function selectProjectsInteractively(
   }
 }
 
-export async function createConfigInteractively(): Promise<void> {
+/**
+ * Configures server settings
+ */
+async function configureServer(
+  question: (prompt: string) => Promise<string>,
+  existingConfig: AppConfig | null
+): Promise<{ port: number; host: string; subPath?: string }> {
+  console.log('📡 Server Configuration:');
+  const defaultPort = existingConfig?.server?.port?.toString() || '5960';
+  const defaultHost = existingConfig?.server?.host || 'localhost';
+  const defaultSubPath = existingConfig?.server?.subPath || '';
+
+  const port = (await question(`Port (${defaultPort}): `)) || defaultPort;
+  const host = (await question(`Host (${defaultHost}): `)) || defaultHost;
+  console.log(
+    helpText('Sub-path: If you need to serve the app under a specific path (e.g., behind a proxy)')
+  );
+  const subPath =
+    (await question(
+      `Sub-path (${defaultSubPath ? `current: ${defaultSubPath}` : 'optional, e.g., /path/to'}): `
+    )) ||
+    defaultSubPath ||
+    undefined;
+
+  return {
+    port: parseInt(port, 10),
+    host,
+    ...(subPath && { subPath }),
+  };
+}
+
+/**
+ * Configures LLM provider settings
+ */
+async function configureLLM(
+  question: (prompt: string) => Promise<string>,
+  existingConfig: AppConfig | null
+): Promise<{
+  provider: 'gemini-cli' | 'gemini' | 'anthropic';
+  apiKey?: string;
+  googleCloudProject?: string;
+}> {
+  console.log('\n🤖 LLM Provider Configuration:');
+  console.log(helpText('Available providers:'));
+  console.log(helpText('1. gemini-cli (uses local gemini command, recommended)'));
+  console.log(helpText('2. gemini (Google Gemini API)'));
+  console.log(helpText('3. anthropic (Claude API)'));
+
+  // Determine current provider choice
+  let defaultProviderChoice = '1';
+  if (existingConfig?.llm?.provider) {
+    switch (existingConfig.llm.provider) {
+      case 'gemini':
+        defaultProviderChoice = '2';
+        break;
+      case 'anthropic':
+        defaultProviderChoice = '3';
+        break;
+      default:
+        defaultProviderChoice = '1';
+    }
+  }
+
+  const providerChoice =
+    (await question(`Choose provider (1-3, current: ${defaultProviderChoice}): `)) ||
+    defaultProviderChoice;
+
+  let provider: string;
+  let apiKey: string | undefined;
+  let googleCloudProject: string | undefined;
+
+  switch (providerChoice) {
+    case '2': {
+      provider = 'gemini';
+      const currentGeminiApiKey = existingConfig?.llm?.apiKey || '';
+      const maskedGeminiKey = currentGeminiApiKey
+        ? `${currentGeminiApiKey.substring(0, 8)}...`
+        : '';
+      apiKey =
+        (await question(
+          `Gemini API Key ${maskedGeminiKey ? `(current: ${maskedGeminiKey})` : ''}: `
+        )) ||
+        existingConfig?.llm?.apiKey ||
+        '';
+      break;
+    }
+    case '3': {
+      provider = 'anthropic';
+      const currentAnthropicApiKey = existingConfig?.llm?.apiKey || '';
+      const maskedAnthropicKey = currentAnthropicApiKey
+        ? `${currentAnthropicApiKey.substring(0, 8)}...`
+        : '';
+      apiKey =
+        (await question(
+          `Anthropic API Key ${maskedAnthropicKey ? `(current: ${maskedAnthropicKey})` : ''}: `
+        )) ||
+        existingConfig?.llm?.apiKey ||
+        '';
+      break;
+    }
+    default: {
+      provider = 'gemini-cli';
+      const currentProject = existingConfig?.llm?.googleCloudProject || '';
+      googleCloudProject =
+        (await question(
+          `Google Cloud Project ID ${currentProject ? `(current: ${currentProject})` : '(optional)'}: `
+        )) ||
+        existingConfig?.llm?.googleCloudProject ||
+        undefined;
+      break;
+    }
+  }
+
+  return {
+    provider: provider as 'gemini-cli' | 'gemini' | 'anthropic',
+    ...(apiKey && { apiKey }),
+    ...(googleCloudProject && { googleCloudProject }),
+  };
+}
+
+/**
+ * Configures UI settings
+ */
+async function configureUI(
+  question: (prompt: string) => Promise<string>,
+  existingConfig: AppConfig | null
+): Promise<{ autoOpen: boolean }> {
+  console.log('\n🎨 UI Configuration:');
+  const currentAutoOpen = existingConfig?.ui?.autoOpen ? 'y' : 'n';
+  const autoOpenInput =
+    (await question(`Auto-open browser? (y/N, current: ${currentAutoOpen}): `)) || currentAutoOpen;
+  const autoOpen = autoOpenInput.toLowerCase() === 'y' || autoOpenInput.toLowerCase() === 'yes';
+
+  return { autoOpen };
+}
+
+/**
+ * Configures GitLab settings
+ */
+async function configureGitLab(
+  question: (prompt: string) => Promise<string>,
+  existingConfig: AppConfig | null
+): Promise<{ url: string; accessToken: string } | null> {
+  console.log('\n🦊 GitLab Configuration (for CLI review mode):');
+  console.log(helpText('This allows you to review merge requests directly from the command line.'));
+
+  const hasExistingGitlab = existingConfig?.gitlab?.url && existingConfig?.gitlab?.accessToken;
+  const defaultConfigureGitlab = hasExistingGitlab ? 'Y' : 'n';
+
+  if (hasExistingGitlab) {
+    console.log(helpText(`Current GitLab URL: ${existingConfig!.gitlab!.url}`));
+  }
+
+  const configureGitlab =
+    (await question(`Configure GitLab access? (Y/n, current: ${defaultConfigureGitlab}): `)) ||
+    defaultConfigureGitlab;
+
+  if (configureGitlab.toLowerCase() === 'n' || configureGitlab.toLowerCase() === 'no') {
+    return null;
+  }
+
+  const currentGitlabUrl = existingConfig?.gitlab?.url || '';
+  const gitlabUrl =
+    (await question(
+      `GitLab instance URL ${currentGitlabUrl ? `(current: ${currentGitlabUrl})` : '(e.g., https://gitlab.com)'}: `
+    )) || currentGitlabUrl;
+
+  if (!gitlabUrl) {
+    return null;
+  }
+
+  console.log(helpText('To create a Personal Access Token:'));
+  console.log(helpText('1. Go to your GitLab instance → Settings → Access Tokens'));
+  console.log(helpText('2. Create a token with "api" scope'));
+  console.log(helpText('3. Copy the token (it will only be shown once)'));
+
+  const currentAccessToken = existingConfig?.gitlab?.accessToken || '';
+  const maskedToken = currentAccessToken ? `${currentAccessToken.substring(0, 8)}...` : '';
+  const accessToken =
+    (await question(
+      `\nGitLab Personal Access Token ${maskedToken ? `(current: ${maskedToken})` : ''}: `
+    )) || currentAccessToken;
+
+  if (!accessToken) {
+    return null;
+  }
+
+  // Test GitLab connection
+  console.log('\n🔍 Testing GitLab connection...');
+  try {
+    await testGitLabConnection(gitlabUrl, accessToken);
+    console.log('✅ GitLab connection successful!');
+    return { url: gitlabUrl, accessToken };
+  } catch (error) {
+    console.warn(
+      `⚠️  GitLab connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+    const continueAnyway = await question('Continue with this configuration anyway? (y/N): ');
+    if (continueAnyway.toLowerCase() === 'y' || continueAnyway.toLowerCase() === 'yes') {
+      return { url: gitlabUrl, accessToken };
+    }
+    return null;
+  }
+}
+
+async function configureAutoReview(
+  question: (prompt: string) => Promise<string>,
+  existingConfig: AppConfig | null,
+  gitlabConfig: { url: string; accessToken: string }
+): Promise<{
+  enabled: boolean;
+  projects: string[];
+  interval: number;
+  state?: { storage: 'local' | 'snippet' };
+} | null> {
+  console.log('\n🤖 Automatic Review Configuration:');
+  console.log(helpText('This mode will automatically review new MRs in configured projects.'));
+
+  const hasExistingAutoReview = existingConfig?.autoReview?.enabled === true;
+  const defaultEnableAutoReview = hasExistingAutoReview ? 'Y' : 'N';
+
+  if (hasExistingAutoReview && existingConfig?.autoReview) {
+    console.log(`Current projects: ${existingConfig.autoReview.projects.join(', ')}`);
+    console.log(`Current interval: ${existingConfig.autoReview.interval} seconds`);
+  }
+
+  const enableAutoReview =
+    (await question(
+      `Enable automatic MR review mode? (y/N, current: ${defaultEnableAutoReview}): `
+    )) || defaultEnableAutoReview;
+
+  if (enableAutoReview.toLowerCase() !== 'y' && enableAutoReview.toLowerCase() !== 'yes') {
+    return null;
+  }
+
+  // Show projects table and let user select
+  const selectedProjects = await selectProjectsInteractively(
+    gitlabConfig,
+    question,
+    existingConfig?.autoReview?.projects
+  );
+
+  const currentInterval = existingConfig?.autoReview?.interval?.toString() || '300';
+  const intervalStr =
+    (await question(`Review interval in seconds (current: ${currentInterval}): `)) ||
+    currentInterval;
+  const interval = parseInt(intervalStr, 10);
+
+  if (selectedProjects.projectNames.length === 0) {
+    console.log('⚠️  No valid projects selected. Auto-review mode will be disabled.');
+    return null;
+  }
+
+  // Ask for state storage type
+  console.log('\n💾 State Storage Configuration:');
+  console.log(helpText('This determines where to save the state of reviewed MRs.'));
+  console.log(helpText('1. Local file (default, stored in ~/.aicodereview)'));
+  console.log(helpText('2. GitLab snippet (stored in each project, allows for distributed use)'));
+
+  const defaultStateStorage = existingConfig?.autoReview?.state?.storage === 'snippet' ? '2' : '1';
+  const storageChoice =
+    (await question(`Choose state storage (1-2, current: ${defaultStateStorage}): `)) ||
+    defaultStateStorage;
+
+  const storageType = storageChoice === '2' ? 'snippet' : 'local';
+
+  const autoReviewConfig = {
+    enabled: true,
+    projects: selectedProjects.projectNames,
+    interval: isNaN(interval) ? 300 : interval,
+    state: {
+      storage: storageType as 'local' | 'snippet',
+    },
+  };
+  console.log(`✅ State storage set to: ${storageType}`);
+
+  // If user chose snippet storage, check for local state and offer to migrate
+  if (storageType === 'snippet' && existingConfig?.autoReview?.state?.storage !== 'snippet') {
+    // Pass the selected projects directly to avoid refetching
+    await migrateLocalStateToSnippets(gitlabConfig, question, selectedProjects.projects);
+  }
+
+  return autoReviewConfig;
+}
+
+export async function createConfigInteractively(section?: string): Promise<void> {
+  // Validate section parameter
+  const validSections = ['server', 'llm', 'ui', 'gitlab', 'autoReview'];
+  if (section && !validSections.includes(section)) {
+    console.error(`❌ Invalid section: ${section}`);
+    console.error(`Valid sections are: ${validSections.join(', ')}`);
+    return;
+  }
+
   const rl = createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -344,266 +637,66 @@ export async function createConfigInteractively(): Promise<void> {
   console.log('🎉 Welcome to AI Code Review Setup Wizard!\n');
 
   try {
-    // Server configuration
-    console.log('📡 Server Configuration:');
-    const defaultPort = existingConfig?.server?.port?.toString() || '5960';
-    const defaultHost = existingConfig?.server?.host || 'localhost';
-    const defaultSubPath = existingConfig?.server?.subPath || '';
+    let config: Partial<AppConfig> = {};
 
-    const port = (await question(`Port (${defaultPort}): `)) || defaultPort;
-    const host = (await question(`Host (${defaultHost}): `)) || defaultHost;
-    console.log(
-      helpText(
-        'Sub-path: If you need to serve the app under a specific path (e.g., behind a proxy)'
-      )
-    );
-    const subPath =
-      (await question(
-        `Sub-path (${defaultSubPath ? `current: ${defaultSubPath}` : 'optional, e.g., /path/to'}): `
-      )) ||
-      defaultSubPath ||
-      undefined;
+    if (section) {
+      // Configure specific section only
+      console.log(`🔧 Configuring ${section} section...\n`);
 
-    // LLM provider configuration
-    console.log('\n🤖 LLM Provider Configuration:');
-    console.log(helpText('Available providers:'));
-    console.log(helpText('1. gemini-cli (uses local gemini command, recommended)'));
-    console.log(helpText('2. gemini (Google Gemini API)'));
-    console.log(helpText('3. anthropic (Claude API)'));
-
-    // Determine current provider choice
-    let defaultProviderChoice = '1';
-    if (existingConfig?.llm?.provider) {
-      switch (existingConfig.llm.provider) {
-        case 'gemini':
-          defaultProviderChoice = '2';
+      switch (section) {
+        case 'server':
+          config.server = await configureServer(question, existingConfig);
           break;
-        case 'anthropic':
-          defaultProviderChoice = '3';
+        case 'llm':
+          config.llm = await configureLLM(question, existingConfig);
           break;
-        default:
-          defaultProviderChoice = '1';
-      }
-    }
-
-    const providerChoice =
-      (await question(`Choose provider (1-3, current: ${defaultProviderChoice}): `)) ||
-      defaultProviderChoice;
-
-    let provider: string;
-    let apiKey: string | undefined;
-    let googleCloudProject: string | undefined;
-
-    switch (providerChoice) {
-      case '2': {
-        provider = 'gemini';
-        const currentGeminiApiKey = existingConfig?.llm?.apiKey || '';
-        const maskedGeminiKey = currentGeminiApiKey
-          ? `${currentGeminiApiKey.substring(0, 8)}...`
-          : '';
-        apiKey =
-          (await question(
-            `Gemini API Key ${maskedGeminiKey ? `(current: ${maskedGeminiKey})` : ''}: `
-          )) ||
-          existingConfig?.llm?.apiKey ||
-          '';
-        break;
-      }
-      case '3': {
-        provider = 'anthropic';
-        const currentAnthropicApiKey = existingConfig?.llm?.apiKey || '';
-        const maskedAnthropicKey = currentAnthropicApiKey
-          ? `${currentAnthropicApiKey.substring(0, 8)}...`
-          : '';
-        apiKey =
-          (await question(
-            `Anthropic API Key ${maskedAnthropicKey ? `(current: ${maskedAnthropicKey})` : ''}: `
-          )) ||
-          existingConfig?.llm?.apiKey ||
-          '';
-        break;
-      }
-      default: {
-        provider = 'gemini-cli';
-        const currentProject = existingConfig?.llm?.googleCloudProject || '';
-        googleCloudProject =
-          (await question(
-            `Google Cloud Project ID ${currentProject ? `(current: ${currentProject})` : '(optional)'}: `
-          )) ||
-          existingConfig?.llm?.googleCloudProject ||
-          undefined;
-        break;
-      }
-    }
-
-    // UI configuration
-    console.log('\n🎨 UI Configuration:');
-    const currentAutoOpen = existingConfig?.ui?.autoOpen ? 'y' : 'n';
-    const autoOpenInput =
-      (await question(`Auto-open browser? (y/N, current: ${currentAutoOpen}): `)) ||
-      currentAutoOpen;
-    const autoOpen = autoOpenInput.toLowerCase() === 'y' || autoOpenInput.toLowerCase() === 'yes';
-
-    // GitLab configuration
-    console.log('\n🦊 GitLab Configuration (for CLI review mode):');
-    console.log(
-      helpText('This allows you to review merge requests directly from the command line.')
-    );
-
-    const hasExistingGitlab = existingConfig?.gitlab?.url && existingConfig?.gitlab?.accessToken;
-    const defaultConfigureGitlab = hasExistingGitlab ? 'Y' : 'n';
-
-    if (hasExistingGitlab) {
-      console.log(helpText(`Current GitLab URL: ${existingConfig!.gitlab!.url}`));
-    }
-
-    const configureGitlab =
-      (await question(`Configure GitLab access? (Y/n, current: ${defaultConfigureGitlab}): `)) ||
-      defaultConfigureGitlab;
-
-    let gitlabConfig: { url: string; accessToken: string } | undefined;
-
-    if (configureGitlab.toLowerCase() !== 'n' && configureGitlab.toLowerCase() !== 'no') {
-      const currentGitlabUrl = existingConfig?.gitlab?.url || '';
-      const gitlabUrl =
-        (await question(
-          `GitLab instance URL ${currentGitlabUrl ? `(current: ${currentGitlabUrl})` : '(e.g., https://gitlab.com)'}: `
-        )) || currentGitlabUrl;
-
-      if (gitlabUrl) {
-        console.log(helpText('To create a Personal Access Token:'));
-        console.log(helpText('1. Go to your GitLab instance → Settings → Access Tokens'));
-        console.log(helpText('2. Create a token with "api" scope'));
-        console.log(helpText('3. Copy the token (it will only be shown once)'));
-
-        const currentAccessToken = existingConfig?.gitlab?.accessToken || '';
-        const maskedToken = currentAccessToken ? `${currentAccessToken.substring(0, 8)}...` : '';
-        const accessToken =
-          (await question(
-            `\nGitLab Personal Access Token ${maskedToken ? `(current: ${maskedToken})` : ''}: `
-          )) || currentAccessToken;
-
-        if (accessToken) {
-          // Test GitLab connection
-          console.log('\n🔍 Testing GitLab connection...');
-          try {
-            await testGitLabConnection(gitlabUrl, accessToken);
-            console.log('✅ GitLab connection successful!');
-            gitlabConfig = { url: gitlabUrl, accessToken };
-          } catch (error) {
-            console.warn(
-              `⚠️  GitLab connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-            );
-            const continueAnyway = await question(
-              'Continue with this configuration anyway? (y/N): '
-            );
-            if (continueAnyway.toLowerCase() === 'y' || continueAnyway.toLowerCase() === 'yes') {
-              gitlabConfig = { url: gitlabUrl, accessToken };
-            }
+        case 'ui':
+          config.ui = await configureUI(question, existingConfig);
+          break;
+        case 'gitlab': {
+          const gitlabResult = await configureGitLab(question, existingConfig);
+          if (gitlabResult) {
+            config.gitlab = gitlabResult;
           }
+          break;
         }
-      }
-    }
-
-    let autoReviewConfig:
-      | {
-          enabled: boolean;
-          projects: string[];
-          interval: number;
-          state?: { storage: 'local' | 'snippet' };
-        }
-      | undefined;
-
-    if (gitlabConfig) {
-      console.log('\n🤖 Automatic Review Configuration:');
-      console.log(helpText('This mode will automatically review new MRs in configured projects.'));
-
-      const hasExistingAutoReview = existingConfig?.autoReview?.enabled === true;
-      const defaultEnableAutoReview = hasExistingAutoReview ? 'Y' : 'N';
-
-      if (hasExistingAutoReview && existingConfig?.autoReview) {
-        console.log(`Current projects: ${existingConfig.autoReview.projects.join(', ')}`);
-        console.log(`Current interval: ${existingConfig.autoReview.interval} seconds`);
-      }
-
-      const enableAutoReview =
-        (await question(
-          `Enable automatic MR review mode? (y/N, current: ${defaultEnableAutoReview}): `
-        )) || defaultEnableAutoReview;
-
-      if (enableAutoReview.toLowerCase() === 'y' || enableAutoReview.toLowerCase() === 'yes') {
-        // Show projects table and let user select
-        const selectedProjects = await selectProjectsInteractively(
-          gitlabConfig,
-          question,
-          existingConfig?.autoReview?.projects
-        );
-
-        const currentInterval = existingConfig?.autoReview?.interval?.toString() || '300';
-        const intervalStr =
-          (await question(`Review interval in seconds (current: ${currentInterval}): `)) ||
-          currentInterval;
-        const interval = parseInt(intervalStr, 10);
-
-        if (selectedProjects.projectNames.length > 0) {
-          // Ask for state storage type
-          console.log('\n💾 State Storage Configuration:');
-          console.log(helpText('This determines where to save the state of reviewed MRs.'));
-          console.log(helpText('1. Local file (default, stored in ~/.aicodereview)'));
-          console.log(
-            helpText('2. GitLab snippet (stored in each project, allows for distributed use)')
+        case 'autoReview': {
+          if (!existingConfig?.gitlab) {
+            console.error('❌ GitLab configuration is required for auto-review mode.');
+            console.error('Please run "aicodereview --init gitlab" first.');
+            return;
+          }
+          const autoReviewResult = await configureAutoReview(
+            question,
+            existingConfig,
+            existingConfig.gitlab
           );
-
-          const defaultStateStorage =
-            existingConfig?.autoReview?.state?.storage === 'snippet' ? '2' : '1';
-          const storageChoice =
-            (await question(`Choose state storage (1-2, current: ${defaultStateStorage}): `)) ||
-            defaultStateStorage;
-
-          const storageType = storageChoice === '2' ? 'snippet' : 'local';
-
-          autoReviewConfig = {
-            enabled: true,
-            projects: selectedProjects.projectNames,
-            interval: isNaN(interval) ? 300 : interval,
-            state: {
-              storage: storageType,
-            },
-          };
-          console.log(`✅ State storage set to: ${storageType}`);
-
-          // If user chose snippet storage, check for local state and offer to migrate
-          if (
-            storageType === 'snippet' &&
-            existingConfig?.autoReview?.state?.storage !== 'snippet'
-          ) {
-            // Pass the selected projects directly to avoid refetching
-            await migrateLocalStateToSnippets(gitlabConfig, question, selectedProjects.projects);
+          if (autoReviewResult) {
+            config.autoReview = autoReviewResult;
           }
-        } else {
-          console.log('⚠️  No valid projects selected. Auto-review mode will be disabled.');
+          break;
+        }
+      }
+
+      // Merge with existing config to preserve other sections
+      if (existingConfig) {
+        config = { ...existingConfig, ...config };
+      }
+    } else {
+      // Full configuration wizard
+      config.server = await configureServer(question, existingConfig);
+      config.llm = await configureLLM(question, existingConfig);
+      config.ui = await configureUI(question, existingConfig);
+
+      const gitlabResult = await configureGitLab(question, existingConfig);
+      if (gitlabResult) {
+        config.gitlab = gitlabResult;
+        const autoReviewResult = await configureAutoReview(question, existingConfig, config.gitlab);
+        if (autoReviewResult) {
+          config.autoReview = autoReviewResult;
         }
       }
     }
-
-    // Create config object
-    const config: AppConfig = {
-      server: {
-        port: parseInt(port, 10),
-        host,
-        ...(subPath && { subPath }),
-      },
-      llm: {
-        provider: provider as 'gemini-cli' | 'gemini' | 'anthropic',
-        ...(apiKey && { apiKey }),
-        ...(googleCloudProject && { googleCloudProject }),
-      },
-      ui: {
-        autoOpen,
-      },
-      ...(gitlabConfig && { gitlab: gitlabConfig }),
-      ...(autoReviewConfig && { autoReview: autoReviewConfig }),
-    };
 
     // Save to home directory
     const homeConfigDir = join(homedir(), '.aicodereview');
@@ -613,10 +706,14 @@ export async function createConfigInteractively(): Promise<void> {
     const configPath = join(homeConfigDir, 'config.json');
 
     // Write config file
-    writeFileSync(configPath, JSON.stringify(config, null, 2));
+    writeFileSync(configPath, JSON.stringify(config as AppConfig, null, 2));
 
     console.log(`\n✅ Configuration saved to: ${configPath}`);
-    console.log('\n🚀 You can now run: aicodereview');
+    if (section) {
+      console.log(`🔧 Section "${section}" has been updated.`);
+    } else {
+      console.log('\n🚀 You can now run: aicodereview');
+    }
   } finally {
     rl.close();
   }

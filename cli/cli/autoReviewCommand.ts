@@ -59,6 +59,11 @@ export class AutoReviewCommand {
   private async runReviewLoop(): Promise<void> {
     const storageMode = this.config.autoReview?.state?.storage || 'local';
     await this.runUnifiedReviewLoop(storageMode);
+    console.log(
+      CLIOutputFormatter.formatProgress(
+        'Finished one review loop. Next cycle starts in ' + this.config.autoReview?.interval
+      )
+    );
   }
 
   private async runUnifiedReviewLoop(storageMode: 'local' | 'snippet'): Promise<void> {
