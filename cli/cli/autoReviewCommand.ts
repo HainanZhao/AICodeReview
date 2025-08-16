@@ -61,7 +61,7 @@ export class AutoReviewCommand {
     await this.runUnifiedReviewLoop(storageMode);
     console.log(
       CLIOutputFormatter.formatProgress(
-        'Finished one review loop. Next cycle starts in ' + this.config.autoReview?.interval
+        `Finished one review loop. Next cycle starts in ' + ${this.config.autoReview?.interval}s`
       )
     );
   }

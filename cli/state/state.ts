@@ -3,10 +3,10 @@ import { homedir } from 'os';
 import { join } from 'path';
 import { GitLabConfig } from '../config/configSchema.js';
 import {
-    createStateSnippet,
-    findStateSnippet,
-    getSnippetContent,
-    updateSnippetContent,
+  createStateSnippet,
+  findStateSnippet,
+  getSnippetContent,
+  updateSnippetContent,
 } from '../shared/services/gitlabCore.js';
 
 // The basic state for a single reviewed MR.
