@@ -24,6 +24,11 @@ export interface AutoReviewConfig {
   enabled: boolean;
   projects: string[]; // Changed from number[] to string[] to store project names
   interval: number;
+  state?: StateConfig;
+}
+
+export interface StateConfig {
+  storage: 'local' | 'snippet';
 }
 
 export interface AppConfig {
@@ -82,6 +87,16 @@ export const CONFIG_SCHEMA = {
           items: { type: 'string' }, // Changed from number to string
         },
         interval: { type: 'number', minimum: 30 }, // Minimum 30 seconds
+        state: {
+          type: 'object',
+          properties: {
+            storage: {
+              type: 'string',
+              enum: ['local', 'snippet'],
+            },
+          },
+          required: ['storage'],
+        },
       },
       required: ['enabled', 'projects', 'interval'],
     },

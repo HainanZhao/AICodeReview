@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2] - 2025-08-16
+
+### Added
+- **GitLab Snippet State Storage**: New state management system that stores review state in private GitLab snippets per project
+  - Enables distributed use of auto-review mode across different machines
+  - State is now tied to the project, making it more robust and portable
+  - New `state.storage` configuration option to choose between `local` and `snippet` storage
+- **State Migration Wizard**: Interactive tool to migrate existing local review state to GitLab snippets
+  - Automatically detects local state and prompts for migration
+  - Maps old MR IDs to new project-specific IIDs
+  - Securely transfers state to private snippets in each configured project
+- **Section-based Configuration**: The `--init` command now accepts an optional section name to configure only a specific part of the application (e.g., `aicodereview --init gitlab`)
+  - Supported sections: `server`, `llm`, `ui`, `gitlab`, `autoReview`
+  - Makes it easier to update specific configuration settings without going through the full wizard
+
+
 ## [1.5.1] - 2025-08-15
 
 ### Fixed
@@ -72,7 +88,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Improved AI Review Intelligence**: Enhanced AI review prompt system to avoid duplicate comments and prioritize actionable code suggestions
   - AI now checks existing comments and discussions to avoid repetition
   - Prioritizes providing concrete code suggestions over general comments
-  - Added support for suggestion format: `\`\`\`suggestion:-X+Y` for specific code changes
+  - Added support for suggestion format: `\
+```suggestion:-X+Y` for specific code changes
   - Improved review quality by focusing on unique, actionable feedback
 
 ### Fixed
