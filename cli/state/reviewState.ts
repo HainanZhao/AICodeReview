@@ -7,17 +7,13 @@ const STATE_FILE_PATH = join(homedir(), '.aicodereview', 'review-state.json');
 export interface ReviewedMrState {
   head_sha: string;
   reviewed_at: string;
+  // New optional fields for backward compatibility
+  projectId?: number;
+  mrIid?: number;
 }
 
-const STATE_FILE_VERSION = 2;
-
 export interface ReviewState {
-  version: number;
-  project_mrs: {
-    [projectId: string]: {
-      [mrIid: string]: ReviewedMrState;
-    };
-  };
+  [mrId: string]: ReviewedMrState;
 }
 
 let state: ReviewState | null = null;
@@ -30,23 +26,14 @@ export function loadState(): ReviewState {
   if (existsSync(STATE_FILE_PATH)) {
     try {
       const fileContent = readFileSync(STATE_FILE_PATH, 'utf-8');
-      const parsedState = JSON.parse(fileContent) as ReviewState;
-
-      // Check if the state is in the new format
-      if (parsedState.version === STATE_FILE_VERSION && parsedState.project_mrs) {
-        state = parsedState;
-        return state;
-      }
+      state = JSON.parse(fileContent) as ReviewState;
+      return state!;
     } catch (e) {
       console.warn('Could not parse existing review state file. Starting fresh.', e);
     }
   }
 
-  // If file doesn't exist, is invalid, or is old format, start with a fresh state
-  state = {
-    version: STATE_FILE_VERSION,
-    project_mrs: {},
-  };
+  state = {};
   return state;
 }
 
@@ -59,26 +46,22 @@ export function saveState(newState: ReviewState): void {
   state = newState;
 }
 
-export function getReviewedMr(
-  projectId: number,
-  mrIid: number
-): ReviewedMrState | undefined {
+export function getReviewedMr(mrId: number): ReviewedMrState | undefined {
   const currentState = loadState();
-  return currentState.project_mrs[projectId]?.[mrIid];
+  return currentState[String(mrId)];
 }
 
 export function updateReviewedMr(
-  projectId: number,
-  mrIid: number,
-  head_sha: string
+  mrId: number,
+  head_sha: string,
+  details: { projectId: number; mrIid: number }
 ): void {
   const currentState = loadState();
-  if (!currentState.project_mrs[projectId]) {
-    currentState.project_mrs[projectId] = {};
-  }
-  currentState.project_mrs[projectId][mrIid] = {
+  currentState[String(mrId)] = {
     head_sha,
     reviewed_at: new Date().toISOString(),
+    projectId: details.projectId,
+    mrIid: details.mrIid,
   };
   saveState(currentState);
 }
@@ -86,18 +69,33 @@ export function updateReviewedMr(
 export async function pruneClosedMrStates(
   config: { gitlab: { url: string; accessToken: string } },
   fetcher: (
-    config: { url: string; accessToken: string },
+    config: { url:string; accessToken: string },
     projectId: number,
     mrIids: string[]
-  ) => Promise<Array<{ iid: number; state: string }>>
+  ) => Promise<Array<{ iid: number; state: string; id: number }>>
 ): Promise<void> {
   const currentState = loadState();
   let stateChanged = false;
 
-  for (const projectIdStr in currentState.project_mrs) {
+  const enrichedMrsByProject: Record<string, { iid: string; id: string }[]> = {};
+
+  // Collect all enriched MRs and group them by project
+  for (const mrId in currentState) {
+    const mrState = currentState[mrId];
+    if (mrState.projectId && mrState.mrIid) {
+      const projectIdStr = String(mrState.projectId);
+      if (!enrichedMrsByProject[projectIdStr]) {
+        enrichedMrsByProject[projectIdStr] = [];
+      }
+      enrichedMrsByProject[projectIdStr].push({ iid: String(mrState.mrIid), id: mrId });
+    }
+  }
+
+  // For each project, fetch the status of its tracked MRs
+  for (const projectIdStr in enrichedMrsByProject) {
     const projectId = parseInt(projectIdStr, 10);
-    const mrsInProject = currentState.project_mrs[projectIdStr];
-    const mrIids = Object.keys(mrsInProject);
+    const mrsInProject = enrichedMrsByProject[projectIdStr];
+    const mrIids = mrsInProject.map((mr) => mr.iid);
 
     if (mrIids.length === 0) {
       continue;
@@ -105,10 +103,17 @@ export async function pruneClosedMrStates(
 
     try {
       const fetchedMrs = await fetcher(config.gitlab, projectId, mrIids);
-      for (const mr of fetchedMrs) {
-        if (mr.state === 'closed' || mr.state === 'merged') {
-          console.log(`Pruning closed/merged MR !${mr.iid} from project ${projectId}`);
-          delete currentState.project_mrs[projectIdStr][mr.iid.toString()];
+      const closedOrMergedMrs = fetchedMrs.filter(
+        (mr) => mr.state === 'closed' || mr.state === 'merged'
+      );
+
+      for (const mr of closedOrMergedMrs) {
+        const globalMrId = String(mr.id);
+        if (currentState[globalMrId]) {
+          console.log(
+            `Pruning closed/merged MR !${mr.iid} (ID: ${globalMrId}) from project ${projectId}`
+          );
+          delete currentState[globalMrId];
           stateChanged = true;
         }
       }

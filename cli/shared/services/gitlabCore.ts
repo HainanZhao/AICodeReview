@@ -674,14 +674,7 @@ export const fetchMergeRequestsByIids = async (
   }
   const queryParams = mrIids.map((iid) => `iids[]=${iid}`).join('&');
   const url = `${config.url}/api/v4/projects/${projectId}/merge_requests?${queryParams}`;
-  const apiResponse = await gitlabApiFetch(url, config);
-  // Ensure each MR has a 'state' property (may be undefined)
-  const mrs: GitLabMergeRequestWithState[] = Array.isArray(apiResponse)
-    ? apiResponse.map((mr) => ({
-        ...mr,
-        state: (mr as any).state,
-      }))
-    : [];
+  const mrs = (await gitlabApiFetch(url, config)) as GitLabMergeRequestWithState[];
   return mrs;
 };
 

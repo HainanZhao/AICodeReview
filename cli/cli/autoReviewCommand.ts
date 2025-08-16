@@ -142,7 +142,7 @@ export class AutoReviewCommand {
     // Fetch detailed MR info to get the head_sha
     const mrDetails = await fetchMrData(this.config.gitlab!, mr.web_url);
 
-    const reviewedMr = getReviewedMr(mrDetails.projectId, Number(mrDetails.mrIid));
+    const reviewedMr = getReviewedMr(mr.id);
     if (reviewedMr && reviewedMr.head_sha === mrDetails.head_sha) {
       // Already reviewed and no new changes
       return;
@@ -160,7 +160,10 @@ export class AutoReviewCommand {
         apiKey: this.config.llm.apiKey,
         googleCloudProject: this.config.llm.googleCloudProject,
       });
-      updateReviewedMr(mrDetails.projectId, Number(mrDetails.mrIid), mrDetails.head_sha);
+      updateReviewedMr(mr.id, mrDetails.head_sha, {
+        projectId: mrDetails.projectId,
+        mrIid: Number(mrDetails.mrIid),
+      });
       console.log(CLIOutputFormatter.formatSuccess(`Successfully reviewed MR: ${mr.web_url}`));
     } catch (error) {
       console.error(
