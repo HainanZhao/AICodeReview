@@ -70,7 +70,8 @@ export const gitlabApiFetch = async (
   url: string,
   config: GitLabConfig,
   options: RequestInit = {},
-  returnType: 'json' | 'text' = 'json'
+  returnType: 'json' | 'text' = 'json',
+  swallow404 = false
 ) => {
   const response = await fetch(url, {
     ...options,
@@ -88,7 +89,10 @@ export const gitlabApiFetch = async (
       );
     }
     if (response.status === 404) {
-      // For file content, 404 is acceptable (e.g., file doesn't exist on a branch)
+      if (swallow404) {
+        return null;
+      }
+      // For file content, 404 is also acceptable (e.g., file doesn't exist on a branch)
       if (!url.includes('/repository/files/')) {
         throw new Error(
           'Merge Request or Project not found. Please check the URL and your project access permissions.'
@@ -753,7 +757,11 @@ export const findStateSnippet = async (
   projectId: number
 ): Promise<GitLabSnippet | null> => {
   const url = `${config.url}/api/v4/projects/${projectId}/snippets`;
-  const snippets = (await gitlabApiFetch(url, config)) as GitLabSnippet[];
+  // Swallow 404s in case project is not found or snippets are disabled
+  const snippets = (await gitlabApiFetch(url, config, {}, 'json', true)) as GitLabSnippet[] | null;
+  if (!snippets) {
+    return null;
+  }
   return snippets.find((s) => s.title === STATE_SNIPPET_TITLE) || null;
 };
 
@@ -764,10 +772,10 @@ export const getSnippetContent = async (
   config: GitLabConfig,
   projectId: number,
   snippetId: number
-): Promise<string> => {
+): Promise<string | null> => {
   const url = `${config.url}/api/v4/projects/${projectId}/snippets/${snippetId}/raw`;
-  const content = await gitlabApiFetch(url, config, {}, 'text');
-  return content as string;
+  const content = await gitlabApiFetch(url, config, {}, 'text', true);
+  return content as string | null;
 };
 
 /**
@@ -777,20 +785,21 @@ export const createStateSnippet = async (
   config: GitLabConfig,
   projectId: number,
   content: string
-): Promise<GitLabSnippet> => {
+): Promise<GitLabSnippet | null> => {
   const url = `${config.url}/api/v4/projects/${projectId}/snippets`;
   const payload = {
     title: STATE_SNIPPET_TITLE,
     file_name: 'review-state.json',
     content,
-    visibility: 'private',
+    visibility: 'private' as const,
     description: 'Stores the review state for the AI Code Review tool. Do not delete.',
   };
+  // Swallow 404s in case project is not found
   const snippet = await gitlabApiFetch(url, config, {
     method: 'POST',
     body: JSON.stringify(payload),
-  });
-  return snippet as GitLabSnippet;
+  }, 'json', true);
+  return snippet as GitLabSnippet | null;
 };
 
 /**
@@ -801,7 +810,7 @@ export const updateSnippetContent = async (
   projectId: number,
   snippetId: number,
   content: string
-): Promise<GitLabSnippet> => {
+): Promise<GitLabSnippet | null> => {
   const url = `${config.url}/api/v4/projects/${projectId}/snippets/${snippetId}`;
   const payload = {
     content,
@@ -809,8 +818,8 @@ export const updateSnippetContent = async (
   const snippet = await gitlabApiFetch(url, config, {
     method: 'PUT',
     body: JSON.stringify(payload),
-  });
-  return snippet as GitLabSnippet;
+  }, 'json', true);
+  return snippet as GitLabSnippet | null;
 };
 
 /**
@@ -826,6 +835,8 @@ export const fetchMergeRequestsByIids = async (
   }
   const queryParams = mrIids.map((iid) => `iids[]=${iid}`).join('&');
   const url = `${config.url}/api/v4/projects/${projectId}/merge_requests?${queryParams}`;
+  // Don't swallow 404s here, if the project is gone we want to know.
+  // The pruning logic handles this.
   const mrs = (await gitlabApiFetch(url, config)) as GitLabMergeRequestWithState[];
   return mrs;
 };

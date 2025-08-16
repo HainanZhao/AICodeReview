@@ -21,7 +21,7 @@ export interface ProjectReviewState {
 
 export interface StateProvider {
   loadState(projectId: number): Promise<ProjectReviewState>;
-  saveState(projectId: number, state: ProjectReviewState): Promise<void>;
+  saveState(projectId: number, state: ProjectReviewState): Promise<boolean>;
 }
 
 const STATE_FILE_PATH = join(homedir(), '.aicodereview', 'review-state.json');
@@ -40,13 +40,12 @@ export class LocalFileStateProvider implements StateProvider {
     if (existsSync(STATE_FILE_PATH)) {
       try {
         const fileContent = readFileSync(STATE_FILE_PATH, 'utf-8');
-        this.globalState = JSON.parse(fileContent) as GlobalReviewState;
-        // Basic validation to check if it's in the new format
-        if (this.globalState && typeof this.globalState === 'object' && !Array.isArray(this.globalState)) {
+        const parsedState = JSON.parse(fileContent) as GlobalReviewState;
+        if (parsedState && typeof parsedState === 'object' && !Array.isArray(parsedState)) {
+            this.globalState = parsedState;
             return this.globalState;
         }
         console.warn('Local review state file is in an old, unsupported format and will be ignored.');
-
       } catch (e) {
         console.warn('Could not parse local review state file. It will be ignored.', e);
       }
@@ -69,10 +68,16 @@ export class LocalFileStateProvider implements StateProvider {
     return globalState[String(projectId)] || {};
   }
 
-  async saveState(projectId: number, state: ProjectReviewState): Promise<void> {
-    const globalState = this.readGlobalState();
-    globalState[String(projectId)] = state;
-    this.writeGlobalState(globalState);
+  async saveState(projectId: number, state: ProjectReviewState): Promise<boolean> {
+    try {
+        const globalState = this.readGlobalState();
+        globalState[String(projectId)] = state;
+        this.writeGlobalState(globalState);
+        return true;
+    } catch (e) {
+        console.error(`Failed to save local state for project ${projectId}`, e);
+        return false;
+    }
   }
 }
 
@@ -103,12 +108,12 @@ export class GitLabSnippetStateProvider implements StateProvider {
         }
       }
     } catch (e) {
-      console.error(`Failed to load state from snippet for project ${projectId}`, e);
+      // Error is logged in the helper, returning empty state is enough here.
     }
     return {};
   }
 
-  async saveState(projectId: number, state: ProjectReviewState): Promise<void> {
+  async saveState(projectId: number, state: ProjectReviewState): Promise<boolean> {
     const content = JSON.stringify(state, null, 2);
     try {
       const snippet = await this.findStateSnippet(projectId);
@@ -121,8 +126,10 @@ export class GitLabSnippetStateProvider implements StateProvider {
         const newSnippet = await createStateSnippet(this.config, projectId, content);
         this.snippetCache[projectId] = newSnippet;
       }
+      return true;
     } catch (e) {
-      console.error(`Failed to save state to snippet for project ${projectId}`, e);
+      console.error(`Failed to save state to snippet for project ${projectId}. Please ensure the project exists and you have developer or higher permissions.`, e);
+      return false;
     }
   }
 }

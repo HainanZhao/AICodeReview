@@ -34,19 +34,28 @@ async function migrateLocalStateToSnippets(
     // This is a bit of a hack, but we need to get the whole state object
     // which is not exposed by the provider interface directly.
     const globalState = (localProvider as any).readGlobalState();
+    let allSucceeded = true;
 
     for (const projectIdStr in globalState) {
       const projectId = parseInt(projectIdStr, 10);
       const projectState = globalState[projectIdStr];
       if (projectState && Object.keys(projectState).length > 0) {
         console.log(`Migrating state for project ${projectId}...`);
-        await snippetProvider.saveState(projectId, projectState);
+        const success = await snippetProvider.saveState(projectId, projectState);
+        if (!success) {
+            allSucceeded = false;
+            console.warn(`⚠️  Could not migrate state for project ${projectId}. It may no longer exist or you may not have permission. Skipping.`);
+        }
       }
     }
 
-    // Rename the old file to prevent re-migration
-    renameSync(STATE_FILE_PATH, `${STATE_FILE_PATH}.migrated`);
-    console.log('✅ Migration successful! Renamed local state file to review-state.json.migrated');
+    if (allSucceeded) {
+        // Rename the old file to prevent re-migration
+        renameSync(STATE_FILE_PATH, `${STATE_FILE_PATH}.migrated`);
+        console.log('✅ Migration successful! Renamed local state file to review-state.json.migrated');
+    } else {
+        console.warn('⚠️  Migration completed with some errors. Not all project states were migrated. The local state file has not been renamed.');
+    }
   } catch (error) {
     console.error(`❌ Migration failed: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -474,6 +483,7 @@ export async function createConfigInteractively(): Promise<void> {
           if (storageType === 'snippet' && existingConfig?.state?.storage !== 'snippet') {
             await migrateLocalStateToSnippets(gitlabConfig, question);
           }
+
         } else {
           console.log('⚠️  No valid projects selected. Auto-review mode will be disabled.');
         }
