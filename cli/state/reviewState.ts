@@ -108,7 +108,7 @@ export async function pruneClosedMrStates(
       for (const mr of fetchedMrs) {
         if (mr.state === 'closed' || mr.state === 'merged') {
           console.log(`Pruning closed/merged MR !${mr.iid} from project ${projectId}`);
-          delete currentState.project_mrs[projectIdStr][mr.iid];
+          delete currentState.project_mrs[projectIdStr][mr.iid.toString()];
           stateChanged = true;
         }
       }
