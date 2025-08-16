@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.6.0] - 2025-08-16
+## [1.6.2] - 2025-08-16
 
 ### Added
 - **GitLab Snippet State Storage**: New state management system that stores review state in private GitLab snippets per project
@@ -20,17 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Supported sections: `server`, `llm`, `ui`, `gitlab`, `autoReview`
   - Makes it easier to update specific configuration settings without going through the full wizard
 
-### Enhanced
-- **Auto-Review Engine**: Significant improvements to the auto-review engine for better performance and reliability
-  - **Unified Review Loop**: A single review loop now handles both `local` and `snippet` storage modes
-  - **Efficient State Pruning**: The engine now prunes the state for all projects at once, reducing API calls
-  - **Improved Error Handling**: More specific and informative error messages
-- **Configuration Wizard**: The configuration wizard has been refactored for better usability and flexibility
-  - **Modular Functions**: The wizard is now composed of smaller, more manageable functions
-  - **Improved Project Selection**: The project selection step now returns full project objects
-- **Code Refactoring**:
-  - **`Util` Class**: A new `Util` class has been introduced to house common utility functions like `normalizeProjectName`
-  - **`state.ts`**: A new `state.ts` file has been added to manage all state-related logic
 
 ## [1.5.1] - 2025-08-15
 
