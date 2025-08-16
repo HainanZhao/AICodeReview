@@ -6,7 +6,7 @@ import { AppConfig } from '../config/configSchema.js';
 import { ProjectCacheService } from '../services/projectCacheService.js';
 import {
   fetchMergeRequestsByIids,
-  fetchMrData,
+  fetchMrHeadSha,
   fetchOpenMergeRequests,
 } from '../shared/services/gitlabCore.js';
 import {
@@ -224,11 +224,11 @@ export class AutoReviewCommand {
         continue;
       }
 
-      const mrDetails = await fetchMrData(this.config.gitlab!, mr.web_url);
+      const headSha = await fetchMrHeadSha(this.config.gitlab!, mr.web_url);
 
       // If the SHA is the same, it was a non-code update.
       // Update our timestamp and skip the review.
-      if (reviewedMr && reviewedMr.head_sha === mrDetails.head_sha) {
+      if (reviewedMr && reviewedMr.head_sha === headSha) {
         state[stateKey].reviewed_at = new Date().toISOString();
         continue;
       }
@@ -247,7 +247,7 @@ export class AutoReviewCommand {
 
         // Store the reviewed MR state
         state[stateKey] = {
-          head_sha: mrDetails.head_sha,
+          head_sha: headSha,
           reviewed_at: new Date().toISOString(),
           project_id: project.id,
           mr_iid: mr.iid,

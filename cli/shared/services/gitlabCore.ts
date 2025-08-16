@@ -620,6 +620,26 @@ export const fetchMrData = async (
 };
 
 /**
+ * Lightweight function to fetch only the head SHA of a merge request
+ * This is much faster than fetchMrData as it only fetches MR details and versions
+ */
+export const fetchMrHeadSha = async (config: GitLabConfig, mrUrl: string): Promise<string> => {
+  const { projectPath, mrIid } = parseMrUrl(mrUrl, config.url);
+  const encodedProjectPath = encodeURIComponent(projectPath);
+  const baseUrl = `${config.url}/api/v4/projects/${encodedProjectPath}/merge_requests/${mrIid}`;
+
+  // Fetch versions to get the head SHA
+  const versions = await gitlabApiFetch(`${baseUrl}/versions`, config);
+  const latestVersion = versions[0];
+
+  if (!latestVersion) {
+    throw new Error('Could not retrieve merge request version details.');
+  }
+
+  return latestVersion.head_commit_sha;
+};
+
+/**
  * Fetches GitLab projects for the authenticated user
  */
 export const fetchProjects = async (config: GitLabConfig): Promise<GitLabProject[]> => {
