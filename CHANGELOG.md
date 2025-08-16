@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2025-08-16
+
+### Added
+- **GitLab Snippet State Storage**: New state management system that stores review state in private GitLab snippets per project
+  - Enables distributed use of auto-review mode across different machines
+  - State is now tied to the project, making it more robust and portable
+  - New `state.storage` configuration option to choose between `local` and `snippet` storage
+- **State Migration Wizard**: Interactive tool to migrate existing local review state to GitLab snippets
+  - Automatically detects local state and prompts for migration
+  - Maps old MR IDs to new project-specific IIDs
+  - Securely transfers state to private snippets in each configured project
+- **Section-based Configuration**: The `--init` command now accepts an optional section name to configure only a specific part of the application (e.g., `aicodereview --init gitlab`)
+  - Supported sections: `server`, `llm`, `ui`, `gitlab`, `autoReview`
+  - Makes it easier to update specific configuration settings without going through the full wizard
+
+### Enhanced
+- **Auto-Review Engine**: Significant improvements to the auto-review engine for better performance and reliability
+  - **Unified Review Loop**: A single review loop now handles both `local` and `snippet` storage modes
+  - **Efficient State Pruning**: The engine now prunes the state for all projects at once, reducing API calls
+  - **Improved Error Handling**: More specific and informative error messages
+- **Configuration Wizard**: The configuration wizard has been refactored for better usability and flexibility
+  - **Modular Functions**: The wizard is now composed of smaller, more manageable functions
+  - **Improved Project Selection**: The project selection step now returns full project objects
+- **Code Refactoring**:
+  - **`Util` Class**: A new `Util` class has been introduced to house common utility functions like `normalizeProjectName`
+  - **`state.ts`**: A new `state.ts` file has been added to manage all state-related logic
+
 ## [1.5.1] - 2025-08-15
 
 ### Fixed
@@ -72,7 +99,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Improved AI Review Intelligence**: Enhanced AI review prompt system to avoid duplicate comments and prioritize actionable code suggestions
   - AI now checks existing comments and discussions to avoid repetition
   - Prioritizes providing concrete code suggestions over general comments
-  - Added support for suggestion format: `\`\`\`suggestion:-X+Y` for specific code changes
+  - Added support for suggestion format: `\
+```suggestion:-X+Y` for specific code changes
   - Improved review quality by focusing on unique, actionable feedback
 
 ### Fixed
