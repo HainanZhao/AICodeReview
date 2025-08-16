@@ -1,9 +1,10 @@
-import { existsSync, mkdirSync, writeFileSync, renameSync } from 'fs';
+import { existsSync, mkdirSync, renameSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { createInterface } from 'readline';
 import { fetchProjects } from '../shared/services/gitlabCore.js';
 import { GitLabConfig } from '../shared/types/gitlab.js';
+import { Util } from '../shared/utils/utils.js';
 import { GitLabSnippetStateProvider, LocalFileStateProvider } from '../state/stateProviders.js';
 import { ConfigLoader } from './configLoader.js';
 import { AppConfig } from './configSchema.js';
@@ -60,7 +61,6 @@ async function migrateLocalStateToSnippets(
     console.error(`❌ Migration failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
-
 
 /**
  * Normalizes project names by removing extra spaces around slashes
@@ -148,8 +148,8 @@ async function selectProjectsInteractively(
       .filter((name) => name.length > 0);
 
     const matchingProjects = projects.filter((project) => {
-      const projectName = project.name.toLowerCase();
-      const projectNamespace = project.name_with_namespace.toLowerCase();
+      const projectName = Util.normalizeProjectName(project.name);
+      const projectNamespace = Util.normalizeProjectName(project.name_with_namespace);
 
       return searchNames.some(
         (searchName) => projectName.includes(searchName) || projectNamespace.includes(searchName)
@@ -465,7 +465,9 @@ export async function createConfigInteractively(): Promise<void> {
           console.log('\n💾 State Storage Configuration:');
           console.log(helpText('This determines where to save the state of reviewed MRs.'));
           console.log(helpText('1. Local file (default, stored in ~/.aicodereview)'));
-          console.log(helpText('2. GitLab snippet (stored in each project, allows for distributed use)'));
+          console.log(
+            helpText('2. GitLab snippet (stored in each project, allows for distributed use)')
+          );
 
           const defaultStateStorage = existingConfig?.state?.storage === 'snippet' ? '2' : '1';
           const storageChoice =

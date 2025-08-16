@@ -3,6 +3,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 import { fetchProjects } from '../shared/services/gitlabCore.js';
 import { GitLabConfig, GitLabProject } from '../shared/types/gitlab.js';
+import { Util } from '../shared/utils/utils.js';
 
 export interface ProjectCacheEntry {
   id: number;
@@ -26,14 +27,6 @@ export class ProjectCacheService {
       mkdirSync(homeConfigDir, { recursive: true });
     }
     this.cacheFilePath = join(homeConfigDir, 'projects-cache.json');
-  }
-
-  /**
-   * Normalizes project names by removing extra spaces around slashes
-   * e.g., "group / subgroup / project" -> "group/subgroup/project"
-   */
-  private normalizeProjectName(name: string): string {
-    return name.replace(/\s*\/\s*/g, '/').trim();
   }
 
   /**
@@ -91,7 +84,7 @@ export class ProjectCacheService {
         projects: projects.map((project: GitLabProject) => ({
           id: project.id,
           name: project.name,
-          nameWithNamespace: this.normalizeProjectName(project.name_with_namespace),
+          nameWithNamespace: Util.normalizeProjectName(project.name_with_namespace),
           lastUpdated: new Date().toISOString(),
         })),
         lastFullUpdate: new Date().toISOString(),
@@ -126,7 +119,7 @@ export class ProjectCacheService {
     const notFoundNames: string[] = [];
 
     for (const projectName of projectNames) {
-      const normalizedSearchName = this.normalizeProjectName(projectName).toLowerCase().trim();
+      const normalizedSearchName = Util.normalizeProjectName(projectName).toLowerCase().trim();
 
       // Try to find exact match first (by name or name_with_namespace)
       // Support both normalized and original formats for backward compatibility
@@ -134,7 +127,7 @@ export class ProjectCacheService {
         (project) =>
           project.name.toLowerCase() === normalizedSearchName ||
           project.nameWithNamespace.toLowerCase() === normalizedSearchName ||
-          this.normalizeProjectName(project.nameWithNamespace).toLowerCase() ===
+          Util.normalizeProjectName(project.nameWithNamespace).toLowerCase() ===
             normalizedSearchName
       );
 
@@ -144,7 +137,7 @@ export class ProjectCacheService {
           (project) =>
             project.name.toLowerCase().includes(normalizedSearchName) ||
             project.nameWithNamespace.toLowerCase().includes(normalizedSearchName) ||
-            this.normalizeProjectName(project.nameWithNamespace)
+            Util.normalizeProjectName(project.nameWithNamespace)
               .toLowerCase()
               .includes(normalizedSearchName)
         );
@@ -166,13 +159,13 @@ export class ProjectCacheService {
 
       // Try to resolve the not found projects again with fresh cache
       for (const projectName of notFoundNames) {
-        const normalizedSearchName = this.normalizeProjectName(projectName).toLowerCase().trim();
+        const normalizedSearchName = Util.normalizeProjectName(projectName).toLowerCase().trim();
 
         let found = cache.projects.find(
           (project) =>
             project.name.toLowerCase() === normalizedSearchName ||
             project.nameWithNamespace.toLowerCase() === normalizedSearchName ||
-            this.normalizeProjectName(project.nameWithNamespace).toLowerCase() ===
+            Util.normalizeProjectName(project.nameWithNamespace).toLowerCase() ===
               normalizedSearchName
         );
 
@@ -181,7 +174,7 @@ export class ProjectCacheService {
             (project) =>
               project.name.toLowerCase().includes(normalizedSearchName) ||
               project.nameWithNamespace.toLowerCase().includes(normalizedSearchName) ||
-              this.normalizeProjectName(project.nameWithNamespace)
+              Util.normalizeProjectName(project.nameWithNamespace)
                 .toLowerCase()
                 .includes(normalizedSearchName)
           );
