@@ -75,7 +75,7 @@ The tool can now run in fully automatic mode, continuously monitoring your GitLa
    ```
    - Enable "Automatic Review Mode" in the wizard
    - Select projects to monitor (you can use project names or partial matches)
-   - Set review interval (recommended: 300 seconds)
+   - Set review interval (recommended: 120 seconds)
 
 2. **Start automatic monitoring**:
    ```bash
@@ -100,7 +100,7 @@ The tool will now:
       "mycompany/backend-api", 
       "mycompany/mobile-app"
     ],
-    "interval": 300
+    "interval": 120
   }
 }
 ```
@@ -261,7 +261,7 @@ aicodereview --provider anthropic --api-key YOUR_ANTHROPIC_API_KEY
           "mycompany/frontend-app",
           "mycompany/backend-api"
         ],
-        "interval": 300
+        "interval": 120
       }
     }
     ```

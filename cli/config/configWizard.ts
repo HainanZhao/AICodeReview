@@ -559,7 +559,7 @@ async function configureAutoReview(
     existingConfig?.autoReview?.projects
   );
 
-  const currentInterval = existingConfig?.autoReview?.interval?.toString() || '300';
+  const currentInterval = existingConfig?.autoReview?.interval?.toString() || '120';
   const intervalStr =
     (await question(`Review interval in seconds (current: ${currentInterval}): `)) ||
     currentInterval;
@@ -586,7 +586,7 @@ async function configureAutoReview(
   const autoReviewConfig = {
     enabled: true,
     projects: selectedProjects.projectNames,
-    interval: isNaN(interval) ? 300 : interval,
+    interval: isNaN(interval) ? 120 : interval,
     state: {
       storage: storageType as 'local' | 'snippet',
     },

@@ -15,7 +15,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   autoReview: {
     enabled: false,
     projects: [],
-    interval: 300,
+    interval: 120,
   },
   // gitlab config is optional and will be added via --init wizard
 };

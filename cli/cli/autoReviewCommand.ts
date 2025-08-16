@@ -52,10 +52,25 @@ export class AutoReviewCommand {
     );
 
     const interval = this.config.autoReview.interval * 1000;
-    await this.runReviewLoop();
-    setInterval(async () => {
-      await this.runReviewLoop();
-    }, interval);
+
+    const loop = async () => {
+      if (!this.running) {
+        return;
+      }
+      try {
+        await this.runReviewLoop();
+      } catch (error) {
+        console.error(
+          CLIOutputFormatter.formatError(`An error occurred during the review loop: ${error}`)
+        );
+      } finally {
+        if (this.running) {
+          setTimeout(loop, interval);
+        }
+      }
+    };
+
+    loop();
   }
 
   private async runReviewLoop(): Promise<void> {

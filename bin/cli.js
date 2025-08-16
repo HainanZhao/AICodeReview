@@ -1,6 +1,26 @@
 #!/usr/bin/env node
 
-// START: Timestamp console logs
+import { Command } from 'commander';
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'fs';
+import { homedir } from 'os';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+import checkForUpdates from '../dist/services/updateNotifier.js';
+
+// START: Timestamp and file logging
+const logDir = join(homedir(), '.aicodereview', 'logs');
+if (!existsSync(logDir)) {
+  mkdirSync(logDir, { recursive: true });
+}
+
+const getLogFile = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  return join(logDir, `${year}-${month}-${day}.log`);
+};
+
 const formatTimestamp = (date) => {
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -15,21 +35,20 @@ const formatTimestamp = (date) => {
 const originalLog = console.log;
 console.log = (...args) => {
   const timestamp = formatTimestamp(new Date());
-  originalLog(`[${timestamp}]`, ...args);
+  const message = `[${timestamp}] ${args.join(' ')}`;
+  originalLog(message);
+  appendFileSync(getLogFile(), message + '\n');
 };
 
 const originalError = console.error;
 console.error = (...args) => {
   const timestamp = formatTimestamp(new Date());
-  originalError(`[${timestamp}]`, ...args);
+  const message = `[${timestamp}] ${args.join(' ')}`;
+  originalError(message);
+  appendFileSync(getLogFile(), message + '\n');
 };
-// END: Timestamp console logs
 
-import { Command } from 'commander';
-import { readFileSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import checkForUpdates from '../dist/services/updateNotifier.js';
+// END: Timestamp and file logging
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
