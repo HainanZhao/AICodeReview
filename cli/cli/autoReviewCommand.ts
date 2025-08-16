@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { ConfigLoader } from '../config/configLoader.js';
 import { AppConfig } from '../config/configSchema.js';
 import { ProjectCacheService } from '../services/projectCacheService.js';
@@ -16,6 +19,8 @@ import {
 } from '../state/state.js';
 import { CLIOutputFormatter } from './outputFormatter.js';
 import { CLIReviewCommand } from './reviewCommand.js';
+
+const META_STATE_PATH = path.join(os.homedir(), '.aicodereview', 'auto_review_meta.json');
 
 export class AutoReviewCommand {
   private config: AppConfig;
@@ -112,30 +117,12 @@ export class AutoReviewCommand {
   ): Promise<void> {
     const localState = loadLocalState();
 
-    // Prune state for all projects at once
-    const mrsToPruneByProject: Record<string, string[]> = {};
-    for (const mrId in localState) {
-      const mrState = localState[mrId];
-      if (mrState.project_id) {
-        if (!mrsToPruneByProject[mrState.project_id]) {
-          mrsToPruneByProject[mrState.project_id] = [];
-        }
-        mrsToPruneByProject[mrState.project_id].push(String(mrState.mr_iid));
-      }
-    }
-
-    for (const projectIdStr in mrsToPruneByProject) {
-      const projectId = parseInt(projectIdStr, 10);
-      const iids = mrsToPruneByProject[projectIdStr];
-      const fetchedMrs = await fetchMergeRequestsByIids(this.config.gitlab!, projectId, iids);
-      for (const mr of fetchedMrs) {
-        const globalMrId = Object.keys(localState).find(
-          (id) => localState[id].mr_iid === mr.iid && localState[id].project_id === projectId
-        );
-        if (globalMrId && (mr.state === 'closed' || mr.state === 'merged')) {
-          delete localState[globalMrId];
-        }
-      }
+    if (this.isPruningNeeded()) {
+      console.log(CLIOutputFormatter.formatProgress('Pruning stale MRs from local state...'));
+      const allProjectIds = allProjects.map((p) => p.id);
+      await this.pruneStaleMrsFromState(localState, allProjectIds);
+      this.updateLastPrunedTimestamp();
+      console.log(CLIOutputFormatter.formatSuccess('Pruning complete.'));
     }
 
     // Process new/updated MRs for all projects
@@ -149,42 +136,17 @@ export class AutoReviewCommand {
   private async processSnippetStorage(
     allProjects: Array<{ id: number; name: string }>
   ): Promise<void> {
+    const needsPruning = this.isPruningNeeded();
+    if (needsPruning) {
+      console.log(CLIOutputFormatter.formatProgress('Pruning stale MRs from snippet state...'));
+    }
+
     for (const project of allProjects) {
       try {
         const projectState = await loadSnippetState(this.config.gitlab!, project.id);
 
-        // Prune state for this project
-        const stateKeys = Object.keys(projectState);
-        if (stateKeys.length > 0) {
-          // Extract IIDs from the state entries to check MR status
-          const iidsToPrune: string[] = [];
-          const globalIdToIidMap: Record<string, string> = {};
-
-          for (const globalId of stateKeys) {
-            const stateEntry = projectState[globalId];
-            if (stateEntry && stateEntry.mr_iid) {
-              const iid = stateEntry.mr_iid.toString();
-              iidsToPrune.push(iid);
-              globalIdToIidMap[iid] = globalId;
-            }
-          }
-
-          if (iidsToPrune.length > 0) {
-            const fetchedMrs = await fetchMergeRequestsByIids(
-              this.config.gitlab!,
-              project.id,
-              iidsToPrune
-            );
-            for (const mr of fetchedMrs) {
-              if (mr.state === 'closed' || mr.state === 'merged') {
-                // Remove by global MR ID (consistent with both storage modes)
-                const globalId = globalIdToIidMap[mr.iid.toString()];
-                if (globalId) {
-                  delete projectState[globalId];
-                }
-              }
-            }
-          }
+        if (needsPruning) {
+          await this.pruneStaleMrsFromState(projectState, [project.id]);
         }
 
         // Process new/updated MRs for this project
@@ -194,9 +156,54 @@ export class AutoReviewCommand {
       } catch (error) {
         console.error(
           CLIOutputFormatter.formatError(
-            `Failed to process project ${project.name}: ${error instanceof Error ? error.message : String(error)}`
+            `Failed to process project ${project.name}: ${
+              error instanceof Error ? error.message : String(error)
+            }`
           )
         );
+      }
+    }
+
+    if (needsPruning) {
+      this.updateLastPrunedTimestamp();
+      console.log(CLIOutputFormatter.formatSuccess('Pruning complete.'));
+    }
+  }
+
+  private async pruneStaleMrsFromState(
+    state: LocalState | SnippetState,
+    projectIds: number[]
+  ): Promise<void> {
+    const mrsToPruneByProject: Record<string, string[]> = {};
+    const globalIdToIidMap: Record<string, Record<string, string>> = {}; // { [projectId]: { [iid]: globalMrId } }
+
+    // Collect MRs to check from the state
+    for (const globalMrId in state) {
+      const mrState = state[globalMrId];
+      if (mrState.project_id && projectIds.includes(mrState.project_id)) {
+        const projectIdStr = mrState.project_id.toString();
+        if (!mrsToPruneByProject[projectIdStr]) {
+          mrsToPruneByProject[projectIdStr] = [];
+          globalIdToIidMap[projectIdStr] = {};
+        }
+        const iid = String(mrState.mr_iid);
+        mrsToPruneByProject[projectIdStr].push(iid);
+        globalIdToIidMap[projectIdStr][iid] = globalMrId;
+      }
+    }
+
+    // Fetch MRs and prune
+    for (const projectIdStr in mrsToPruneByProject) {
+      const projectId = parseInt(projectIdStr, 10);
+      const iids = mrsToPruneByProject[projectIdStr];
+      const fetchedMrs = await fetchMergeRequestsByIids(this.config.gitlab!, projectId, iids);
+      for (const mr of fetchedMrs) {
+        if (mr.state === 'closed' || mr.state === 'merged') {
+          const globalMrId = globalIdToIidMap[projectIdStr][String(mr.iid)];
+          if (globalMrId) {
+            delete state[globalMrId];
+          }
+        }
       }
     }
   }
@@ -209,13 +216,20 @@ export class AutoReviewCommand {
     const openMrs = await fetchOpenMergeRequests(this.config.gitlab!, project.id);
 
     for (const mr of openMrs) {
-      const mrDetails = await fetchMrData(this.config.gitlab!, mr.web_url);
-
-      // Get the key and check if already reviewed (both storage modes use global MR ID)
       const stateKey = mr.id;
       const reviewedMr = state[stateKey];
 
+      // If we have reviewed it before, check if it has been updated since.
+      if (reviewedMr && new Date(mr.updated_at) <= new Date(reviewedMr.reviewed_at)) {
+        continue;
+      }
+
+      const mrDetails = await fetchMrData(this.config.gitlab!, mr.web_url);
+
+      // If the SHA is the same, it was a non-code update.
+      // Update our timestamp and skip the review.
       if (reviewedMr && reviewedMr.head_sha === mrDetails.head_sha) {
+        state[stateKey].reviewed_at = new Date().toISOString();
         continue;
       }
 
@@ -248,5 +262,51 @@ export class AutoReviewCommand {
         );
       }
     }
+  }
+
+  private loadAutoReviewMeta(): { lastPrunedAt?: string } {
+    if (!fs.existsSync(META_STATE_PATH)) {
+      return {};
+    }
+    try {
+      const content = fs.readFileSync(META_STATE_PATH, 'utf-8');
+      return JSON.parse(content);
+    } catch (error) {
+      console.error(
+        CLIOutputFormatter.formatError(`Failed to read or parse auto-review metadata: ${error}`)
+      );
+      return {};
+    }
+  }
+
+  private saveAutoReviewMeta(meta: { lastPrunedAt?: string }): void {
+    try {
+      const dir = path.dirname(META_STATE_PATH);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(META_STATE_PATH, JSON.stringify(meta, null, 2));
+    } catch (error) {
+      console.error(
+        CLIOutputFormatter.formatError(`Failed to save auto-review metadata: ${error}`)
+      );
+    }
+  }
+
+  private isPruningNeeded(): boolean {
+    const meta = this.loadAutoReviewMeta();
+    if (!meta.lastPrunedAt) {
+      return true; // Prune if never pruned before
+    }
+    const lastPrunedDate = new Date(meta.lastPrunedAt);
+    const now = new Date();
+    const hoursSinceLastPrune = (now.getTime() - lastPrunedDate.getTime()) / (1000 * 60 * 60);
+    return hoursSinceLastPrune >= 24;
+  }
+
+  private updateLastPrunedTimestamp(): void {
+    const meta = this.loadAutoReviewMeta();
+    meta.lastPrunedAt = new Date().toISOString();
+    this.saveAutoReviewMeta(meta);
   }
 }
