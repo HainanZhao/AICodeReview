@@ -1,10 +1,11 @@
-import { existsSync, mkdirSync, writeFileSync, renameSync } from 'fs';
+import { existsSync, mkdirSync, renameSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { createInterface } from 'readline';
 import { fetchProjects } from '../shared/services/gitlabCore.js';
 import { GitLabConfig } from '../shared/types/gitlab.js';
-import { LocalState, loadLocalState, saveSnippetState } from '../state/state.js';
+import { Util } from '../shared/utils/Util.js';
+import { loadLocalState, saveSnippetState } from '../state/state.js';
 import { ConfigLoader } from './configLoader.js';
 import { AppConfig } from './configSchema.js';
 
@@ -58,9 +59,13 @@ async function migrateLocalStateToSnippets(
     if (allSucceeded) {
       const stateFilePath = join(homedir(), '.aicodereview', 'review-state.json');
       renameSync(stateFilePath, `${stateFilePath}.migrated`);
-      console.log('✅ Migration successful! Renamed local state file to review-state.json.migrated');
+      console.log(
+        '✅ Migration successful! Renamed local state file to review-state.json.migrated'
+      );
     } else {
-      console.warn('⚠️  Migration completed with some errors. The local state file has not been renamed.');
+      console.warn(
+        '⚠️  Migration completed with some errors. The local state file has not been renamed.'
+      );
     }
   } catch (error) {
     console.error(`❌ Migration failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -153,8 +158,8 @@ async function selectProjectsInteractively(
       .filter((name) => name.length > 0);
 
     const matchingProjects = projects.filter((project) => {
-      const projectName = project.name.toLowerCase();
-      const projectNamespace = project.name_with_namespace.toLowerCase();
+      const projectName = Util.normalizeProjectName(project.name);
+      const projectNamespace = Util.normalizeProjectName(project.name_with_namespace);
 
       return searchNames.some(
         (searchName) => projectName.includes(searchName) || projectNamespace.includes(searchName)
@@ -470,7 +475,9 @@ export async function createConfigInteractively(): Promise<void> {
           console.log('\n💾 State Storage Configuration:');
           console.log(helpText('This determines where to save the state of reviewed MRs.'));
           console.log(helpText('1. Local file (default, stored in ~/.aicodereview)'));
-          console.log(helpText('2. GitLab snippet (stored in each project, allows for distributed use)'));
+          console.log(
+            helpText('2. GitLab snippet (stored in each project, allows for distributed use)')
+          );
 
           const defaultStateStorage = existingConfig?.state?.storage === 'snippet' ? '2' : '1';
           const storageChoice =
@@ -488,7 +495,6 @@ export async function createConfigInteractively(): Promise<void> {
           if (storageType === 'snippet' && existingConfig?.state?.storage !== 'snippet') {
             await migrateLocalStateToSnippets(gitlabConfig, question);
           }
-
         } else {
           console.log('⚠️  No valid projects selected. Auto-review mode will be disabled.');
         }
