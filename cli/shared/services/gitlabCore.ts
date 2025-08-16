@@ -93,17 +93,14 @@ export const gitlabApiFetch = async (
         return null;
       }
       // For file content, 404 is also acceptable (e.g., file doesn't exist on a branch)
-      if (!url.includes('/repository/files/')) {
-        throw new Error(
-          'Merge Request or Project not found. Please check the URL and your project access permissions.'
-        );
+      if (url.includes('/repository/files/')) {
+        return null;
       }
+      throw new Error(
+        'Merge Request or Project not found. Please check the URL and your project access permissions.'
+      );
     }
     const errorData = await response.text();
-    // Don't throw for 404 on file content, just return null
-    if (response.status === 404 && url.includes('/repository/files/')) {
-      return null;
-    }
     throw new Error(`GitLab API error. Status: ${response.status}. Details: ${errorData}`);
   }
   return returnType === 'json' ? response.json() : response.text();

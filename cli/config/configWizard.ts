@@ -1,21 +1,19 @@
-import { existsSync, mkdirSync, renameSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, renameSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { createInterface } from 'readline';
 import { fetchProjects } from '../shared/services/gitlabCore.js';
 import { GitLabConfig } from '../shared/types/gitlab.js';
-import { Util } from '../shared/utils/utils.js';
-import { GitLabSnippetStateProvider, LocalFileStateProvider } from '../state/stateProviders.js';
+import { LocalState, loadLocalState, saveSnippetState } from '../state/state.js';
 import { ConfigLoader } from './configLoader.js';
 import { AppConfig } from './configSchema.js';
-
-const STATE_FILE_PATH = join(homedir(), '.aicodereview', 'review-state.json');
 
 async function migrateLocalStateToSnippets(
   gitlabConfig: GitLabConfig,
   question: (prompt: string) => Promise<string>
 ): Promise<void> {
-  if (!existsSync(STATE_FILE_PATH)) {
+  const localState = loadLocalState();
+  if (Object.keys(localState).length === 0) {
     return; // No local state to migrate
   }
 
@@ -29,33 +27,40 @@ async function migrateLocalStateToSnippets(
 
   console.log('🚀 Starting migration...');
   try {
-    const localProvider = new LocalFileStateProvider();
-    const snippetProvider = new GitLabSnippetStateProvider(gitlabConfig);
-
-    // This is a bit of a hack, but we need to get the whole state object
-    // which is not exposed by the provider interface directly.
-    const globalState = (localProvider as any).readGlobalState();
-    let allSucceeded = true;
-
-    for (const projectIdStr in globalState) {
-      const projectId = parseInt(projectIdStr, 10);
-      const projectState = globalState[projectIdStr];
-      if (projectState && Object.keys(projectState).length > 0) {
-        console.log(`Migrating state for project ${projectId}...`);
-        const success = await snippetProvider.saveState(projectId, projectState);
-        if (!success) {
-            allSucceeded = false;
-            console.warn(`⚠️  Could not migrate state for project ${projectId}. It may no longer exist or you may not have permission. Skipping.`);
+    // Group MRs by project
+    const stateByProject: Record<string, any> = {};
+    for (const mrId in localState) {
+      const reviewedMr = localState[mrId];
+      if (reviewedMr.projectId && reviewedMr.mrIid) {
+        const projectId = reviewedMr.projectId;
+        if (!stateByProject[projectId]) {
+          stateByProject[projectId] = {};
         }
+        stateByProject[projectId][reviewedMr.mrIid] = {
+          head_sha: reviewedMr.head_sha,
+          reviewed_at: reviewedMr.reviewed_at,
+        };
+      }
+    }
+
+    let allSucceeded = true;
+    for (const projectIdStr in stateByProject) {
+      const projectId = parseInt(projectIdStr, 10);
+      const projectState = stateByProject[projectIdStr];
+      console.log(`Migrating state for project ${projectId}...`);
+      const success = await saveSnippetState(gitlabConfig, projectId, projectState);
+      if (!success) {
+        allSucceeded = false;
+        console.warn(`⚠️  Could not migrate state for project ${projectId}.`);
       }
     }
 
     if (allSucceeded) {
-        // Rename the old file to prevent re-migration
-        renameSync(STATE_FILE_PATH, `${STATE_FILE_PATH}.migrated`);
-        console.log('✅ Migration successful! Renamed local state file to review-state.json.migrated');
+      const stateFilePath = join(homedir(), '.aicodereview', 'review-state.json');
+      renameSync(stateFilePath, `${stateFilePath}.migrated`);
+      console.log('✅ Migration successful! Renamed local state file to review-state.json.migrated');
     } else {
-        console.warn('⚠️  Migration completed with some errors. Not all project states were migrated. The local state file has not been renamed.');
+      console.warn('⚠️  Migration completed with some errors. The local state file has not been renamed.');
     }
   } catch (error) {
     console.error(`❌ Migration failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -148,8 +153,8 @@ async function selectProjectsInteractively(
       .filter((name) => name.length > 0);
 
     const matchingProjects = projects.filter((project) => {
-      const projectName = Util.normalizeProjectName(project.name);
-      const projectNamespace = Util.normalizeProjectName(project.name_with_namespace);
+      const projectName = project.name.toLowerCase();
+      const projectNamespace = project.name_with_namespace.toLowerCase();
 
       return searchNames.some(
         (searchName) => projectName.includes(searchName) || projectNamespace.includes(searchName)
@@ -465,9 +470,7 @@ export async function createConfigInteractively(): Promise<void> {
           console.log('\n💾 State Storage Configuration:');
           console.log(helpText('This determines where to save the state of reviewed MRs.'));
           console.log(helpText('1. Local file (default, stored in ~/.aicodereview)'));
-          console.log(
-            helpText('2. GitLab snippet (stored in each project, allows for distributed use)')
-          );
+          console.log(helpText('2. GitLab snippet (stored in each project, allows for distributed use)'));
 
           const defaultStateStorage = existingConfig?.state?.storage === 'snippet' ? '2' : '1';
           const storageChoice =
