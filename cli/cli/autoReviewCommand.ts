@@ -204,7 +204,15 @@ export class AutoReviewCommand {
 
       console.log(CLIOutputFormatter.formatProgress(`New or updated MR found: ${mr.web_url}`));
       try {
-        await CLIReviewCommand.executeReview({ mrUrl: [mr.web_url] /* ... other options */ });
+        await CLIReviewCommand.executeReview({
+          mrUrl: [mr.web_url],
+          dryRun: this.config.dryRun,
+          mock: this.config.mock,
+          verbose: this.config.verbose,
+          provider: this.config.provider,
+          apiKey: this.config.apiKey,
+          googleCloudProject: this.config.googleCloudProject,
+        });
 
         // Store the reviewed MR state
         state[stateKey] = {
