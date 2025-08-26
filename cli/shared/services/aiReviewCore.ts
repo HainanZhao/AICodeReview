@@ -105,16 +105,26 @@ Please avoid duplicating these existing comments unless you have additional insi
 
 **PRIORITIZE CODE SUGGESTIONS:**
 - When providing feedback that involves code changes, prioritize giving specific code suggestions
-- Use the following format for code suggestions in your description:
-  \`\`\`suggestion:-X+Y
-  actual code changes here
+- Use GitLab's native suggestion format in your description:
+  \`\`\`suggestion
+  exact code that should replace the existing line(s)
   \`\`\`
-  Where X is lines to remove and Y is lines to add
-- Provide concrete, actionable code examples rather than just describing what should be changed
-- Example format: \`\`\`suggestion:-1+2
-  // Replace this line
+- The suggestion block should contain ONLY the new code that should replace the existing code
+- GitLab will automatically determine what to replace based on the line context
+- For single-line changes, provide exactly one line of replacement code
+- For multi-line changes, provide the exact lines that should replace the existing lines
+- Example for single-line replacement:
+  \`\`\`suggestion
   const newCode = 'better implementation';
   \`\`\`
+- Example for multi-line replacement:
+  \`\`\`suggestion
+  if (condition) {
+    return processData(input);
+  }
+  \`\`\`
+- IMPORTANT: Do NOT include line numbers, diff markers (+/-), or specify how many lines to remove
+- The suggestion block should contain clean, properly formatted code ready to be applied
 
 📁 **CRITICAL FILE PATH INSTRUCTIONS:**
 🔴 EXTREMELY IMPORTANT: You MUST use the EXACT file paths as shown in the section headers.
