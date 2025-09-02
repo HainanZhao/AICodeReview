@@ -137,7 +137,7 @@ export class DiffLineMapper {
     }
 
     // Find the closest change line
-    let closestChange = null;
+    let closestChange: { originalLineNumber: number; changeType: 'add' | 'remove' } | null = null;
     let minDistance = Infinity;
 
     for (const mapping of fileMapping.mappings) {

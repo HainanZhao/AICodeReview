@@ -1,27 +1,27 @@
 {
+  "extends": "../tsconfig.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "allowJs": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true,
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "moduleResolution": "nodenext",
+    "module": "NodeNext",
     "declaration": true,
     "sourceMap": true,
     "inlineSourceMap": false,
     "inlineSources": true,
     "outDir": "../dist",
     "rootDir": ".",
-    "types": ["node"]
+    "baseUrl": ".",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitAny": false
   },
   "include": [
     "./**/*"
   ],
   "exclude": [
     "../node_modules",
-    "../dist"
+    "../dist",
+    "../frontend"
   ]
 }

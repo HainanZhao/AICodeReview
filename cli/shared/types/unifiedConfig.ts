@@ -11,9 +11,6 @@ export interface FrontendGitLabConfig {
   accessToken: string;
 }
 
-// Re-export GitLabConfig for convenience
-export { GitLabConfig } from '../types/gitlab.js';
-
 /**
  * Converts frontend config format to CLI GitLabConfig format
  */

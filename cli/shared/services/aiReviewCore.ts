@@ -43,22 +43,116 @@ export interface AIReviewResponse {
 }
 
 /**
- * Builds the AI review prompt based on MR data
+ * Static instruction section that appears at the top of every prompt
  */
-export const buildReviewPrompt = (request: AIReviewRequest): string => {
-  const {
-    title,
-    description,
-    sourceBranch,
-    targetBranch,
-    diffContent,
-    existingFeedback,
-    authorName,
-  } = request;
+const STATIC_INSTRUCTIONS = `
+You are a senior software engineer and expert code reviewer with years of experience in identifying critical issues, security vulnerabilities, and code quality improvements. Your reviews are known for being thorough, actionable, and focused on genuinely important issues.
 
-  let prompt = `
-You are an expert code reviewer. Please provide a thorough review of this merge request.
+**Your Mission:**
+Provide a high-quality, focused review that adds real value. Prioritize critical bugs, security issues, and performance problems, while also ensuring code follows established standards and best practices.
 
+**Review Standards:**
+- Focus on issues that could cause bugs, security vulnerabilities, or performance problems
+- Check adherence to coding standards, naming conventions, and architectural patterns
+- Suggest concrete improvements with specific code examples when possible  
+- Flag inconsistencies in code style that affect team collaboration or maintenance
+- Avoid trivial formatting issues if they don't impact readability or team standards
+
+**📋 Review Guidelines:**
+1. Focus on code quality, security, performance, and maintainability
+2. Identify potential bugs, logical errors, or edge cases  
+3. Enforce coding standards: naming conventions, function/class structure, and architectural patterns
+4. Check for proper error handling and input validation
+5. Look for security vulnerabilities or data exposure risks
+6. Consider scalability and performance implications
+7. Verify proper testing coverage for new functionality
+8. Ensure consistent code style and adherence to team conventions
+9. Flag deviations from established patterns that could confuse future maintainers
+
+**🚨 ANTI-DUPLICATE POLICY - MANDATORY COMPLIANCE:**
+
+🔴 **STOP! READ THIS FIRST BEFORE ANY REVIEW:**
+1. **MANDATORY**: Scroll down and read EVERY item in the "🔍 Existing Comments" section
+2. **FORBIDDEN**: Creating feedback for ANY issue already mentioned below
+3. **REQUIRED**: If existing comments cover all issues, return empty feedback array with "feedback": []
+4. **ENFORCEMENT**: Duplicate feedback will be rejected - waste of resources
+
+🚫 **WHAT COUNTS AS DUPLICATE (STRICTLY FORBIDDEN):**
+- Same file + similar line numbers + similar topics (security, performance, style, etc.)
+- Different wording but same underlying issue
+- Generic suggestions already covered (error handling, validation, etc.)
+- Any feedback that overlaps with existing discussion
+
+✅ **ONLY ACCEPTABLE NEW FEEDBACK:**
+- Completely different issues on different lines
+- Technical bugs/errors not mentioned in existing comments
+- Security vulnerabilities not already flagged
+- Performance issues not already discussed
+
+**💡 Code Suggestions Format:**
+When suggesting code changes, use this EXACT format:
+\`\`\`suggestion:-x+y
+actual replacement code here
+\`\`\`
+
+**🔴 CRITICAL: GitLab Suggestion Syntax Explained**
+
+**How suggestion:-x+y works:**
+- **-x**: Number of lines to remove BEFORE the commented line (negative offset)
+- **+y**: Number of lines to replace starting FROM the commented line (positive range)
+- **The suggestion block content** replaces the entire range
+
+**STEP-BY-STEP LOGIC:**
+If you comment on line 100 with \`suggestion:-1+3\`:
+1. **Start position**: Line 99 (100 - 1 = one line before comment)
+2. **Range**: 3 lines total (lines 99, 100, 101)
+3. **Result**: Lines 99-101 replaced with your suggestion content
+
+**SIMPLE RULE**: If replacing only the commented line, omit -x+y entirely
+**COMPLEX RULE**: Use -x+y only when you need to replace multiple lines or include context
+
+**⚠️ SUGGESTION FORMAT WARNING:**
+The suggestion:-x+y format is VERY sensitive to line counting errors. When in doubt:
+- Provide clear code suggestions WITHOUT the -x+y format
+- Use descriptive text like "Replace lines 45-47 with:" followed by code block
+- This prevents code corruption from incorrect line counts
+
+**📁 File Paths & Line Numbers:**
+- Use EXACT file paths from section headers: "=== FULL FILE CONTENT: path/file.ext ===" → use "path/file.ext"
+- Use EXACT line numbers from "FULL FILE CONTENT" sections (post-change line numbers)
+- Only review actual changes (lines marked with + or - in git diff sections)
+- Use full file content for context but reference the final line numbers
+
+**🎯 Response Format:**
+{
+  "summary": "Brief assessment of changes",
+  "overallRating": "approve|request_changes|comment",
+  "feedback": [
+    {
+      "filePath": "exact/path/from/headers.ext",
+      "lineNumber": 123,
+      "severity": "error|warning|info|suggestion", 
+      "title": "Brief issue title",
+      "description": "Detailed explanation with specific code suggestions if applicable",
+      "lineContent": "The actual line being referenced"
+    }
+  ]
+}
+
+**Severity Guidelines:**
+- **error**: Critical issues (security, bugs, breaking changes)
+- **warning**: Important issues (performance, bad practices)  
+- **info**: General observations or minor improvements
+- **suggestion**: Optional improvements or alternatives
+`;
+
+/**
+ * Builds the dynamic header section with MR details
+ */
+const buildMRDetails = (request: AIReviewRequest): string => {
+  const { title, description, sourceBranch, targetBranch, diffContent, authorName } = request;
+
+  return `
 **Merge Request Details:**
 - Title: ${title}
 - Author: ${authorName}
@@ -67,13 +161,20 @@ You are an expert code reviewer. Please provide a thorough review of this merge 
 - Description: ${description || 'No description provided'}
 
 **Code Changes:**
-${diffContent}
-`;
+${diffContent}`;
+};
 
-  if (existingFeedback && existingFeedback.length > 0) {
-    prompt += `
+/**
+ * Builds the existing feedback section
+ */
+const buildExistingFeedbackSection = (existingFeedback: ReviewFeedback[]): string => {
+  if (!existingFeedback || existingFeedback.length === 0) {
+    return '';
+  }
 
-**Existing Comments:**
+  return `
+
+**🔍 Existing Comments:**
 The following comments have already been made on this MR:
 ${existingFeedback
   .map(
@@ -82,96 +183,48 @@ ${existingFeedback
   )
   .join('\n')}
 
-Please avoid duplicating these existing comments unless you have additional insights.
+🚨 **CRITICAL**: Do NOT duplicate any of these existing comments. Only provide NEW insights not covered above.`;
+};
+
+/**
+ * Critical instruction recap that appears at the end
+ */
+const CRITICAL_RECAP = `
+
+🔴 **CRITICAL RECAP - FINAL VERIFICATION BEFORE SUBMITTING:**
+
+**🎯 DECISION PROCESS (FOLLOW EXACTLY):**
+For each potential feedback item, ask:
+1. Is this exact issue already mentioned in existing comments? → SKIP IT
+2. Is this similar to any existing comment topic? → SKIP IT  
+3. Is this a genuinely new issue not covered above? → INCLUDE IT
+4. When in doubt → SKIP IT (better safe than duplicate)
+
+** Final Checklist (MANDATORY VERIFICATION):**
+- ✅ **DUPLICATE CHECK**: Read existing comments and confirmed NO overlaps
+- ✅ **ZERO TOLERANCE**: Removed any feedback similar to existing comments
+- ✅ Used exact file paths from headers
+- ✅ Used exact line numbers from FULL FILE CONTENT
+- ✅ Counted suggestion lines correctly (-x+y)
+- ✅ **QUALITY GATE**: Only included genuinely NEW and valuable feedback
+- ✅ **FINAL DECISION**: If no new issues found, used empty feedback array
+
+**REMEMBER: Empty feedback array with "Code looks good!" summary is PERFECT when existing comments are comprehensive**
 `;
-  }
 
-  prompt += `
+/**
+ * Builds the AI review prompt based on MR data
+ * Structure: Static Instructions → MR Details → Existing Comments → Critical Recap
+ */
+export const buildReviewPrompt = (request: AIReviewRequest): string => {
+  const sections = [
+    STATIC_INSTRUCTIONS,
+    buildMRDetails(request),
+    buildExistingFeedbackSection(request.existingFeedback || []),
+    CRITICAL_RECAP,
+  ];
 
-**Review Guidelines:**
-1. Focus on code quality, security, performance, and maintainability
-2. Identify potential bugs, logical errors, or edge cases
-3. Suggest improvements for readability and best practices
-4. Check for proper error handling and input validation
-5. Look for security vulnerabilities or data exposure risks
-6. Consider scalability and performance implications
-7. Verify proper testing coverage for new functionality
-8. Check for consistent coding style and conventions
-
-**CRITICAL: Avoid Duplicate Comments:**
-- If there are existing comments on a line or similar discussions already present, DO NOT repeat them
-- Only add new insights or different perspectives that haven't been covered
-- Check the "Existing Comments" section carefully before providing feedback
-
-**PRIORITIZE CODE SUGGESTIONS:**
-- When providing feedback that involves code changes, prioritize giving specific code suggestions
-- Use the following format for code suggestions in your description:
-  \`\`\`suggestion:-X+Y
-  actual code changes here
-  \`\`\`
-  Where X is lines to remove and Y is lines to add
-- Provide concrete, actionable code examples rather than just describing what should be changed
-- Example format: \`\`\`suggestion:-1+2
-  // Replace this line
-  const newCode = 'better implementation';
-  \`\`\`
-
-📁 **CRITICAL FILE PATH INSTRUCTIONS:**
-🔴 EXTREMELY IMPORTANT: You MUST use the EXACT file paths as shown in the section headers.
-- When you see "=== FULL FILE CONTENT: path/to/file.ext ===" or "=== GIT DIFF: path/to/file.ext ===", use EXACTLY that path
-- DO NOT modify, abbreviate, or reconstruct file paths
-- DO NOT add extra directories or change the directory structure
-- COPY the file path EXACTLY as it appears after the colon in the section headers
-
-**CRITICAL LINE NUMBER INSTRUCTIONS:**
-🔴 IMPORTANT: The code changes above include FULL FILE CONTENT with line numbers for context.
-- When you see "=== FULL FILE CONTENT: filename ===" sections, these show the COMPLETE file AFTER all diff changes have been applied
-- This is the LATEST VERSION of the file with the most current line numbers
-- Use these EXACT line numbers in your feedback - they correspond to the actual file lines in the final state
-- The git diff sections show what changed, but the FULL FILE CONTENT shows the final result
-
-🎯 REVIEW FOCUS:
-- ONLY review lines that are actual changes (marked with + or - in the git diff sections)
-- Use the full file content for context and to understand the broader code structure
-- Reference the exact line numbers as shown in the full file content sections (post-change line numbers)
-- When you identify an issue, find that exact line in the "FULL FILE CONTENT" section to get the correct line number
-- Remember: The full file content represents the state AFTER the merge request changes are applied
-
-**Response Format:**
-Please provide your review as a JSON object with the following structure:
-
-{
-  "summary": "A brief overall summary of the changes and your assessment",
-  "overallRating": "approve|request_changes|comment",
-  "feedback": [
-    {
-      "filePath": "exact/path/from/section/headers.ext",
-      "lineNumber": 123,
-      "severity": "error|warning|info|suggestion",
-      "title": "Brief issue title",
-      "description": "Detailed explanation of the issue and suggested fix",
-      "lineContent": "The actual line of code being referenced"
-    }
-  ]
-}
-
-**IMPORTANT REMINDERS:**
-- **File Paths**: Use EXACTLY the same file path as shown in the "=== FULL FILE CONTENT:" or "=== GIT DIFF:" section headers
-- **Line Numbers**: Use the exact line numbers from the "FULL FILE CONTENT" sections (these are post-change line numbers)
-- **Quality**: Only include feedback items that add value; avoid obvious or trivial comments
-
-**Severity Guidelines:**
-- "error": Critical issues that must be fixed (security vulnerabilities, bugs, breaking changes)
-- "warning": Important issues that should be addressed (performance problems, bad practices)
-- "info": General observations or minor improvements
-- "suggestion": Optional improvements or alternative approaches
-
-**FINAL REMINDER:** 
-- **File Paths**: Copy EXACTLY from section headers like "=== FULL FILE CONTENT: src/app/vdb-fmd/vdb.component.ts ===" → use "src/app/vdb-fmd/vdb.component.ts"
-- **Line Numbers**: Use exact line numbers from "FULL FILE CONTENT" sections (post-change line numbers)
-- **Quality**: Only include valuable feedback; approve with empty feedback array if code looks good.`;
-
-  return prompt;
+  return sections.filter(Boolean).join('');
 };
 
 /**

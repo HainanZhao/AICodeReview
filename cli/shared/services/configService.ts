@@ -3,10 +3,10 @@
  * Provides unified configuration loading and API endpoint handling
  */
 
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
-import { homedir } from 'os';
 import { Request, Response } from 'express';
+import { existsSync, readFileSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 import { GitLabConfig } from '../types/gitlab.js';
 
 export interface ConfigServiceOptions {

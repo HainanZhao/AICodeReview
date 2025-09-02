@@ -5,7 +5,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'fs';
 import { homedir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import checkForUpdates from '../dist/services/updateNotifier.js';
+import checkForUpdates from './services/updateNotifier.js';
 
 // START: Timestamp and file logging
 const logDir = join(homedir(), '.aicodereview', 'logs');
@@ -21,7 +21,7 @@ const getLogFile = () => {
   return join(logDir, `${year}-${month}-${day}.log`);
 };
 
-const formatTimestamp = (date) => {
+const formatTimestamp = (date: Date) => {
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const day = date.getDate().toString().padStart(2, '0');
@@ -33,7 +33,7 @@ const formatTimestamp = (date) => {
 };
 
 const originalLog = console.log;
-console.log = (...args) => {
+console.log = (...args: unknown[]) => {
   const timestamp = formatTimestamp(new Date());
   const message = `[${timestamp}] ${args.join(' ')}`;
   originalLog(message);
@@ -41,7 +41,7 @@ console.log = (...args) => {
 };
 
 const originalError = console.error;
-console.error = (...args) => {
+console.error = (...args: unknown[]) => {
   const timestamp = formatTimestamp(new Date());
   const message = `[${timestamp}] ${args.join(' ')}`;
   originalError(message);
@@ -65,6 +65,23 @@ program
   .version(packageJson.version)
   .argument('[mrUrls...]', 'GitLab merge request URLs for CLI review mode');
 
+interface ProgramOptions {
+  port?: string;
+  host?: string;
+  subPath?: string;
+  provider?: string;
+  apiKey?: string;
+  googleCloudProject?: string;
+  open?: boolean;
+  apiOnly?: boolean;
+  init?: string | boolean;
+  listProjects?: boolean;
+  auto?: boolean;
+  dryRun?: boolean;
+  mock?: boolean;
+  verbose?: boolean;
+}
+
 program
   .option('-p, --port <number>', 'port to run the server on')
   .option('--host <host>', 'host to bind the server to')
@@ -86,25 +103,25 @@ program
   .option('--dry-run', 'generate real AI review but do not post comments to GitLab (CLI mode only)')
   .option('--mock', 'use mock AI responses for testing without API calls (CLI mode only)')
   .option('--verbose', 'detailed operation logs (CLI mode only)')
-  .action(async (mrUrls, options) => {
+  .action(async (mrUrls: string[], options: ProgramOptions) => {
     try {
       await checkForUpdates(packageJson.version);
 
       if (options.init !== undefined) {
-        const { createConfigInteractively } = await import('../dist/config/configWizard.js');
+        const { createConfigInteractively } = await import('./config/configWizard.js');
         const section = typeof options.init === 'string' ? options.init : undefined;
         await createConfigInteractively(section);
         return;
       }
 
       if (options.listProjects) {
-        const { ListProjectsCommand } = await import('../dist/cli/listProjectsCommand.js');
+        const { ListProjectsCommand } = await import('./cli/listProjectsCommand.js');
         await ListProjectsCommand.run();
         return;
       }
 
       if (options.auto) {
-        const { AutoReviewCommand } = await import('../dist/cli/autoReviewCommand.js');
+        const { AutoReviewCommand } = await import('./cli/autoReviewCommand.js');
         const command = new AutoReviewCommand();
         await command.run();
         return;
@@ -113,7 +130,7 @@ program
       // Dual mode logic: CLI review if MR URLs provided, UI server otherwise
       if (mrUrls && mrUrls.length > 0) {
         // CLI Review Mode - no web UI
-        const { CLIReviewCommand } = await import('../dist/cli/reviewCommand.js');
+        const { CLIReviewCommand } = await import('./cli/reviewCommand.js');
 
         // Validate MR URL format for each provided URL
         for (const url of mrUrls) {
@@ -138,12 +155,12 @@ program
       } else {
         // UI Mode - start web server
         // Check if config exists, if not, run init wizard
-        const { ConfigLoader } = await import('../dist/config/configLoader.js');
+        const { ConfigLoader } = await import('./config/configLoader.js');
         const configLoader = new ConfigLoader();
 
         if (!configLoader.hasConfig()) {
           console.log('No configuration found. Running setup wizard...');
-          const { createConfigInteractively } = await import('../dist/config/configWizard.js');
+          const { createConfigInteractively } = await import('./config/configWizard.js');
           await createConfigInteractively();
           console.log('Configuration created. Starting AI Code Review...\n');
         }
@@ -158,11 +175,12 @@ program
           serverOptions.port = '5959';
         }
 
-        const { startServer } = await import('../dist/server/standalone.js');
+        const { startServer } = await import('./server/standalone.js');
         await startServer(serverOptions);
       }
-    } catch (error) {
-      console.error('Error:', error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error:', errorMessage);
       process.exit(1);
     }
   });

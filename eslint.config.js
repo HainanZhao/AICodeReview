@@ -8,7 +8,8 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    files: ['**/*.{js,mjs,cjs,ts,jsx,tsx}'],
+    // TypeScript files that are part of projects
+    files: ['cli/**/*.{ts,tsx}', 'frontend/**/*.{ts,tsx}', 'types.ts'],
     extends: [
       pluginJs.configs.recommended,
       ...tseslint.configs.recommended,
@@ -23,7 +24,7 @@ export default tseslint.config(
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: ['./tsconfig.json', './backend/tsconfig.json', './shared/tsconfig.json'],
+        project: ['./tsconfig.json', './cli/tsconfig.json', './frontend/tsconfig.json'],
       },
     },
     plugins: {
@@ -33,7 +34,7 @@ export default tseslint.config(
       'react/react-in-jsx-scope': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       'prettier/prettier': 'error',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^' }],
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     },
     settings: {
       react: {
@@ -42,23 +43,50 @@ export default tseslint.config(
     },
   },
   {
-    // Override for debug files to allow CommonJS
-    files: ['debug/**/*.js'],
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-    },
+    // JavaScript files (non-TypeScript projects)
+    files: ['**/*.{js,mjs,cjs,jsx}'],
+    ignores: ['debug/**/*', 'scripts/**/*'], // Will be handled by separate config
+    extends: [pluginJs.configs.recommended, prettierConfig],
     languageOptions: {
-      sourceType: 'script', // Allow CommonJS in debug files
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
+    plugins: {
+      prettier: pluginPrettier,
+    },
+    rules: {
+      'prettier/prettier': 'error',
+    },
+  },
+  {
+    // Override for debug files and scripts - simple JavaScript linting only
+    files: ['debug/**/*.js', 'scripts/**/*.{js,cjs}'],
+    extends: [pluginJs.configs.recommended],
+    languageOptions: {
+      sourceType: 'script',
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-redeclare': 'off', // Allow redeclaring built-ins in debug scripts
     },
   },
   {
     ignores: [
       'dist',
       'node_modules',
-      'backend/dist',
-      'backend/node_modules',
-      'shared/dist',
-      'shared/node_modules',
+      'frontend/dist',
+      'frontend/node_modules',
+      'debug/**/*.js',
+      'scripts/**/*.{js,cjs}',
       '**/*.d.ts', // Ignore all declaration files
       '.prettierrc.cjs', // Ignore prettier config file
     ],

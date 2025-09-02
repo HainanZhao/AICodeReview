@@ -5,24 +5,21 @@
  */
 
 import {
-  fetchMrData,
-  buildReviewPrompt,
-  parseAIResponse,
-  filterAndDeduplicateFeedback,
   AIProviderCore,
+  buildReviewPrompt,
+  fetchMrData,
+  filterAndDeduplicateFeedback,
   GeminiCliCore,
+  GitLabConfig,
+  parseAIResponse,
+  Severity,
   type AIReviewRequest,
   type AIReviewResponse,
-  type ReviewFeedback,
-  type GitLabMRDetails,
   type GeminiCliItem,
-  Severity,
+  type GitLabMRDetails,
+  type ReviewFeedback,
 } from '../index.js';
-import {
-  normalizeGitLabConfig,
-  type FrontendGitLabConfig,
-  type GitLabConfig,
-} from '../types/unifiedConfig.js';
+import { normalizeGitLabConfig, type FrontendGitLabConfig } from '../types/unifiedConfig.js';
 
 export interface MrReviewOptions {
   provider: 'gemini' | 'anthropic' | 'gemini-cli';

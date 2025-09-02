@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.4] - 2025-09-02
+
+### Enhanced
+
+- **AI Review Prompt Optimization**: Significantly improved AI review prompts to prevent duplicate feedback and enhance code suggestion accuracy
+  - **Consolidated Review Instructions**: Merged multiple prompt sections into a single, cohesive instruction set for better LLM comprehension
+  - **Enhanced Duplicate Prevention**: Added explicit anti-duplicate policies with visual emphasis and concrete examples
+  - **Improved Code Suggestions**: Enhanced `suggestion:-X+Y` format with precise line counting rules to prevent code corruption
+  - **Better Prompt Structure**: Reorganized instructions with clear hierarchy, emojis, and logical flow
+  - **Reduced Token Usage**: Streamlined prompts for faster AI responses while maintaining all critical functionality
+
+### Fixed
+
+- **Code Suggestion Line Counting**: Fixed issues where AI suggestions had incorrect `-X+Y` values causing code corruption when applied
+  - Added explicit line counting verification steps
+  - Provided clear examples of correct line counting scenarios
+  - Enhanced instructions to prevent approximation errors
+
+### Technical Improvements
+
+- **Prompt Engineering**: Consolidated `REVIEW_GUIDELINES`, `CODE_SUGGESTIONS_INSTRUCTIONS`, `FILE_PATH_INSTRUCTIONS`, and `RESPONSE_FORMAT_INSTRUCTIONS` into single `CONSOLIDATED_REVIEW_INSTRUCTIONS`
+- **Better UX**: More consistent and predictable AI feedback with reduced duplicate comments
+- **Maintainability**: Simplified prompt structure makes future updates easier
+
 ## [1.5.3] - 2025-08-17
 
 ### Fixed
