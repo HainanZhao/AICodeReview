@@ -583,6 +583,20 @@ async function configureAutoReview(
 
   const storageType = storageChoice === '2' ? 'snippet' : 'local';
 
+  // Ask for custom prompt file
+  console.log('\n📝 Custom Prompt Configuration:');
+  console.log(helpText('You can provide a custom prompt file that will be appended to the default AI review prompt.'));
+  console.log(helpText('This allows you to customize the review criteria specific to your project.'));
+  console.log(helpText('Leave empty to use the default prompt only.'));
+  
+  const defaultPromptFile = existingConfig?.autoReview?.promptFile || '';
+  const promptFile = await question(
+    `Path to custom prompt file (optional, current: ${defaultPromptFile || 'none'}): `
+  );
+  
+  // Use the provided prompt file or keep existing one, or leave undefined
+  const finalPromptFile = promptFile.trim() || defaultPromptFile || undefined;
+  
   const autoReviewConfig = {
     enabled: true,
     projects: selectedProjects.projectNames,
@@ -590,7 +604,14 @@ async function configureAutoReview(
     state: {
       storage: storageType as 'local' | 'snippet',
     },
+    ...(finalPromptFile && { promptFile: finalPromptFile }),
   };
+  
+  if (finalPromptFile) {
+    console.log(`✅ Custom prompt file set to: ${finalPromptFile}`);
+  } else {
+    console.log(`✅ Using default prompt (no custom prompt file specified)`);
+  }
   console.log(`✅ State storage set to: ${storageType}`);
 
   // If user chose snippet storage, check for local state and offer to migrate

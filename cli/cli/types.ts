@@ -42,6 +42,7 @@ export interface CLIReviewOptions {
   dryRun?: boolean;
   mock?: boolean;
   verbose?: boolean;
+  customPromptFile?: string;
   // CLI options that can override config
   provider?: string;
   apiKey?: string;

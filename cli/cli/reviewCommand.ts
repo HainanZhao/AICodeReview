@@ -177,6 +177,7 @@ export class CLIReviewCommand {
         provider: config.llm.provider as 'gemini' | 'anthropic' | 'gemini-cli',
         apiKey: config.llm.apiKey,
         verbose: !!options.verbose,
+        customPromptFile: options.customPromptFile,
       };
 
       try {

@@ -243,6 +243,7 @@ export class AutoReviewCommand {
           provider: this.config.llm.provider,
           apiKey: this.config.llm.apiKey,
           googleCloudProject: this.config.llm.googleCloudProject,
+          customPromptFile: this.config.autoReview?.promptFile,
         });
 
         // Store the reviewed MR state

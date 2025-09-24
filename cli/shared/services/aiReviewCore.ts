@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import { ParsedFileDiff, ReviewFeedback, Severity } from '../types/gitlab.js';
 
 /**
@@ -34,6 +35,7 @@ export interface AIReviewRequest {
   parsedDiffs: ParsedFileDiff[];
   existingFeedback?: ReviewFeedback[];
   authorName: string;
+  customPromptFile?: string; // Optional path to custom prompt file
 }
 
 export interface AIReviewResponse {
@@ -41,6 +43,54 @@ export interface AIReviewResponse {
   summary?: string;
   overallRating?: 'approve' | 'request_changes' | 'comment';
 }
+
+/**
+ * Reads a custom prompt file and returns its content
+ * Returns empty string if file doesn't exist or can't be read
+ */
+const readCustomPromptFile = (promptFile: string): string => {
+  try {
+    if (!fs.existsSync(promptFile)) {
+      console.warn(`⚠ Warning: Custom prompt file not found: ${promptFile}`);
+      return '';
+    }
+    
+    const content = fs.readFileSync(promptFile, 'utf-8').trim();
+    if (!content) {
+      console.warn(`⚠ Warning: Custom prompt file is empty: ${promptFile}`);
+      return '';
+    }
+    
+    console.log(`✅ Using custom prompt file: ${promptFile}`);
+    return content;
+  } catch (error) {
+    console.warn(`⚠ Warning: Failed to read custom prompt file ${promptFile}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return '';
+  }
+};
+
+/**
+ * Builds the custom prompt section if a custom prompt file is provided
+ */
+const buildCustomPromptSection = (customPromptFile?: string): string => {
+  if (!customPromptFile) {
+    return '';
+  }
+  
+  const customContent = readCustomPromptFile(customPromptFile);
+  if (!customContent) {
+    return '';
+  }
+  
+  return `
+
+**🎯 PROJECT-SPECIFIC REVIEW INSTRUCTIONS:**
+
+${customContent}
+
+**Note**: The above instructions are specific to this project and should be applied in addition to the general review guidelines.
+`;
+};
 
 /**
  * Static instruction section that appears at the top of every prompt
@@ -214,11 +264,12 @@ For each potential feedback item, ask:
 
 /**
  * Builds the AI review prompt based on MR data
- * Structure: Static Instructions → MR Details → Existing Comments → Critical Recap
+ * Structure: Static Instructions → Custom Instructions → MR Details → Existing Comments → Critical Recap
  */
 export const buildReviewPrompt = (request: AIReviewRequest): string => {
   const sections = [
     STATIC_INSTRUCTIONS,
+    buildCustomPromptSection(request.customPromptFile),
     buildMRDetails(request),
     buildExistingFeedbackSection(request.existingFeedback || []),
     CRITICAL_RECAP,

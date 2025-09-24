@@ -25,6 +25,7 @@ export interface AutoReviewConfig {
   projects: string[];
   interval: number;
   state?: StateConfig;
+  promptFile?: string; // Optional path to custom prompt file
 }
 
 export interface StateConfig {
@@ -99,6 +100,7 @@ export const CONFIG_SCHEMA = {
         },
         dryRun: { type: 'boolean' },
         verbose: { type: 'boolean' },
+        promptFile: { type: 'string' }, // Optional path to custom prompt file
       },
       required: ['enabled', 'projects', 'interval'],
     },

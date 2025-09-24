@@ -25,6 +25,7 @@ export interface MrReviewOptions {
   provider: 'gemini' | 'anthropic' | 'gemini-cli';
   apiKey?: string;
   verbose?: boolean;
+  customPromptFile?: string; // Optional path to custom prompt file
 }
 
 export interface MrReviewResult {
@@ -82,6 +83,7 @@ export class MrReviewService {
       parsedDiffs: mrDetails.parsedDiffs,
       existingFeedback: mrDetails.existingFeedback,
       authorName: mrDetails.authorName,
+      customPromptFile: options.customPromptFile,
     };
 
     if (options.verbose) {

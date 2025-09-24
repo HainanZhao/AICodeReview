@@ -161,6 +161,7 @@ export class ConfigLoader {
         projects: override.autoReview.projects,
         interval: override.autoReview.interval,
         state: override.autoReview.state,
+        promptFile: override.autoReview.promptFile,
       };
     } else if (base.autoReview) {
       merged.autoReview = base.autoReview;
