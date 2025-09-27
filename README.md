@@ -10,6 +10,7 @@
 
 - 🤖 **Fully Automatic Code Review Mode**: Set it and forget it! Continuously monitors GitLab projects for new/updated merge requests and reviews them automatically.
 - 🎯 **Manual Code Review**: Leverage AI to analyze code quality, performance, security, and best practices on-demand.
+- 🎨 **Custom Prompts**: Tailor the AI review process with project-specific requirements, coding standards, and security guidelines using custom prompt files.
 - 🚀 **CLI-First Approach**: Seamless integration into your development workflow for quick reviews.
 - 📦 **Smart Project Management**: Human-readable project names with intelligent caching for faster operations.
 - 🤖 **Multiple AI Providers**: Support for Gemini CLI (default), Google Gemini API, and Anthropic Claude.
@@ -268,6 +269,59 @@ aicodereview --provider anthropic --api-key YOUR_ANTHROPIC_API_KEY
 
 4.  **Interactive Configuration (`aicodereview --init`)**
     As mentioned in Quick Start, this wizard helps you create a configuration file.
+
+---
+
+## 🎨 Custom Prompts
+
+Customize the AI review process with project-specific requirements, coding standards, and security guidelines.
+
+### Quick Start with Custom Prompts
+
+1. **Generate a sample prompt during setup**:
+   ```bash
+   aicodereview --init
+   # Choose "Y" when asked to generate a sample custom prompt file
+   ```
+
+2. **Use via CLI**:
+   ```bash
+   aicodereview --custom-prompt-file ./my-prompt.md <MR_URL>
+   ```
+
+3. **Configure in config file**:
+   ```json
+   {
+     "autoReview": {
+       "promptFile": "./custom-prompt.md",
+       "promptStrategy": "append"
+     }
+   }
+   ```
+
+### Prompt Merging Strategies
+
+- **`append`** (default): Custom instructions added after default prompt
+- **`prepend`**: Custom instructions come before default prompt  
+- **`replace`**: Use only custom instructions (no default prompt)
+
+### Example Custom Prompt
+
+```markdown
+# My Project Review Guidelines
+
+## TypeScript Requirements
+- Use strict mode, no any types
+- Implement proper error handling
+- Use React.FC for components
+
+## Security Requirements  
+- Validate all input parameters
+- Never log sensitive information
+- Use parameterized queries for database access
+```
+
+📖 **[Complete Custom Prompts Guide →](docs/CUSTOM_PROMPTS.md)**
 
 ---
 

@@ -162,6 +162,8 @@ export class ConfigLoader {
         interval: override.autoReview.interval,
         state: override.autoReview.state,
         promptFile: override.autoReview.promptFile,
+        promptStrategy: override.autoReview.promptStrategy,
+        projectPrompts: override.autoReview.projectPrompts,
       };
     } else if (base.autoReview) {
       merged.autoReview = base.autoReview;

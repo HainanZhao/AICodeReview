@@ -178,6 +178,8 @@ export class CLIReviewCommand {
         apiKey: config.llm.apiKey,
         verbose: !!options.verbose,
         customPromptFile: options.customPromptFile,
+        promptStrategy: options.promptStrategy,
+        projectPrompts: options.projectPrompts,
       };
 
       try {

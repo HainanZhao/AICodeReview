@@ -43,6 +43,14 @@ export interface CLIReviewOptions {
   mock?: boolean;
   verbose?: boolean;
   customPromptFile?: string;
+  promptStrategy?: 'append' | 'prepend' | 'replace'; // How to merge custom prompt with default
+  projectPrompts?: Record<
+    string,
+    {
+      promptFile?: string;
+      promptStrategy?: 'append' | 'prepend' | 'replace';
+    }
+  >; // Per-project prompt configurations
   // CLI options that can override config
   provider?: string;
   apiKey?: string;

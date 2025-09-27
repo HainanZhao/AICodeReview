@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, renameSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { createInterface } from 'readline';
 import { fetchProjects, gitlabApiFetch } from '../shared/services/gitlabCore.js';
 import { GitLabConfig, GitLabMergeRequest, GitLabProject } from '../shared/types/gitlab.js';
@@ -8,6 +8,100 @@ import { Util } from '../shared/utils/Util.js';
 import { loadLocalState, ReviewedMrState, saveSnippetState } from '../state/state.js';
 import { ConfigLoader } from './configLoader.js';
 import { AppConfig } from './configSchema.js';
+
+/**
+ * Generate a sample custom prompt file that users can customize
+ */
+async function generateSamplePromptFile(filePath: string): Promise<void> {
+  // Ensure the directory exists
+  const dir = dirname(filePath);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+
+  // Sample prompt content based on the default template
+  const samplePrompt = `# Custom AI Review Prompt
+
+This is your project-specific custom prompt file. The content here will be added to the default AI review prompt.
+
+## Project-Specific Requirements
+
+<!-- Add your custom review requirements here -->
+
+### Code Style Guidelines
+- Follow project naming conventions
+- Ensure proper documentation for public APIs
+- Use consistent formatting patterns
+
+### Security Requirements  
+- Validate all input parameters
+- Never log sensitive information
+- Use secure authentication methods
+
+### Performance Guidelines
+- Avoid inefficient algorithms
+- Consider memory usage implications
+- Implement proper caching strategies
+
+### Architecture Rules
+- Follow established design patterns
+- Maintain separation of concerns
+- Ensure proper error handling
+
+<!-- You can customize any section above or add new sections as needed -->
+`;
+
+  writeFileSync(filePath, samplePrompt, 'utf-8');
+}
+
+/**
+ * Validates a custom prompt file and returns validation errors if any
+ */
+function validateCustomPromptFile(promptFile: string): string[] {
+  const errors: string[] = [];
+
+  if (!existsSync(promptFile)) {
+    errors.push(`Custom prompt file does not exist: ${promptFile}`);
+    return errors;
+  }
+
+  try {
+    const stats = statSync(promptFile);
+
+    if (!stats.isFile()) {
+      errors.push(`Custom prompt path is not a file: ${promptFile}`);
+    }
+
+    if (stats.size === 0) {
+      errors.push(`Custom prompt file is empty: ${promptFile}`);
+    }
+
+    if (stats.size > 100 * 1024) {
+      // 100KB limit
+      errors.push(
+        `Custom prompt file is too large (max 100KB): ${promptFile} (${Math.round(stats.size / 1024)}KB)`
+      );
+    }
+
+    // Try to read the file to check encoding
+    const content = readFileSync(promptFile, 'utf-8');
+
+    if (content.trim().length === 0) {
+      errors.push(`Custom prompt file contains no meaningful content: ${promptFile}`);
+    }
+
+    // Warn if file is suspiciously small
+    if (content.trim().length < 10) {
+      errors.push(`Custom prompt file is very short (less than 10 characters): ${promptFile}`);
+    }
+  } catch (error) {
+    errors.push(
+      `Failed to access custom prompt file ${promptFile}: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+
+  return errors;
+}
 
 /**
  * Helper function to fetch all merge requests from a project (including closed/merged)
@@ -320,34 +414,6 @@ async function selectProjectsInteractively(
 /**
  * Configures server settings
  */
-async function configureServer(
-  question: (prompt: string) => Promise<string>,
-  existingConfig: AppConfig | null
-): Promise<{ port: number; host: string; subPath?: string }> {
-  console.log('📡 Server Configuration:');
-  const defaultPort = existingConfig?.server?.port?.toString() || '5960';
-  const defaultHost = existingConfig?.server?.host || 'localhost';
-  const defaultSubPath = existingConfig?.server?.subPath || '';
-
-  const port = (await question(`Port (${defaultPort}): `)) || defaultPort;
-  const host = (await question(`Host (${defaultHost}): `)) || defaultHost;
-  console.log(
-    helpText('Sub-path: If you need to serve the app under a specific path (e.g., behind a proxy)')
-  );
-  const subPath =
-    (await question(
-      `Sub-path (${defaultSubPath ? `current: ${defaultSubPath}` : 'optional, e.g., /path/to'}): `
-    )) ||
-    defaultSubPath ||
-    undefined;
-
-  return {
-    port: parseInt(port, 10),
-    host,
-    ...(subPath && { subPath }),
-  };
-}
-
 /**
  * Configures LLM provider settings
  */
@@ -440,19 +506,6 @@ async function configureLLM(
 /**
  * Configures UI settings
  */
-async function configureUI(
-  question: (prompt: string) => Promise<string>,
-  existingConfig: AppConfig | null
-): Promise<{ autoOpen: boolean }> {
-  console.log('\n🎨 UI Configuration:');
-  const currentAutoOpen = existingConfig?.ui?.autoOpen ? 'y' : 'n';
-  const autoOpenInput =
-    (await question(`Auto-open browser? (y/N, current: ${currentAutoOpen}): `)) || currentAutoOpen;
-  const autoOpen = autoOpenInput.toLowerCase() === 'y' || autoOpenInput.toLowerCase() === 'yes';
-
-  return { autoOpen };
-}
-
 /**
  * Configures GitLab settings
  */
@@ -583,20 +636,178 @@ async function configureAutoReview(
 
   const storageType = storageChoice === '2' ? 'snippet' : 'local';
 
-  // Ask for custom prompt file
+  // Ask for custom prompt configuration - per-project or global
   console.log('\n📝 Custom Prompt Configuration:');
-  console.log(helpText('You can provide a custom prompt file that will be appended to the default AI review prompt.'));
-  console.log(helpText('This allows you to customize the review criteria specific to your project.'));
-  console.log(helpText('Leave empty to use the default prompt only.'));
-  
-  const defaultPromptFile = existingConfig?.autoReview?.promptFile || '';
-  const promptFile = await question(
-    `Path to custom prompt file (optional, current: ${defaultPromptFile || 'none'}): `
+  console.log(
+    helpText(
+      'You can customize AI review prompts to enforce project-specific coding standards, security requirements, and architectural patterns.'
+    )
   );
-  
-  // Use the provided prompt file or keep existing one, or leave undefined
-  const finalPromptFile = promptFile.trim() || defaultPromptFile || undefined;
-  
+  console.log(helpText('Choose your preferred approach:'));
+  console.log(
+    helpText('1. Per-project prompts (recommended for multiple projects with different needs)')
+  );
+  console.log(helpText('2. Global prompt (same prompt for all projects)'));
+  console.log(helpText('3. No custom prompt (use default AI instructions only)'));
+
+  const promptChoice = await question('Choose prompt configuration (1-3): ');
+  let finalPromptFile: string | undefined;
+  let projectPrompts:
+    | Record<string, { promptFile?: string; promptStrategy?: 'append' | 'prepend' | 'replace' }>
+    | undefined;
+
+  if (promptChoice === '1') {
+    // Per-project prompts configuration
+    console.log('\n🎯 Per-Project Prompts Setup:');
+    console.log(helpText('Configure custom prompts for each of your projects.'));
+    projectPrompts = {};
+
+    for (const projectName of selectedProjects.projectNames) {
+      console.log(`\n📋 Configure prompt for project: ${projectName}`);
+
+      const hasCustomPrompt = await question(`Enable custom prompt for ${projectName}? (y/N): `);
+
+      if (hasCustomPrompt.toLowerCase() === 'y' || hasCustomPrompt.toLowerCase() === 'yes') {
+        // Generate sample prompt for this project
+        const homeConfigDir = join(homedir(), '.aicodereview');
+        const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, '-');
+        const samplePromptPath = join(homeConfigDir, `${safeName}-prompt.md`);
+
+        const generateSample = await question(
+          `Generate sample prompt file for ${projectName}? (Y/n): `
+        );
+
+        if (generateSample.toLowerCase() !== 'n' && generateSample.toLowerCase() !== 'no') {
+          await generateSamplePromptFile(samplePromptPath);
+          console.log(`✅ Sample prompt file created at: ${samplePromptPath}`);
+
+          const promptFile = await question(
+            `Path to custom prompt file (default: ${samplePromptPath}): `
+          );
+
+          const finalPath = promptFile.trim() || samplePromptPath;
+
+          // Ask for strategy
+          console.log(
+            helpText(
+              'Prompt strategy: append=add to default, prepend=before default, replace=only custom'
+            )
+          );
+          const strategy =
+            (await question('Prompt strategy (append/prepend/replace, default: append): ')) ||
+            'append';
+
+          projectPrompts[projectName] = {
+            promptFile: finalPath,
+            promptStrategy: strategy as 'append' | 'prepend' | 'replace',
+          };
+
+          console.log(`✅ Custom prompt configured for ${projectName}`);
+        }
+      }
+    }
+
+    // If no project prompts were configured, ask for global fallback
+    if (Object.keys(projectPrompts).length === 0) {
+      console.log('\n⚠️  No project-specific prompts configured. Setting up global fallback...');
+      // Fall through to global prompt setup
+    } else {
+      console.log(
+        `\n✅ Configured custom prompts for ${Object.keys(projectPrompts).length} project(s)`
+      );
+    }
+  }
+
+  if (
+    promptChoice === '2' ||
+    (promptChoice === '1' && Object.keys(projectPrompts || {}).length === 0)
+  ) {
+    // Global prompt configuration
+    console.log('\n🌐 Global Prompt Setup:');
+    console.log(
+      helpText("This prompt will be used for all projects that don't have specific prompts.")
+    );
+
+    const defaultPromptFile = existingConfig?.autoReview?.promptFile || '';
+
+    // Offer to generate a sample prompt file
+    if (!defaultPromptFile) {
+      console.log(
+        helpText('Would you like to generate a sample custom prompt file that you can customize?')
+      );
+      const generateSample = await question('Generate sample prompt file? (Y/n): ');
+
+      if (generateSample.toLowerCase() !== 'n' && generateSample.toLowerCase() !== 'no') {
+        const homeConfigDir = join(homedir(), '.aicodereview');
+        const samplePromptPath = join(homeConfigDir, 'custom-prompt.md');
+
+        // Generate the sample prompt file
+        await generateSamplePromptFile(samplePromptPath);
+        console.log(`✅ Sample prompt file created at: ${samplePromptPath}`);
+        console.log(helpText('You can edit this file to customize your AI review prompts.'));
+
+        // Auto-suggest using this file
+        const promptFile = await question(
+          `Path to custom prompt file (default: ${samplePromptPath}): `
+        );
+
+        finalPromptFile = promptFile.trim() || samplePromptPath;
+
+        // Validate the custom prompt file if provided and different from sample
+        if (finalPromptFile && finalPromptFile !== samplePromptPath) {
+          const validation = validateCustomPromptFile(finalPromptFile);
+          if (validation.length > 0) {
+            console.log('⚠ Custom prompt file validation issues:');
+            validation.forEach((error) => console.log(`  - ${error}`));
+            const continueAnyway = await question('Continue with this file anyway? (y/N): ');
+            if (continueAnyway.toLowerCase() !== 'y' && continueAnyway.toLowerCase() !== 'yes') {
+              finalPromptFile = undefined;
+              console.log('❌ Custom prompt file not configured');
+            }
+          }
+        }
+      } else {
+        const promptFile = await question(
+          `Path to custom prompt file (optional, current: ${defaultPromptFile || 'none'}): `
+        );
+        finalPromptFile = promptFile.trim() || defaultPromptFile || undefined;
+
+        // Validate the custom prompt file if provided
+        if (finalPromptFile) {
+          const validation = validateCustomPromptFile(finalPromptFile);
+          if (validation.length > 0) {
+            console.log('⚠ Custom prompt file validation issues:');
+            validation.forEach((error) => console.log(`  - ${error}`));
+            const continueAnyway = await question('Continue with this file anyway? (y/N): ');
+            if (continueAnyway.toLowerCase() !== 'y' && continueAnyway.toLowerCase() !== 'yes') {
+              finalPromptFile = undefined;
+              console.log('❌ Custom prompt file not configured');
+            }
+          }
+        }
+      }
+    } else {
+      const promptFile = await question(
+        `Path to custom prompt file (optional, current: ${defaultPromptFile || 'none'}): `
+      );
+      finalPromptFile = promptFile.trim() || defaultPromptFile || undefined;
+
+      // Validate the custom prompt file if provided
+      if (finalPromptFile) {
+        const validation = validateCustomPromptFile(finalPromptFile);
+        if (validation.length > 0) {
+          console.log('⚠ Custom prompt file validation issues:');
+          validation.forEach((error) => console.log(`  - ${error}`));
+          const continueAnyway = await question('Continue with this file anyway? (y/N): ');
+          if (continueAnyway.toLowerCase() !== 'y' && continueAnyway.toLowerCase() !== 'yes') {
+            finalPromptFile = undefined;
+            console.log('❌ Custom prompt file not configured');
+          }
+        }
+      }
+    }
+  }
+
   const autoReviewConfig = {
     enabled: true,
     projects: selectedProjects.projectNames,
@@ -605,10 +816,20 @@ async function configureAutoReview(
       storage: storageType as 'local' | 'snippet',
     },
     ...(finalPromptFile && { promptFile: finalPromptFile }),
+    ...(projectPrompts && Object.keys(projectPrompts).length > 0 && { projectPrompts }),
   };
-  
-  if (finalPromptFile) {
-    console.log(`✅ Custom prompt file set to: ${finalPromptFile}`);
+
+  if (projectPrompts && Object.keys(projectPrompts).length > 0) {
+    console.log(
+      `✅ Per-project prompts configured for ${Object.keys(projectPrompts).length} project(s)`
+    );
+    Object.entries(projectPrompts).forEach(([projectName, config]) => {
+      console.log(
+        `   - ${projectName}: ${config.promptFile} (${config.promptStrategy || 'append'})`
+      );
+    });
+  } else if (finalPromptFile) {
+    console.log(`✅ Global custom prompt file set to: ${finalPromptFile}`);
   } else {
     console.log(`✅ Using default prompt (no custom prompt file specified)`);
   }
@@ -625,7 +846,7 @@ async function configureAutoReview(
 
 export async function createConfigInteractively(section?: string): Promise<void> {
   // Validate section parameter
-  const validSections = ['server', 'llm', 'ui', 'gitlab', 'autoReview'];
+  const validSections = ['llm', 'gitlab', 'autoReview'];
   if (section && !validSections.includes(section)) {
     console.error(`❌ Invalid section: ${section}`);
     console.error(`Valid sections are: ${validSections.join(', ')}`);
@@ -665,14 +886,8 @@ export async function createConfigInteractively(section?: string): Promise<void>
       console.log(`🔧 Configuring ${section} section...\n`);
 
       switch (section) {
-        case 'server':
-          config.server = await configureServer(question, existingConfig);
-          break;
         case 'llm':
           config.llm = await configureLLM(question, existingConfig);
-          break;
-        case 'ui':
-          config.ui = await configureUI(question, existingConfig);
           break;
         case 'gitlab': {
           const gitlabResult = await configureGitLab(question, existingConfig);
@@ -704,10 +919,19 @@ export async function createConfigInteractively(section?: string): Promise<void>
         config = { ...existingConfig, ...config };
       }
     } else {
-      // Full configuration wizard
-      config.server = await configureServer(question, existingConfig);
+      // Full configuration wizard - focus on backend auto-review setup
+      console.log('🚀 Setting up AI Code Review for backend auto-review mode...');
+
+      // Use default server and UI settings for backend auto mode
+      config.server = existingConfig?.server || {
+        port: 5960,
+        host: 'localhost',
+      };
+      config.ui = existingConfig?.ui || {
+        autoOpen: false,
+      };
+
       config.llm = await configureLLM(question, existingConfig);
-      config.ui = await configureUI(question, existingConfig);
 
       const gitlabResult = await configureGitLab(question, existingConfig);
       if (gitlabResult) {

@@ -5,19 +5,19 @@
  */
 
 import {
-  AIProviderCore,
-  buildReviewPrompt,
-  fetchMrData,
-  filterAndDeduplicateFeedback,
-  GeminiCliCore,
-  GitLabConfig,
-  parseAIResponse,
-  Severity,
-  type AIReviewRequest,
-  type AIReviewResponse,
-  type GeminiCliItem,
-  type GitLabMRDetails,
-  type ReviewFeedback,
+    AIProviderCore,
+    buildReviewPrompt,
+    fetchMrData,
+    filterAndDeduplicateFeedback,
+    GeminiCliCore,
+    GitLabConfig,
+    parseAIResponse,
+    Severity,
+    type AIReviewRequest,
+    type AIReviewResponse,
+    type GeminiCliItem,
+    type GitLabMRDetails,
+    type ReviewFeedback,
 } from '../index.js';
 import { normalizeGitLabConfig, type FrontendGitLabConfig } from '../types/unifiedConfig.js';
 
@@ -25,7 +25,15 @@ export interface MrReviewOptions {
   provider: 'gemini' | 'anthropic' | 'gemini-cli';
   apiKey?: string;
   verbose?: boolean;
-  customPromptFile?: string; // Optional path to custom prompt file
+  customPromptFile?: string; // Optional path to custom prompt file (CLI override)
+  promptStrategy?: 'append' | 'prepend' | 'replace'; // How to merge custom prompt with default
+  projectPrompts?: Record<
+    string,
+    {
+      promptFile?: string;
+      promptStrategy?: 'append' | 'prepend' | 'replace';
+    }
+  >; // Per-project prompt configurations
 }
 
 export interface MrReviewResult {
@@ -83,7 +91,10 @@ export class MrReviewService {
       parsedDiffs: mrDetails.parsedDiffs,
       existingFeedback: mrDetails.existingFeedback,
       authorName: mrDetails.authorName,
+      projectName: mrDetails.projectPath, // Use project path as project name for prompt lookup
       customPromptFile: options.customPromptFile,
+      promptStrategy: options.promptStrategy,
+      projectPrompts: options.projectPrompts,
     };
 
     if (options.verbose) {

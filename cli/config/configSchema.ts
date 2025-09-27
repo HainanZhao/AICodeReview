@@ -25,7 +25,15 @@ export interface AutoReviewConfig {
   projects: string[];
   interval: number;
   state?: StateConfig;
-  promptFile?: string; // Optional path to custom prompt file
+  promptFile?: string; // Global fallback prompt file
+  promptStrategy?: 'append' | 'prepend' | 'replace'; // Global fallback strategy
+  projectPrompts?: Record<
+    string,
+    {
+      promptFile?: string;
+      promptStrategy?: 'append' | 'prepend' | 'replace';
+    }
+  >; // Per-project prompts: { "project-name": { promptFile: "path", strategy: "append" } }
 }
 
 export interface StateConfig {
@@ -101,6 +109,25 @@ export const CONFIG_SCHEMA = {
         dryRun: { type: 'boolean' },
         verbose: { type: 'boolean' },
         promptFile: { type: 'string' }, // Optional path to custom prompt file
+        promptStrategy: {
+          type: 'string',
+          enum: ['append', 'prepend', 'replace'],
+          default: 'append',
+        }, // How to merge custom prompt with default
+        projectPrompts: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            properties: {
+              promptFile: { type: 'string' },
+              promptStrategy: {
+                type: 'string',
+                enum: ['append', 'prepend', 'replace'],
+                default: 'append',
+              },
+            },
+          },
+        }, // Per-project custom prompts
       },
       required: ['enabled', 'projects', 'interval'],
     },

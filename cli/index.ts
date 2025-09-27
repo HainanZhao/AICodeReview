@@ -80,6 +80,8 @@ interface ProgramOptions {
   dryRun?: boolean;
   mock?: boolean;
   verbose?: boolean;
+  customPromptFile?: string;
+  promptStrategy?: string;
 }
 
 program
@@ -103,6 +105,14 @@ program
   .option('--dry-run', 'generate real AI review but do not post comments to GitLab (CLI mode only)')
   .option('--mock', 'use mock AI responses for testing without API calls (CLI mode only)')
   .option('--verbose', 'detailed operation logs (CLI mode only)')
+  .option(
+    '--custom-prompt-file <file>',
+    'path to custom prompt file to use instead of default (CLI mode only)'
+  )
+  .option(
+    '--prompt-strategy <strategy>',
+    'how to merge custom prompt: append, prepend, or replace (default: append, CLI mode only)'
+  )
   .action(async (mrUrls: string[], options: ProgramOptions) => {
     try {
       await checkForUpdates(packageJson.version);
@@ -146,6 +156,8 @@ program
           dryRun: options.dryRun,
           mock: options.mock,
           verbose: options.verbose,
+          customPromptFile: options.customPromptFile,
+          promptStrategy: options.promptStrategy as 'append' | 'prepend' | 'replace' | undefined,
           provider: options.provider,
           apiKey: options.apiKey,
           googleCloudProject: options.googleCloudProject,

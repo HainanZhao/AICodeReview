@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import { ParsedFileDiff, ReviewFeedback, Severity } from '../types/gitlab.js';
+import { CRITICAL_RECAP, STATIC_INSTRUCTIONS } from './prompts/index.js';
 
 /**
  * Core AI review service functions that can be shared between UI and CLI
@@ -35,7 +36,16 @@ export interface AIReviewRequest {
   parsedDiffs: ParsedFileDiff[];
   existingFeedback?: ReviewFeedback[];
   authorName: string;
-  customPromptFile?: string; // Optional path to custom prompt file
+  projectName?: string; // Project name to look up project-specific prompts
+  customPromptFile?: string; // Optional path to custom prompt file (for CLI overrides)
+  promptStrategy?: 'append' | 'prepend' | 'replace'; // How to merge custom prompt with default
+  projectPrompts?: Record<
+    string,
+    {
+      promptFile?: string;
+      promptStrategy?: 'append' | 'prepend' | 'replace';
+    }
+  >; // Available per-project prompts configuration
 }
 
 export interface AIReviewResponse {
@@ -45,26 +55,143 @@ export interface AIReviewResponse {
 }
 
 /**
+ * Validates a custom prompt file and returns validation errors if any
+ */
+const validateCustomPromptFile = (promptFile: string): string[] => {
+  const errors: string[] = [];
+
+  if (!fs.existsSync(promptFile)) {
+    errors.push(`Custom prompt file does not exist: ${promptFile}`);
+    return errors;
+  }
+
+  try {
+    const stats = fs.statSync(promptFile);
+
+    if (!stats.isFile()) {
+      errors.push(`Custom prompt path is not a file: ${promptFile}`);
+    }
+
+    if (stats.size === 0) {
+      errors.push(`Custom prompt file is empty: ${promptFile}`);
+    }
+
+    if (stats.size > 100 * 1024) {
+      // 100KB limit
+      errors.push(
+        `Custom prompt file is too large (max 100KB): ${promptFile} (${Math.round(stats.size / 1024)}KB)`
+      );
+    }
+
+    // Try to read the file to check encoding
+    const content = fs.readFileSync(promptFile, 'utf-8');
+
+    if (content.trim().length === 0) {
+      errors.push(`Custom prompt file contains no meaningful content: ${promptFile}`);
+    }
+
+    // Check for potential encoding issues or binary content
+    // eslint-disable-next-line no-control-regex
+    if (/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(content)) {
+      errors.push(
+        `Custom prompt file may contain binary data or invalid characters: ${promptFile}`
+      );
+    }
+
+    // Warn if file is suspiciously small
+    if (content.trim().length < 10) {
+      errors.push(`Custom prompt file is very short (less than 10 characters): ${promptFile}`);
+    }
+  } catch (error) {
+    errors.push(
+      `Failed to access custom prompt file ${promptFile}: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+
+  return errors;
+};
+
+/**
+ * Resolves the custom prompt configuration for a specific project
+ */
+const resolveProjectPromptConfig = (
+  projectName?: string,
+  projectPrompts?: Record<
+    string,
+    {
+      promptFile?: string;
+      promptStrategy?: 'append' | 'prepend' | 'replace';
+    }
+  >,
+  fallbackPromptFile?: string,
+  fallbackStrategy?: 'append' | 'prepend' | 'replace'
+): { promptFile?: string; strategy: 'append' | 'prepend' | 'replace' } => {
+  // If we have a project name and project prompts configured, look for project-specific config
+  if (projectName && projectPrompts) {
+    // Direct match first
+    const directConfig = projectPrompts[projectName];
+    if (directConfig) {
+      console.log(`📝 Using project-specific prompt for: ${projectName}`);
+      return {
+        promptFile: directConfig.promptFile,
+        strategy: directConfig.promptStrategy || 'append',
+      };
+    }
+
+    // Try partial matching for project names
+    const matchingProjectKey = Object.keys(projectPrompts).find(
+      (configProjectName) =>
+        projectName.toLowerCase().includes(configProjectName.toLowerCase()) ||
+        configProjectName.toLowerCase().includes(projectName.toLowerCase())
+    );
+
+    if (matchingProjectKey) {
+      const matchingConfig = projectPrompts[matchingProjectKey];
+      console.log(
+        `📝 Using project-specific prompt for: ${projectName} (matched: ${matchingProjectKey})`
+      );
+      return {
+        promptFile: matchingConfig.promptFile,
+        strategy: matchingConfig.promptStrategy || 'append',
+      };
+    }
+  }
+
+  // Fall back to global prompt configuration
+  if (fallbackPromptFile) {
+    console.log(`📝 Using global fallback prompt for: ${projectName || 'unknown project'}`);
+  }
+
+  return {
+    promptFile: fallbackPromptFile,
+    strategy: fallbackStrategy || 'append',
+  };
+};
+
+/**
  * Reads a custom prompt file and returns its content
  * Returns empty string if file doesn't exist or can't be read
  */
 const readCustomPromptFile = (promptFile: string): string => {
+  // Validate the file first
+  const validationErrors = validateCustomPromptFile(promptFile);
+
+  if (validationErrors.length > 0) {
+    console.warn('⚠ Custom prompt file validation failed:');
+    validationErrors.forEach((error) => console.warn(`  - ${error}`));
+    return '';
+  }
+
   try {
-    if (!fs.existsSync(promptFile)) {
-      console.warn(`⚠ Warning: Custom prompt file not found: ${promptFile}`);
-      return '';
-    }
-    
     const content = fs.readFileSync(promptFile, 'utf-8').trim();
-    if (!content) {
-      console.warn(`⚠ Warning: Custom prompt file is empty: ${promptFile}`);
-      return '';
-    }
-    
-    console.log(`✅ Using custom prompt file: ${promptFile}`);
+    console.log(
+      `✅ Using custom prompt file: ${promptFile} (${Math.round((content.length / 1024) * 100) / 100}KB)`
+    );
     return content;
   } catch (error) {
-    console.warn(`⚠ Warning: Failed to read custom prompt file ${promptFile}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.warn(
+      `⚠ Warning: Failed to read custom prompt file ${promptFile}: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
     return '';
   }
 };
@@ -72,16 +199,25 @@ const readCustomPromptFile = (promptFile: string): string => {
 /**
  * Builds the custom prompt section if a custom prompt file is provided
  */
-const buildCustomPromptSection = (customPromptFile?: string): string => {
+const buildCustomPromptSection = (
+  customPromptFile?: string,
+  strategy: 'append' | 'prepend' | 'replace' = 'append'
+): string => {
   if (!customPromptFile) {
     return '';
   }
-  
+
   const customContent = readCustomPromptFile(customPromptFile);
   if (!customContent) {
     return '';
   }
-  
+
+  // For 'replace' strategy, return only the custom content
+  if (strategy === 'replace') {
+    return `\n\n${customContent}\n`;
+  }
+
+  // For 'append' and 'prepend', add project-specific header
   return `
 
 **🎯 PROJECT-SPECIFIC REVIEW INSTRUCTIONS:**
@@ -91,110 +227,6 @@ ${customContent}
 **Note**: The above instructions are specific to this project and should be applied in addition to the general review guidelines.
 `;
 };
-
-/**
- * Static instruction section that appears at the top of every prompt
- */
-const STATIC_INSTRUCTIONS = `
-You are a senior software engineer and expert code reviewer with years of experience in identifying critical issues, security vulnerabilities, and code quality improvements. Your reviews are known for being thorough, actionable, and focused on genuinely important issues.
-
-**Your Mission:**
-Provide a high-quality, focused review that adds real value. Prioritize critical bugs, security issues, and performance problems, while also ensuring code follows established standards and best practices.
-
-**Review Standards:**
-- Focus on issues that could cause bugs, security vulnerabilities, or performance problems
-- Check adherence to coding standards, naming conventions, and architectural patterns
-- Suggest concrete improvements with specific code examples when possible  
-- Flag inconsistencies in code style that affect team collaboration or maintenance
-- Avoid trivial formatting issues if they don't impact readability or team standards
-
-**📋 Review Guidelines:**
-1. Focus on code quality, security, performance, and maintainability
-2. Identify potential bugs, logical errors, or edge cases  
-3. Enforce coding standards: naming conventions, function/class structure, and architectural patterns
-4. Check for proper error handling and input validation
-5. Look for security vulnerabilities or data exposure risks
-6. Consider scalability and performance implications
-7. Verify proper testing coverage for new functionality
-8. Ensure consistent code style and adherence to team conventions
-9. Flag deviations from established patterns that could confuse future maintainers
-
-**🚨 ANTI-DUPLICATE POLICY - MANDATORY COMPLIANCE:**
-
-🔴 **STOP! READ THIS FIRST BEFORE ANY REVIEW:**
-1. **MANDATORY**: Scroll down and read EVERY item in the "🔍 Existing Comments" section
-2. **FORBIDDEN**: Creating feedback for ANY issue already mentioned below
-3. **REQUIRED**: If existing comments cover all issues, return empty feedback array with "feedback": []
-4. **ENFORCEMENT**: Duplicate feedback will be rejected - waste of resources
-
-🚫 **WHAT COUNTS AS DUPLICATE (STRICTLY FORBIDDEN):**
-- Same file + similar line numbers + similar topics (security, performance, style, etc.)
-- Different wording but same underlying issue
-- Generic suggestions already covered (error handling, validation, etc.)
-- Any feedback that overlaps with existing discussion
-
-✅ **ONLY ACCEPTABLE NEW FEEDBACK:**
-- Completely different issues on different lines
-- Technical bugs/errors not mentioned in existing comments
-- Security vulnerabilities not already flagged
-- Performance issues not already discussed
-
-**💡 Code Suggestions Format:**
-When suggesting code changes, use this EXACT format:
-\`\`\`suggestion:-x+y
-actual replacement code here
-\`\`\`
-
-**🔴 CRITICAL: GitLab Suggestion Syntax Explained**
-
-**How suggestion:-x+y works:**
-- **-x**: Number of lines to remove BEFORE the commented line (negative offset)
-- **+y**: Number of lines to replace starting FROM the commented line (positive range)
-- **The suggestion block content** replaces the entire range
-
-**STEP-BY-STEP LOGIC:**
-If you comment on line 100 with \`suggestion:-1+3\`:
-1. **Start position**: Line 99 (100 - 1 = one line before comment)
-2. **Range**: 3 lines total (lines 99, 100, 101)
-3. **Result**: Lines 99-101 replaced with your suggestion content
-
-**SIMPLE RULE**: If replacing only the commented line, omit -x+y entirely
-**COMPLEX RULE**: Use -x+y only when you need to replace multiple lines or include context
-
-**⚠️ SUGGESTION FORMAT WARNING:**
-The suggestion:-x+y format is VERY sensitive to line counting errors. When in doubt:
-- Provide clear code suggestions WITHOUT the -x+y format
-- Use descriptive text like "Replace lines 45-47 with:" followed by code block
-- This prevents code corruption from incorrect line counts
-
-**📁 File Paths & Line Numbers:**
-- Use EXACT file paths from section headers: "=== FULL FILE CONTENT: path/file.ext ===" → use "path/file.ext"
-- Use EXACT line numbers from "FULL FILE CONTENT" sections (post-change line numbers)
-- Only review actual changes (lines marked with + or - in git diff sections)
-- Use full file content for context but reference the final line numbers
-
-**🎯 Response Format:**
-{
-  "summary": "Brief assessment of changes",
-  "overallRating": "approve|request_changes|comment",
-  "feedback": [
-    {
-      "filePath": "exact/path/from/headers.ext",
-      "lineNumber": 123,
-      "severity": "error|warning|info|suggestion", 
-      "title": "Brief issue title",
-      "description": "Detailed explanation with specific code suggestions if applicable",
-      "lineContent": "The actual line being referenced"
-    }
-  ]
-}
-
-**Severity Guidelines:**
-- **error**: Critical issues (security, bugs, breaking changes)
-- **warning**: Important issues (performance, bad practices)  
-- **info**: General observations or minor improvements
-- **suggestion**: Optional improvements or alternatives
-`;
 
 /**
  * Builds the dynamic header section with MR details
@@ -237,43 +269,42 @@ ${existingFeedback
 };
 
 /**
- * Critical instruction recap that appears at the end
- */
-const CRITICAL_RECAP = `
-
-🔴 **CRITICAL RECAP - FINAL VERIFICATION BEFORE SUBMITTING:**
-
-**🎯 DECISION PROCESS (FOLLOW EXACTLY):**
-For each potential feedback item, ask:
-1. Is this exact issue already mentioned in existing comments? → SKIP IT
-2. Is this similar to any existing comment topic? → SKIP IT  
-3. Is this a genuinely new issue not covered above? → INCLUDE IT
-4. When in doubt → SKIP IT (better safe than duplicate)
-
-** Final Checklist (MANDATORY VERIFICATION):**
-- ✅ **DUPLICATE CHECK**: Read existing comments and confirmed NO overlaps
-- ✅ **ZERO TOLERANCE**: Removed any feedback similar to existing comments
-- ✅ Used exact file paths from headers
-- ✅ Used exact line numbers from FULL FILE CONTENT
-- ✅ Counted suggestion lines correctly (-x+y)
-- ✅ **QUALITY GATE**: Only included genuinely NEW and valuable feedback
-- ✅ **FINAL DECISION**: If no new issues found, used empty feedback array
-
-**REMEMBER: Empty feedback array with "Code looks good!" summary is PERFECT when existing comments are comprehensive**
-`;
-
-/**
  * Builds the AI review prompt based on MR data
- * Structure: Static Instructions → Custom Instructions → MR Details → Existing Comments → Critical Recap
+ * Structure varies based on promptStrategy:
+ * - append (default): Static Instructions → MR Details → Custom Instructions → Existing Comments → Critical Recap
+ * - prepend: Custom Instructions → Static Instructions → MR Details → Existing Comments → Critical Recap
+ * - replace: Custom Instructions → MR Details → Existing Comments → Critical Recap
  */
 export const buildReviewPrompt = (request: AIReviewRequest): string => {
-  const sections = [
-    STATIC_INSTRUCTIONS,
-    buildCustomPromptSection(request.customPromptFile),
-    buildMRDetails(request),
-    buildExistingFeedbackSection(request.existingFeedback || []),
-    CRITICAL_RECAP,
-  ];
+  // Resolve the correct prompt configuration for this project
+  const promptConfig = resolveProjectPromptConfig(
+    request.projectName,
+    request.projectPrompts,
+    request.customPromptFile, // Fallback to CLI override or global config
+    request.promptStrategy
+  );
+
+  const customSection = buildCustomPromptSection(promptConfig.promptFile, promptConfig.strategy);
+  const mrDetails = buildMRDetails(request);
+  const existingFeedback = buildExistingFeedbackSection(request.existingFeedback || []);
+
+  // Build sections array based on strategy
+  let sections: string[];
+
+  switch (promptConfig.strategy) {
+    case 'prepend':
+      sections = [customSection, STATIC_INSTRUCTIONS, mrDetails, existingFeedback, CRITICAL_RECAP];
+      break;
+
+    case 'replace':
+      sections = [customSection, mrDetails, existingFeedback, CRITICAL_RECAP];
+      break;
+
+    case 'append':
+    default:
+      sections = [STATIC_INSTRUCTIONS, customSection, mrDetails, existingFeedback, CRITICAL_RECAP];
+      break;
+  }
 
   return sections.filter(Boolean).join('');
 };
