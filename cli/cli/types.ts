@@ -51,6 +51,7 @@ export interface CLIReviewOptions {
       promptStrategy?: 'append' | 'prepend' | 'replace';
     }
   >; // Per-project prompt configurations
+  canonicalProjectName?: string; // Canonical project path from GitLab API (e.g., "ghpr-tech/js/jsgh-lib")
   // CLI options that can override config
   provider?: string;
   apiKey?: string;

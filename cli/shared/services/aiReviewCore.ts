@@ -128,32 +128,65 @@ const resolveProjectPromptConfig = (
 ): { promptFile?: string; strategy: 'append' | 'prepend' | 'replace' } => {
   // If we have a project name and project prompts configured, look for project-specific config
   if (projectName && projectPrompts) {
+    console.log(`🔍 Looking for project prompt config for: "${projectName}"`);
+    console.log(`   Available configs: ${Object.keys(projectPrompts).join(', ')}`);
+
     // Direct match first
     const directConfig = projectPrompts[projectName];
     if (directConfig) {
-      console.log(`📝 Using project-specific prompt for: ${projectName}`);
+      console.log(`📝 Using project-specific prompt for: ${projectName} (direct match)`);
       return {
         promptFile: directConfig.promptFile,
         strategy: directConfig.promptStrategy || 'append',
       };
     }
 
-    // Try partial matching for project names
-    const matchingProjectKey = Object.keys(projectPrompts).find(
-      (configProjectName) =>
-        projectName.toLowerCase().includes(configProjectName.toLowerCase()) ||
-        configProjectName.toLowerCase().includes(projectName.toLowerCase())
-    );
+    // Try partial matching for project names with better GitLab path handling
+    const matchingProjectKey = Object.keys(projectPrompts).find((configProjectName) => {
+      const configLower = configProjectName.toLowerCase();
+      const projectLower = projectName.toLowerCase();
+
+      // Direct substring matching (existing logic)
+      if (projectLower.includes(configLower) || configLower.includes(projectLower)) {
+        return true;
+      }
+
+      // GitLab project path matching: handle cases like "gt/js/jsgh-lib" vs "ghpr-tech/js/jsgh-lib"
+      // Extract the repo part (last segment) and compare
+      const configRepoPart = configLower.split('/').pop() || '';
+      const projectRepoPart = projectLower.split('/').pop() || '';
+
+      if (configRepoPart && projectRepoPart && configRepoPart === projectRepoPart) {
+        return true;
+      }
+
+      // Also try matching the last 2 segments (group/repo) if both have them
+      const configParts = configLower.split('/');
+      const projectParts = projectLower.split('/');
+
+      if (configParts.length >= 2 && projectParts.length >= 2) {
+        const configLastTwo = configParts.slice(-2).join('/');
+        const projectLastTwo = projectParts.slice(-2).join('/');
+
+        if (configLastTwo === projectLastTwo) {
+          return true;
+        }
+      }
+
+      return false;
+    });
 
     if (matchingProjectKey) {
       const matchingConfig = projectPrompts[matchingProjectKey];
       console.log(
-        `📝 Using project-specific prompt for: ${projectName} (matched: ${matchingProjectKey})`
+        `📝 Using project-specific prompt for: "${projectName}" (matched config: "${matchingProjectKey}")`
       );
       return {
         promptFile: matchingConfig.promptFile,
         strategy: matchingConfig.promptStrategy || 'append',
       };
+    } else {
+      console.log(`❌ No matching project prompt config found for: "${projectName}"`);
     }
   }
 

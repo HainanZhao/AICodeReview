@@ -5,19 +5,19 @@
  */
 
 import {
-    AIProviderCore,
-    buildReviewPrompt,
-    fetchMrData,
-    filterAndDeduplicateFeedback,
-    GeminiCliCore,
-    GitLabConfig,
-    parseAIResponse,
-    Severity,
-    type AIReviewRequest,
-    type AIReviewResponse,
-    type GeminiCliItem,
-    type GitLabMRDetails,
-    type ReviewFeedback,
+  AIProviderCore,
+  buildReviewPrompt,
+  fetchMrData,
+  filterAndDeduplicateFeedback,
+  GeminiCliCore,
+  GitLabConfig,
+  parseAIResponse,
+  Severity,
+  type AIReviewRequest,
+  type AIReviewResponse,
+  type GeminiCliItem,
+  type GitLabMRDetails,
+  type ReviewFeedback,
 } from '../index.js';
 import { normalizeGitLabConfig, type FrontendGitLabConfig } from '../types/unifiedConfig.js';
 
@@ -34,6 +34,7 @@ export interface MrReviewOptions {
       promptStrategy?: 'append' | 'prepend' | 'replace';
     }
   >; // Per-project prompt configurations
+  canonicalProjectName?: string; // Canonical project path from GitLab API (e.g., "ghpr-tech/js/jsgh-lib")
 }
 
 export interface MrReviewResult {
@@ -91,7 +92,7 @@ export class MrReviewService {
       parsedDiffs: mrDetails.parsedDiffs,
       existingFeedback: mrDetails.existingFeedback,
       authorName: mrDetails.authorName,
-      projectName: mrDetails.projectPath, // Use project path as project name for prompt lookup
+      projectName: options.canonicalProjectName || mrDetails.projectPath, // Use canonical project name if available, fallback to parsed path
       customPromptFile: options.customPromptFile,
       promptStrategy: options.promptStrategy,
       projectPrompts: options.projectPrompts,
@@ -100,6 +101,14 @@ export class MrReviewService {
     if (options.verbose) {
       console.log(`🤖 Generating AI review using ${options.provider}...`);
       console.log(`📊 Diff content: ${mrDetails.diffForPrompt.length} characters`);
+      console.log(`🎯 Project name for prompt matching: "${reviewRequest.projectName}"`);
+      if (options.projectPrompts && Object.keys(options.projectPrompts).length > 0) {
+        console.log(
+          `📋 Available project prompt configs: ${Object.keys(options.projectPrompts).join(', ')}`
+        );
+      } else {
+        console.log(`📋 No project prompt configs available`);
+      }
     }
 
     // Generate AI review

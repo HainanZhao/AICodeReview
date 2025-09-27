@@ -246,6 +246,7 @@ export class AutoReviewCommand {
           customPromptFile: this.config.autoReview?.promptFile,
           promptStrategy: this.config.autoReview?.promptStrategy,
           projectPrompts: this.config.autoReview?.projectPrompts,
+          canonicalProjectName: project.name, // Pass the canonical project name from GitLab API
         });
 
         // Store the reviewed MR state

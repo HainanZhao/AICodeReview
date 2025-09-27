@@ -13,12 +13,27 @@ export class CLIConfigValidator {
     // Validate GitLab configuration
     ConfigLoader.validateGitLabConfig(config);
 
-    // Test GitLab connection
+    // Test GitLab connection (warn but don't fail if connection test fails)
     if (config.gitlab?.url && config.gitlab?.accessToken) {
-      const isConnected = await testGitLabConnection(config.gitlab);
-      if (!isConnected) {
-        throw new Error(
-          'Failed to connect to GitLab. Please check your GitLab URL and Personal Access Token.'
+      try {
+        // Add timeout to prevent hanging on network issues
+        const connectionPromise = testGitLabConnection(config.gitlab);
+        const timeoutPromise = new Promise<boolean>((_, reject) =>
+          setTimeout(() => reject(new Error('Connection test timeout after 10 seconds')), 10000)
+        );
+
+        const isConnected = await Promise.race([connectionPromise, timeoutPromise]);
+        if (!isConnected) {
+          console.warn(
+            '⚠️  Warning: GitLab connection test failed. This may be due to network issues. Proceeding with review attempt...'
+          );
+        }
+      } catch (error) {
+        console.warn(
+          '⚠️  Warning: GitLab connection test encountered an error. This may be due to network issues. Proceeding with review attempt...'
+        );
+        console.warn(
+          `   Connection test error: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }

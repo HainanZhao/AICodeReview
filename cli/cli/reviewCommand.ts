@@ -180,6 +180,7 @@ export class CLIReviewCommand {
         customPromptFile: options.customPromptFile,
         promptStrategy: options.promptStrategy,
         projectPrompts: options.projectPrompts,
+        canonicalProjectName: options.canonicalProjectName, // Pass through canonical project name
       };
 
       try {

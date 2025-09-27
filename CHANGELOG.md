@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.5] - 2025-09-27
+
+### Added
+- **Per-Project Custom Prompts**: Each project can now have its own custom AI review prompt file
+  - Configure via `projectPrompts` in config: `{ "project/name": { promptFile, promptStrategy } }`
+  - Supports `append`, `prepend`, or `replace` strategies
+  - Interactive setup in `--init` wizard
+  - Backward compatible with existing global prompts
+
+### Enhanced
+- Streamlined `--init` command (removed UI config sections)
+- Better project name matching for prompt resolution
+- Improved GitLab connection handling with timeouts
+
+### Technical
+- Extracted prompt templates to separate files for maintainability
+- Enhanced TypeScript interfaces and error handling
+
 ## [1.5.4] - 2025-09-02
 
 ### Enhanced
