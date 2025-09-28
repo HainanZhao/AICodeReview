@@ -95,7 +95,7 @@ program
   .option('--api-only', 'run server in API-only mode (no web interface)')
   .option(
     '--init [section]',
-    'create a configuration file interactively, optionally for a specific section (server, llm, ui, gitlab, autoReview)'
+    'create configuration interactively. Use --init for modern tabbed UI or --init <section> for legacy step-by-step mode (sections: llm, gitlab, autoReview)'
   )
   .option(
     '--list-projects',
@@ -118,9 +118,15 @@ program
       await checkForUpdates(packageJson.version);
 
       if (options.init !== undefined) {
-        const { createConfigInteractively } = await import('./config/configWizard.js');
-        const section = typeof options.init === 'string' ? options.init : undefined;
-        await createConfigInteractively(section);
+        if (typeof options.init === 'string') {
+          // Legacy mode: section-specific configuration
+          const { createConfigInteractively } = await import('./config/configWizard.js');
+          await createConfigInteractively(options.init);
+        } else {
+          // New mode: interactive tabbed UI
+          const { createInteractiveConfig } = await import('./config/interactiveConfigWizard.js');
+          await createInteractiveConfig();
+        }
         return;
       }
 
@@ -171,9 +177,9 @@ program
         const configLoader = new ConfigLoader();
 
         if (!configLoader.hasConfig()) {
-          console.log('No configuration found. Running setup wizard...');
-          const { createConfigInteractively } = await import('./config/configWizard.js');
-          await createConfigInteractively();
+          console.log('No configuration found. Running interactive setup wizard...');
+          const { createInteractiveConfig } = await import('./config/interactiveConfigWizard.js');
+          await createInteractiveConfig();
           console.log('Configuration created. Starting AI Code Review...\n');
         }
 
