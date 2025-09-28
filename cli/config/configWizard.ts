@@ -280,6 +280,7 @@ async function selectProjectsInteractively(
 ): Promise<{ projects: GitLabProject[]; projectNames: string[] }> {
   try {
     console.log('\n🔍 Fetching your GitLab projects...');
+    console.log(`   GitLab URL: ${gitlabConfig.url}`);
 
     const projects = await fetchProjects(gitlabConfig);
 
@@ -287,7 +288,8 @@ async function selectProjectsInteractively(
       console.log(
         '⚠️  No projects found. Make sure you have at least Developer access to some projects.'
       );
-      return { projects: [], projectNames: [] };
+      console.log('   Falling back to manual project entry...\n');
+      return await handleManualProjectEntry(question, currentProjectNames);
     }
 
     console.log(`\n📋 Found ${projects.length} projects available.\n`);
@@ -322,14 +324,16 @@ async function selectProjectsInteractively(
       .map((name) => name.trim().toLowerCase())
       .filter((name) => name.length > 0);
 
-    const matchingProjects = projects.filter((project) => {
-      const projectName = Util.normalizeProjectName(project.name);
-      const projectNamespace = Util.normalizeProjectName(project.name_with_namespace);
+    const matchingProjects = projects
+      .filter((project) => {
+        const projectName = Util.normalizeProjectName(project.name);
+        const projectNamespace = Util.normalizeProjectName(project.name_with_namespace);
 
-      return searchNames.some(
-        (searchName) => projectName.includes(searchName) || projectNamespace.includes(searchName)
-      );
-    });
+        return searchNames.some(
+          (searchName) => projectName.includes(searchName) || projectNamespace.includes(searchName)
+        );
+      })
+      .sort((a, b) => a.name_with_namespace.localeCompare(b.name_with_namespace));
 
     if (matchingProjects.length === 0) {
       console.log(`❌ No projects found matching: ${searchNames.join(', ')}`);
@@ -388,27 +392,54 @@ async function selectProjectsInteractively(
       projectNames: selectedProjectNames,
     };
   } catch (error) {
-    console.error(
-      `❌ Failed to fetch projects: ${error instanceof Error ? error.message : String(error)}`
-    );
-    console.log('You can enter project names manually if needed.');
+    console.error(`❌ Failed to fetch projects from GitLab API`);
+    console.error(`   GitLab URL: ${gitlabConfig.url}`);
+    console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
 
-    const currentProjectsList = currentProjectNames?.join(', ') || '';
-    const projectNamesStr =
-      (await question(
-        `Enter project names manually ${currentProjectsList ? `(current: ${currentProjectsList})` : '(comma-separated)'}: `
-      )) || currentProjectsList;
+    if (error instanceof Error && error.message.includes('401')) {
+      console.error('   🔑 This appears to be an authentication issue.');
+      console.error('   💡 Please check your GitLab Personal Access Token.');
+    } else if (error instanceof Error && error.message.includes('fetch failed')) {
+      console.error('   🌐 This appears to be a network connectivity issue.');
+      console.error('   💡 Please check your internet connection and GitLab URL.');
+    }
 
-    const manualProjectNames = projectNamesStr
-      .split(',')
-      .map((name: string) => name.trim())
-      .filter((name: string) => name.length > 0);
-
-    return {
-      projects: [], // No project objects available in manual entry mode
-      projectNames: manualProjectNames,
-    };
+    console.log('\n   📝 Falling back to manual project entry...\n');
+    return await handleManualProjectEntry(question, currentProjectNames);
   }
+}
+
+/**
+ * Handle manual project entry when API fetch fails
+ */
+async function handleManualProjectEntry(
+  question: (prompt: string) => Promise<string>,
+  currentProjectNames?: string[]
+): Promise<{ projects: GitLabProject[]; projectNames: string[] }> {
+  console.log('💡 You can still configure auto-review by entering project names manually.');
+  console.log('   Examples: "my-api", "frontend,backend", "group/project-name"');
+
+  const currentProjectsList = currentProjectNames?.join(', ') || '';
+  const projectNamesStr =
+    (await question(
+      `Enter project names manually ${currentProjectsList ? `(current: ${currentProjectsList})` : '(comma-separated)'}: `
+    )) || currentProjectsList;
+
+  const manualProjectNames = projectNamesStr
+    .split(',')
+    .map((name: string) => name.trim())
+    .filter((name: string) => name.length > 0);
+
+  if (manualProjectNames.length > 0) {
+    console.log(
+      `✅ Configured ${manualProjectNames.length} project(s): ${manualProjectNames.join(', ')}`
+    );
+  }
+
+  return {
+    projects: [], // No project objects available in manual entry mode
+    projectNames: manualProjectNames,
+  };
 }
 
 /**
@@ -879,7 +910,8 @@ export async function createConfigInteractively(section?: string): Promise<void>
   console.log('🎉 Welcome to AI Code Review Setup Wizard!\n');
 
   try {
-    let config: Partial<AppConfig> = {};
+    // Start with existing config as base, or empty config if none exists
+    const config: AppConfig = existingConfig ? { ...existingConfig } : ({} as AppConfig);
 
     if (section) {
       // Configure specific section only
@@ -912,11 +944,6 @@ export async function createConfigInteractively(section?: string): Promise<void>
           }
           break;
         }
-      }
-
-      // Merge with existing config to preserve other sections
-      if (existingConfig) {
-        config = { ...existingConfig, ...config };
       }
     } else {
       // Full configuration wizard - focus on backend auto-review setup

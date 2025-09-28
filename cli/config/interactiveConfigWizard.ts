@@ -41,41 +41,169 @@ export async function createInteractiveConfig(): Promise<void> {
     const config: Partial<AppConfig> = existingConfig ? { ...existingConfig } : {};
 
     while (shouldContinue) {
-      const action = await p.select({
+      // Build dynamic menu options with current values
+      const currentServer = config.server
+        ? `${config.server.host}:${config.server.port}`
+        : 'Not configured';
+      const currentLLM = config.llm?.provider || 'Not configured';
+      const currentGitLab = config.gitlab?.url
+        ? new URL(config.gitlab.url).hostname
+        : 'Not configured';
+      const currentProjects = config.autoReview?.projects?.length || 0;
+      const currentInterval = config.autoReview?.interval || 'Not set';
+      const currentAutoReview = config.autoReview?.enabled ? 'Enabled' : 'Disabled';
+      const currentUI = config.ui?.autoOpen ? 'Auto-open enabled' : 'Auto-open disabled';
+
+      const category = await p.select({
         message: 'What would you like to configure?',
         options: [
           {
-            value: 'server',
-            label: '🖥️  Server Settings',
-            hint: 'Port, host, and web interface options',
-          },
-          {
             value: 'llm',
             label: '🤖 LLM Provider',
-            hint: 'AI model configuration (Gemini, Claude, etc.)',
+            hint: `Currently: ${currentLLM}`,
           },
-          { value: 'gitlab', label: '🦊 GitLab Integration', hint: 'GitLab URL and access token' },
           {
-            value: 'autoReview',
-            label: '⚡ Auto Review Mode',
-            hint: 'Automatic MR monitoring and review',
+            value: 'integration',
+            label: '� Integrations',
+            hint: `GitLab: ${currentGitLab}`,
           },
-          { value: 'ui', label: '🎨 UI Preferences', hint: 'User interface settings' },
           {
-            value: 'review',
-            label: '📋 Review & Save',
-            hint: 'Review all settings and save configuration',
+            value: 'automation',
+            label: '🤖 Auto Review',
+            hint: `${currentAutoReview} - ${currentProjects} projects, ${currentInterval}s`,
           },
-          { value: 'exit', label: '❌ Exit', hint: 'Exit without saving changes' },
+          {
+            value: 'interface',
+            label: '🎨 Interface',
+            hint: `Server: ${currentServer} | UI: ${currentUI}`,
+          },
+          {
+            value: 'management',
+            label: '📋 Management',
+            hint: 'Save, review, or exit configuration',
+          },
         ],
       });
+
+      if (p.isCancel(category)) {
+        p.cancel('Configuration cancelled');
+        return;
+      }
+
+      // Handle category selection
+      let action: string | symbol;
+
+      switch (category) {
+        case 'llm': {
+          // Direct LLM configuration - no sub-menu needed
+          action = 'llm';
+          break;
+        }
+        case 'integration': {
+          action = await p.select({
+            message: '🔗 Integrations - Choose what to configure:',
+            options: [
+              {
+                value: 'gitlab',
+                label: '🦊 GitLab Integration',
+                hint: `Currently: ${currentGitLab}`,
+              },
+              { value: 'back', label: '← Back to main menu', hint: '' },
+            ],
+          });
+          break;
+        }
+        case 'automation': {
+          // Count existing project prompts for display
+          const projectPromptsCount = config.autoReview?.projectPrompts
+            ? Object.keys(config.autoReview.projectPrompts).length
+            : 0;
+
+          action = await p.select({
+            message: '🤖 Auto Review - Choose what to configure:',
+            options: [
+              {
+                value: 'autoReviewEnabled',
+                label: '⚡ Enable/Disable Auto Review',
+                hint: `Currently: ${currentAutoReview}`,
+              },
+              {
+                value: 'autoReviewProjects',
+                label: '📂 Review Projects',
+                hint: `Quick edit: ${currentProjects} projects selected`,
+              },
+              {
+                value: 'customPrompts',
+                label: '📜 Custom Prompts',
+                hint: `Per-project prompts: ${projectPromptsCount} configured`,
+              },
+              {
+                value: 'autoReviewInterval',
+                label: '⏱️  Review Interval',
+                hint: `Quick edit: Current interval ${currentInterval} seconds`,
+              },
+              {
+                value: 'autoReviewStorage',
+                label: '🖾 State Storage',
+                hint: `Method: ${config.autoReview?.state?.storage || 'local'}`,
+              },
+              { value: 'back', label: '← Back to main menu', hint: '' },
+            ],
+          });
+          break;
+        }
+        case 'interface': {
+          action = await p.select({
+            message: '🎨 Interface - Choose what to configure:',
+            options: [
+              {
+                value: 'server',
+                label: '🖥️ Server Settings',
+                hint: `Currently: ${currentServer}`,
+              },
+              {
+                value: 'ui',
+                label: '🎨 UI Preferences',
+                hint: `Currently: ${currentUI}`,
+              },
+              { value: 'back', label: '← Back to main menu', hint: '' },
+            ],
+          });
+          break;
+        }
+        case 'management': {
+          action = await p.select({
+            message: '📋 Management - Choose an action:',
+            options: [
+              {
+                value: 'review',
+                label: '📋 Review & Save',
+                hint: 'Review all settings and save configuration',
+              },
+              { value: 'exit', label: '❌ Exit', hint: 'Exit without saving changes' },
+              { value: 'back', label: '← Back to main menu', hint: '' },
+            ],
+          });
+          break;
+        }
+        default:
+          action = 'back';
+      }
 
       if (p.isCancel(action)) {
         p.cancel('Configuration cancelled');
         return;
       }
 
-      switch (action) {
+      // Handle back navigation
+      if (action === 'back') {
+        continue;
+      }
+
+      // Convert to string for switch statement
+      const actionStr = action as string;
+
+      switch (actionStr) {
         case 'server':
           config.server = await configureServer(config.server);
           break;
@@ -89,15 +217,131 @@ export async function createInteractiveConfig(): Promise<void> {
           }
           break;
         }
-        case 'autoReview': {
+        case 'autoReviewEnabled': {
           if (!config.gitlab) {
             p.log.error('GitLab configuration is required for auto-review mode');
             p.log.info('Please configure GitLab integration first');
             continue;
           }
-          const autoReviewConfig = await configureAutoReview(config.autoReview, config.gitlab);
-          if (autoReviewConfig) {
-            config.autoReview = autoReviewConfig;
+
+          const enabled = await p.confirm({
+            message: 'Enable automatic merge request review?',
+            initialValue: config.autoReview?.enabled || false,
+          });
+
+          if (!p.isCancel(enabled)) {
+            if (!config.autoReview) {
+              config.autoReview = {
+                enabled,
+                projects: [],
+                interval: 120,
+              };
+            } else {
+              config.autoReview.enabled = enabled;
+            }
+            p.log.success(`Auto review ${enabled ? 'enabled' : 'disabled'}`);
+          }
+          break;
+        }
+        case 'autoReviewStorage': {
+          if (!config.autoReview) {
+            p.log.warn('Auto-review mode is not configured');
+            p.log.info('Please configure auto-review mode first');
+            continue;
+          }
+
+          const storage = await p.select({
+            message: 'State storage method',
+            options: [
+              {
+                value: 'local',
+                label: 'Local Storage',
+                hint: 'Store state locally on this machine',
+              },
+              {
+                value: 'snippet',
+                label: 'GitLab Snippets',
+                hint: 'Store state in private GitLab snippets',
+              },
+            ],
+            initialValue: config.autoReview.state?.storage || 'local',
+          });
+
+          if (!p.isCancel(storage)) {
+            if (!config.autoReview.state) {
+              config.autoReview.state = { storage };
+            } else {
+              config.autoReview.state.storage = storage;
+            }
+            p.log.success(`State storage method updated to ${storage}`);
+          }
+          break;
+        }
+        case 'autoReviewProjects': {
+          if (!config.gitlab) {
+            p.log.error('GitLab configuration is required for auto-review mode');
+            p.log.info('Please configure GitLab integration first');
+            continue;
+          }
+
+          const updatedProjects = await configureProjectsOnly(config.autoReview, config.gitlab);
+          if (updatedProjects) {
+            // Update the projects while preserving other auto-review settings
+            if (!config.autoReview) {
+              config.autoReview = {
+                enabled: true,
+                projects: updatedProjects,
+                interval: 120,
+              };
+            } else {
+              config.autoReview.projects = updatedProjects;
+            }
+            p.log.success(`Updated auto-review projects: ${updatedProjects.length} selected`);
+          }
+          break;
+        }
+        case 'customPrompts': {
+          if (!config.autoReview?.projects?.length) {
+            p.log.error('No projects configured for auto-review mode');
+            p.log.info('Please configure auto-review projects first');
+            continue;
+          }
+
+          const updatedConfig = await configureCustomPrompts(config.autoReview);
+          if (updatedConfig) {
+            config.autoReview = updatedConfig;
+          }
+          break;
+        }
+        case 'autoReviewInterval': {
+          // Quick edit interval
+          if (!config.autoReview) {
+            p.log.warn('Auto-review mode is not configured');
+            p.log.info('Please configure auto-review mode first');
+            continue;
+          }
+
+          const interval = await p.text({
+            message: 'Review interval (seconds)',
+            defaultValue: config.autoReview.interval?.toString() || '120',
+            placeholder: config.autoReview.interval?.toString() || '120',
+            validate: (value) => {
+              // If value is empty, allow it (user pressed Enter to use default)
+              if (!value.trim()) {
+                return undefined; // Valid - will use defaultValue
+              }
+
+              const num = parseInt(value);
+              if (isNaN(num) || num < 30) {
+                return 'Interval must be at least 30 seconds';
+              }
+              return undefined;
+            },
+          });
+
+          if (!p.isCancel(interval)) {
+            config.autoReview.interval = parseInt(interval);
+            p.log.success(`Review interval updated to ${interval} seconds`);
           }
           break;
         }
@@ -139,6 +383,7 @@ async function configureServer(existing?: ServerConfig): Promise<ServerConfig> {
   const port = await p.text({
     message: 'Server port',
     defaultValue: existing?.port?.toString() || '5960',
+    placeholder: existing?.port?.toString() || '5960',
     validate: (value) => {
       const num = parseInt(value);
       if (isNaN(num) || num < 1 || num > 65535) {
@@ -152,6 +397,7 @@ async function configureServer(existing?: ServerConfig): Promise<ServerConfig> {
   const host = await p.text({
     message: 'Server host',
     defaultValue: existing?.host || 'localhost',
+    placeholder: existing?.host || 'localhost',
   });
 
   if (p.isCancel(host)) throw new Error('Cancelled');
@@ -159,7 +405,7 @@ async function configureServer(existing?: ServerConfig): Promise<ServerConfig> {
   const subPath = await p.text({
     message: 'Sub-path (optional)',
     defaultValue: existing?.subPath || '',
-    placeholder: 'Leave empty for root path',
+    placeholder: existing?.subPath ? `Currently: ${existing.subPath}` : 'Leave empty for root path',
   });
 
   if (p.isCancel(subPath)) throw new Error('Cancelled');
@@ -190,7 +436,7 @@ async function configureLLM(existing?: LLMConfig): Promise<LLMConfig> {
 
   if (provider === 'gemini') {
     const message = existing?.apiKey
-      ? 'Google Gemini API key (press Enter to keep existing)'
+      ? 'Google Gemini API key (press Enter to keep existing ***masked***)'
       : 'Google Gemini API key';
     const apiKey = await p.password({ message });
     if (p.isCancel(apiKey)) throw new Error('Cancelled');
@@ -199,7 +445,7 @@ async function configureLLM(existing?: LLMConfig): Promise<LLMConfig> {
 
   if (provider === 'anthropic') {
     const message = existing?.apiKey
-      ? 'Anthropic API key (press Enter to keep existing)'
+      ? 'Anthropic API key (press Enter to keep existing ***masked***)'
       : 'Anthropic API key';
     const apiKey = await p.password({ message });
     if (p.isCancel(apiKey)) throw new Error('Cancelled');
@@ -210,7 +456,9 @@ async function configureLLM(existing?: LLMConfig): Promise<LLMConfig> {
     const projectId = await p.text({
       message: 'Google Cloud Project ID (optional)',
       defaultValue: existing?.googleCloudProject || '',
-      placeholder: 'Leave empty to use default',
+      placeholder: existing?.googleCloudProject
+        ? existing.googleCloudProject
+        : 'Leave empty to use default',
     });
     if (p.isCancel(projectId)) throw new Error('Cancelled');
     if (projectId) {
@@ -236,13 +484,13 @@ async function configureGitLab(existing?: GitLabConfig): Promise<GitLabConfig | 
   const url = await p.text({
     message: 'GitLab URL',
     defaultValue: existing?.url || 'https://gitlab.com',
-    placeholder: 'https://gitlab.example.com',
+    placeholder: existing?.url ? existing.url : 'https://gitlab.example.com',
   });
 
   if (p.isCancel(url)) throw new Error('Cancelled');
 
   const message = existing?.accessToken
-    ? 'GitLab Access Token (press Enter to keep existing)'
+    ? 'GitLab Access Token (press Enter to keep existing ***masked***)'
     : 'GitLab Access Token';
   const accessToken = await p.password({ message });
 
@@ -298,10 +546,76 @@ async function configureAutoReview(
   try {
     availableProjects = await fetchProjects(gitlabConfig!);
     projectsSpinner.stop(`Found ${availableProjects.length} projects`);
-  } catch {
+  } catch (error) {
     projectsSpinner.stop('❌ Failed to fetch projects');
-    p.log.error('Could not fetch GitLab projects. Please check your GitLab configuration.');
-    return null;
+
+    // Provide detailed error information
+    p.log.error('Could not fetch GitLab projects');
+    p.log.error(`GitLab URL: ${gitlabConfig?.url || 'not configured'}`);
+    p.log.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+
+    if (error instanceof Error) {
+      if (error.message.includes('401') || error.message.includes('authentication')) {
+        p.log.error('🔑 Authentication failed - please check your Personal Access Token');
+      } else if (error.message.includes('fetch failed') || error.message.includes('network')) {
+        p.log.error('🌐 Network error - please check your connection and GitLab URL');
+      } else if (error.message.includes('timeout')) {
+        p.log.error('⏱️  Request timeout - GitLab server might be slow or unreachable');
+      }
+    }
+
+    // Ask if user wants to proceed with manual entry
+    const useManualEntry = await p.confirm({
+      message: 'Would you like to enter project names manually instead?',
+      initialValue: false,
+    });
+
+    if (p.isCancel(useManualEntry) || !useManualEntry) {
+      return null;
+    }
+
+    // Manual project entry fallback
+    const manualProjects = await p.text({
+      message: 'Enter project names (comma-separated)',
+      placeholder: existing?.projects?.length
+        ? existing.projects.join(', ')
+        : 'e.g., my-org/project1, my-org/project2',
+      defaultValue: existing?.projects?.join(', ') || '',
+    });
+
+    if (p.isCancel(manualProjects) || !manualProjects.trim()) {
+      return null;
+    }
+
+    const projectNames = manualProjects
+      .split(',')
+      .map((name: string) => name.trim())
+      .filter((name: string) => name.length > 0);
+
+    if (projectNames.length === 0) {
+      p.log.warn('No valid project names entered');
+      return null;
+    }
+
+    // Skip the project selection step and go directly to interval configuration
+    const interval = await p.text({
+      message: 'Review interval (seconds)',
+      placeholder: existing?.interval ? `${existing.interval} seconds` : 'Default: 60 seconds',
+      defaultValue: existing?.interval?.toString() || '60',
+      validate: (value) => {
+        const num = parseInt(value);
+        if (isNaN(num) || num < 10) return 'Please enter a number >= 10';
+        return undefined;
+      },
+    });
+
+    if (p.isCancel(interval)) throw new Error('Cancelled');
+
+    return {
+      enabled: true,
+      projects: projectNames,
+      interval: parseInt(interval),
+    };
   }
 
   if (availableProjects.length === 0) {
@@ -310,16 +624,39 @@ async function configureAutoReview(
   }
 
   // Select projects to monitor
-  const projectOptions = availableProjects.map((project) => ({
-    value: project.name_with_namespace,
-    label: project.name_with_namespace,
-    hint: `ID: ${project.id}`,
-  }));
+  const projectOptions = availableProjects
+    .sort((a, b) => a.name_with_namespace.localeCompare(b.name_with_namespace))
+    .map((project) => ({
+      value: project.name_with_namespace,
+      label: project.name_with_namespace,
+      hint: `ID: ${project.id}`,
+    }));
+
+  // Find projects that should be pre-selected based on existing config
+  const existingProjectNames = existing?.projects || [];
+  const preSelectedProjects = projectOptions
+    .filter((option) => {
+      return existingProjectNames.some((existingName) => {
+        // Exact match
+        if (existingName === option.value) return true;
+
+        // Normalized comparison (handle variations in project names)
+        const normalizedExisting = existingName.toLowerCase().replace(/[\s/-]/g, '');
+        const normalizedOption = option.value.toLowerCase().replace(/[\s/-]/g, '');
+
+        return normalizedExisting === normalizedOption;
+      });
+    })
+    .map((option) => option.value);
+
+  if (preSelectedProjects.length > 0) {
+    p.log.info(`Pre-selecting ${preSelectedProjects.length} previously configured projects`);
+  }
 
   const selectedProjects = await p.multiselect({
     message: 'Select projects to monitor',
     options: projectOptions,
-    initialValues: existing?.projects || [],
+    initialValues: preSelectedProjects,
   });
 
   if (p.isCancel(selectedProjects)) throw new Error('Cancelled');
@@ -327,6 +664,7 @@ async function configureAutoReview(
   const interval = await p.text({
     message: 'Review interval (seconds)',
     defaultValue: existing?.interval?.toString() || '120',
+    placeholder: existing?.interval ? `${existing.interval} seconds` : 'Default: 120 seconds',
     validate: (value) => {
       const num = parseInt(value);
       if (isNaN(num) || num < 30) {
@@ -352,11 +690,37 @@ async function configureAutoReview(
 
   if (p.isCancel(storage)) throw new Error('Cancelled');
 
+  // Ask if user wants to configure custom prompts
+  const configurePrompts = await p.confirm({
+    message: 'Configure custom prompts for selected projects?',
+    initialValue: false,
+  });
+
+  let projectPrompts = existing?.projectPrompts;
+  if (!p.isCancel(configurePrompts) && configurePrompts) {
+    const tempConfig: AutoReviewConfig = {
+      enabled: true,
+      projects: selectedProjects,
+      interval: parseInt(interval),
+      state: { storage },
+      projectPrompts: existing?.projectPrompts,
+    };
+
+    const updatedConfig = await configureCustomPrompts(tempConfig);
+    if (updatedConfig) {
+      projectPrompts = updatedConfig.projectPrompts;
+    }
+  }
+
   return {
     enabled: true,
     projects: selectedProjects,
     interval: parseInt(interval),
     state: { storage },
+    ...(projectPrompts && { projectPrompts }),
+    // Preserve other existing settings
+    ...(existing?.promptFile && { promptFile: existing.promptFile }),
+    ...(existing?.promptStrategy && { promptStrategy: existing.promptStrategy }),
   };
 }
 
@@ -371,6 +735,275 @@ async function configureUI(existing?: UIConfig): Promise<UIConfig> {
   if (p.isCancel(autoOpen)) throw new Error('Cancelled');
 
   return { autoOpen };
+}
+
+async function configureProjectsOnly(
+  existing?: AutoReviewConfig,
+  gitlabConfig?: GitLabConfig
+): Promise<string[] | null> {
+  p.log.step('📂 Configuring Review Projects');
+
+  // Fetch available projects
+  const projectsSpinner = p.spinner();
+  projectsSpinner.start('Fetching GitLab projects...');
+
+  let availableProjects: GitLabProject[] = [];
+  try {
+    availableProjects = await fetchProjects(gitlabConfig!);
+    projectsSpinner.stop(`Found ${availableProjects.length} projects`);
+  } catch (error) {
+    projectsSpinner.stop('❌ Failed to fetch projects');
+
+    // Provide detailed error information
+    p.log.error('Could not fetch GitLab projects');
+    p.log.error(`GitLab URL: ${gitlabConfig?.url || 'not configured'}`);
+    p.log.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+
+    if (error instanceof Error) {
+      if (error.message.includes('401') || error.message.includes('authentication')) {
+        p.log.error('🔑 Authentication failed - please check your Personal Access Token');
+      } else if (error.message.includes('fetch failed') || error.message.includes('network')) {
+        p.log.error('🌐 Network error - please check your connection and GitLab URL');
+      } else if (error.message.includes('timeout')) {
+        p.log.error('⏱️  Request timeout - GitLab server might be slow or unreachable');
+      }
+    }
+
+    // Ask if user wants to proceed with manual entry
+    const useManualEntry = await p.confirm({
+      message: 'Would you like to enter project names manually instead?',
+      initialValue: false,
+    });
+
+    if (p.isCancel(useManualEntry) || !useManualEntry) {
+      return null;
+    }
+
+    // Manual project entry fallback
+    const manualProjects = await p.text({
+      message: 'Enter project names (comma-separated)',
+      placeholder: existing?.projects?.length
+        ? existing.projects.join(', ')
+        : 'e.g., my-org/project1, my-org/project2',
+      defaultValue: existing?.projects?.join(', ') || '',
+    });
+
+    if (p.isCancel(manualProjects) || !manualProjects.trim()) {
+      return null;
+    }
+
+    const projectNames = manualProjects
+      .split(',')
+      .map((name: string) => name.trim())
+      .filter((name: string) => name.length > 0);
+
+    return projectNames;
+  }
+
+  if (availableProjects.length === 0) {
+    p.log.warn('No GitLab projects found');
+    return null;
+  }
+
+  // Select projects to monitor
+  const projectOptions = availableProjects
+    .sort((a, b) => a.name_with_namespace.localeCompare(b.name_with_namespace))
+    .map((project) => ({
+      value: project.name_with_namespace,
+      label: project.name_with_namespace,
+      hint: `ID: ${project.id}`,
+    }));
+
+  // Find projects that should be pre-selected based on existing config
+  const existingProjectNames = existing?.projects || [];
+  const preSelectedProjects = projectOptions
+    .filter((option) => {
+      return existingProjectNames.some((existingName) => {
+        // Exact match
+        if (existingName === option.value) return true;
+
+        // Normalized comparison (handle variations in project names)
+        const normalizedExisting = existingName.toLowerCase().replace(/[\s/-]/g, '');
+        const normalizedOption = option.value.toLowerCase().replace(/[\s/-]/g, '');
+
+        return normalizedExisting === normalizedOption;
+      });
+    })
+    .map((option) => option.value);
+
+  if (preSelectedProjects.length > 0) {
+    p.log.info(`Pre-selecting ${preSelectedProjects.length} previously configured projects`);
+  }
+
+  const selectedProjects = await p.multiselect({
+    message: 'Select projects to monitor',
+    options: projectOptions,
+    initialValues: preSelectedProjects,
+  });
+
+  if (p.isCancel(selectedProjects)) return null;
+
+  return selectedProjects;
+}
+
+async function configureCustomPrompts(
+  existing?: AutoReviewConfig
+): Promise<AutoReviewConfig | null> {
+  if (!existing?.projects?.length) {
+    p.log.error('No projects available for custom prompt configuration');
+    return null;
+  }
+
+  p.log.step('📜 Configuring Custom Prompts');
+
+  // Show current project list
+  p.log.info(`Configuring prompts for ${existing.projects.length} projects`);
+
+  const projectPrompts = existing.projectPrompts || {};
+  const updatedProjectPrompts = { ...projectPrompts };
+
+  while (true) {
+    // Show menu of projects to configure
+    const projectOptions = existing.projects.map((project) => {
+      const hasPrompt = updatedProjectPrompts[project]?.promptFile;
+      const strategy = updatedProjectPrompts[project]?.promptStrategy || 'Not set';
+      return {
+        value: project,
+        label: project,
+        hint: hasPrompt ? `Prompt: ${strategy}` : 'No custom prompt',
+      };
+    });
+
+    projectOptions.push({ value: 'done', label: '✓ Done configuring prompts', hint: '' });
+    projectOptions.push({ value: 'back', label: '← Back to auto review menu', hint: '' });
+
+    const selectedProject = await p.select({
+      message: 'Select a project to configure custom prompts:',
+      options: projectOptions,
+    });
+
+    if (p.isCancel(selectedProject)) {
+      return null;
+    }
+
+    if (selectedProject === 'back') {
+      return null;
+    }
+
+    if (selectedProject === 'done') {
+      break;
+    }
+
+    // Configure prompt for the selected project
+    const projectName = selectedProject as string;
+    const currentPrompt = updatedProjectPrompts[projectName];
+
+    p.log.info(`Configuring custom prompt for: ${projectName}`);
+
+    const action = await p.select({
+      message: 'What would you like to do?',
+      options: [
+        {
+          value: 'set',
+          label: '📄 Set/Update Custom Prompt',
+          hint: currentPrompt?.promptFile ? 'Update existing' : 'Create new',
+        },
+        {
+          value: 'remove',
+          label: '🗑️ Remove Custom Prompt',
+          hint: currentPrompt?.promptFile ? 'Remove existing' : 'No prompt to remove',
+        },
+        { value: 'back', label: '← Back to project list', hint: '' },
+      ],
+    });
+
+    if (p.isCancel(action) || action === 'back') {
+      continue;
+    }
+
+    if (action === 'remove') {
+      if (currentPrompt?.promptFile) {
+        delete updatedProjectPrompts[projectName];
+        p.log.success(`Removed custom prompt for ${projectName}`);
+      } else {
+        p.log.warn(`No custom prompt configured for ${projectName}`);
+      }
+      continue;
+    }
+
+    if (action === 'set') {
+      // Get prompt file path
+      const promptFile = await p.text({
+        message: 'Prompt file path (absolute path)',
+        defaultValue: currentPrompt?.promptFile || '',
+        placeholder: currentPrompt?.promptFile
+          ? currentPrompt.promptFile
+          : 'e.g., /path/to/your/custom-prompt.md',
+        validate: (value) => {
+          // If the value is empty but we have a default, allow it (user pressed Enter to keep existing)
+          if (!value.trim()) {
+            if (currentPrompt?.promptFile) {
+              return undefined; // Allow empty input when there's an existing value
+            }
+            return 'Prompt file path is required';
+          }
+          // Validate that it's an absolute path
+          if (!value.startsWith('/') && !value.match(/^[A-Za-z]:/)) {
+            return 'Please provide an absolute path (starting with / or C:)';
+          }
+          return undefined;
+        },
+      });
+
+      if (p.isCancel(promptFile)) {
+        continue;
+      }
+
+      // Get prompt strategy
+      const strategy = await p.select({
+        message: 'How should this prompt be used?',
+        options: [
+          {
+            value: 'replace',
+            label: 'Replace',
+            hint: 'Use only this custom prompt',
+          },
+          {
+            value: 'prepend',
+            label: 'Prepend',
+            hint: 'Add before default prompt',
+          },
+          {
+            value: 'append',
+            label: 'Append',
+            hint: 'Add after default prompt',
+          },
+        ],
+        initialValue: currentPrompt?.promptStrategy || 'append',
+      });
+
+      if (p.isCancel(strategy)) {
+        continue;
+      }
+
+      // Save the configuration
+      updatedProjectPrompts[projectName] = {
+        promptFile,
+        promptStrategy: strategy as 'append' | 'prepend' | 'replace',
+      };
+
+      p.log.success(`Custom prompt configured for ${projectName}`);
+      p.log.info(`File: ${promptFile}`);
+      p.log.info(`Strategy: ${strategy}`);
+    }
+  }
+
+  // Return updated configuration
+  return {
+    ...existing,
+    projectPrompts:
+      Object.keys(updatedProjectPrompts).length > 0 ? updatedProjectPrompts : undefined,
+  };
 }
 
 async function reviewAndSave(config: Partial<AppConfig>): Promise<boolean> {

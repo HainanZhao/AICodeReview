@@ -123,7 +123,7 @@ program
           const { createConfigInteractively } = await import('./config/configWizard.js');
           await createConfigInteractively(options.init);
         } else {
-          // New mode: interactive tabbed UI
+          // Fallback to clack-based interactive UI for now
           const { createInteractiveConfig } = await import('./config/interactiveConfigWizard.js');
           await createInteractiveConfig();
         }
