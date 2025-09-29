@@ -273,8 +273,11 @@ export async function createInteractiveConfig(): Promise<void> {
             defaultValue: config.server?.port?.toString() || '5960',
             placeholder: config.server?.port?.toString() || '5960',
             validate: (value) => {
+              // If value is empty, allow it (user pressed Enter to use default)
+              if (!value.trim()) return undefined;
               const num = parseInt(value);
               if (isNaN(num) || num < 1 || num > 65535) return 'Port must be between 1 and 65535';
+              return undefined;
             },
           });
           if (!p.isCancel(port)) {
