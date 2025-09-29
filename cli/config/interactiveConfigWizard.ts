@@ -38,6 +38,7 @@ export async function createInteractiveConfig(): Promise<void> {
 
     // Main menu loop
     let shouldContinue = true;
+    let currentContext: string | null = null; // Track which sub-menu we're in
     const config: Partial<AppConfig> = existingConfig ? { ...existingConfig } : {};
 
     while (shouldContinue) {
@@ -54,40 +55,48 @@ export async function createInteractiveConfig(): Promise<void> {
       const currentAutoReview = config.autoReview?.enabled ? 'Enabled' : 'Disabled';
       const currentUI = config.ui?.autoOpen ? 'Auto-open enabled' : 'Auto-open disabled';
 
-      const category = await p.select({
-        message: 'What would you like to configure?',
-        options: [
-          {
-            value: 'llm',
-            label: '🤖 LLM Provider',
-            hint: `Currently: ${currentLLM}`,
-          },
-          {
-            value: 'integration',
-            label: '� Integrations',
-            hint: `GitLab: ${currentGitLab}`,
-          },
-          {
-            value: 'automation',
-            label: '🤖 Auto Review',
-            hint: `${currentAutoReview} - ${currentProjects} projects, ${currentInterval}s`,
-          },
-          {
-            value: 'uisettings',
-            label: '🎨 UI Settings',
-            hint: `Server: ${currentServer} | UI: ${currentUI}`,
-          },
-          {
-            value: 'management',
-            label: '📋 Management',
-            hint: 'Save, review, or exit configuration',
-          },
-        ],
-      });
+      // Skip main menu if we're in a specific context (sub-menu)
+      let category: string;
+      if (currentContext) {
+        category = currentContext;
+      } else {
+        const categoryResult = await p.select({
+          message: 'What would you like to configure?',
+          options: [
+            {
+              value: 'llm',
+              label: '🤖 LLM Provider',
+              hint: `Currently: ${currentLLM}`,
+            },
+            {
+              value: 'integration',
+              label: '� Integrations',
+              hint: `GitLab: ${currentGitLab}`,
+            },
+            {
+              value: 'automation',
+              label: '🤖 Auto Review',
+              hint: `${currentAutoReview} - ${currentProjects} projects, ${currentInterval}s`,
+            },
+            {
+              value: 'uisettings',
+              label: '🎨 UI Settings',
+              hint: `Server: ${currentServer} | UI: ${currentUI}`,
+            },
+            {
+              value: 'management',
+              label: '📋 Management',
+              hint: 'Save, review, or exit configuration',
+            },
+          ],
+        });
 
-      if (p.isCancel(category)) {
-        p.cancel('Configuration cancelled');
-        return;
+        if (p.isCancel(categoryResult)) {
+          p.cancel('Configuration cancelled');
+          return;
+        }
+
+        category = categoryResult;
       }
 
       // Handle category selection
@@ -207,6 +216,7 @@ export async function createInteractiveConfig(): Promise<void> {
 
       // Handle back navigation
       if (action === 'back') {
+        currentContext = null; // Reset context to go back to main menu
         continue;
       }
 
@@ -234,6 +244,7 @@ export async function createInteractiveConfig(): Promise<void> {
             };
             p.log.success(`Server port updated to ${port}`);
           }
+          currentContext = 'uisettings'; // Return to UI Settings sub-menu
           break;
         }
 
@@ -251,6 +262,7 @@ export async function createInteractiveConfig(): Promise<void> {
             };
             p.log.success(`Server host updated to ${host}`);
           }
+          currentContext = 'uisettings'; // Return to UI Settings sub-menu
           break;
         }
 
@@ -270,6 +282,7 @@ export async function createInteractiveConfig(): Promise<void> {
             };
             p.log.success(`Server sub-path updated to ${subPath || 'root path'}`);
           }
+          currentContext = 'uisettings'; // Return to UI Settings sub-menu
           break;
         }
 
@@ -282,6 +295,7 @@ export async function createInteractiveConfig(): Promise<void> {
             config.ui = { ...config.ui, autoOpen };
             p.log.success(`Auto-open browser ${autoOpen ? 'enabled' : 'disabled'}`);
           }
+          currentContext = 'uisettings'; // Return to UI Settings sub-menu
           break;
         }
         case 'llm':
@@ -298,6 +312,7 @@ export async function createInteractiveConfig(): Promise<void> {
           if (!config.gitlab) {
             p.log.error('GitLab configuration is required for auto-review mode');
             p.log.info('Please configure GitLab integration first');
+            currentContext = 'automation'; // Stay in automation context
             continue;
           }
 
@@ -318,12 +333,14 @@ export async function createInteractiveConfig(): Promise<void> {
             }
             p.log.success(`Auto review ${enabled ? 'enabled' : 'disabled'}`);
           }
+          currentContext = 'automation'; // Return to Auto Review sub-menu
           break;
         }
         case 'autoReviewStorage': {
           if (!config.autoReview) {
             p.log.warn('Auto-review mode is not configured');
             p.log.info('Please configure auto-review mode first');
+            currentContext = 'automation'; // Stay in automation context
             continue;
           }
 
@@ -352,12 +369,14 @@ export async function createInteractiveConfig(): Promise<void> {
             }
             p.log.success(`State storage method updated to ${storage}`);
           }
+          currentContext = 'automation'; // Return to Auto Review sub-menu
           break;
         }
         case 'autoReviewProjects': {
           if (!config.gitlab) {
             p.log.error('GitLab configuration is required for auto-review mode');
             p.log.info('Please configure GitLab integration first');
+            currentContext = 'automation'; // Stay in automation context
             continue;
           }
 
@@ -375,12 +394,14 @@ export async function createInteractiveConfig(): Promise<void> {
             }
             p.log.success(`Updated auto-review projects: ${updatedProjects.length} selected`);
           }
+          currentContext = 'automation'; // Return to Auto Review sub-menu
           break;
         }
         case 'customPrompts': {
           if (!config.autoReview?.projects?.length) {
             p.log.error('No projects configured for auto-review mode');
             p.log.info('Please configure auto-review projects first');
+            currentContext = 'automation'; // Stay in automation context
             continue;
           }
 
@@ -388,6 +409,7 @@ export async function createInteractiveConfig(): Promise<void> {
           if (updatedConfig) {
             config.autoReview = updatedConfig;
           }
+          currentContext = 'automation'; // Return to Auto Review sub-menu
           break;
         }
         case 'autoReviewInterval': {
@@ -395,6 +417,7 @@ export async function createInteractiveConfig(): Promise<void> {
           if (!config.autoReview) {
             p.log.warn('Auto-review mode is not configured');
             p.log.info('Please configure auto-review mode first');
+            currentContext = 'automation'; // Stay in automation context
             continue;
           }
 
@@ -420,6 +443,7 @@ export async function createInteractiveConfig(): Promise<void> {
             config.autoReview.interval = parseInt(interval);
             p.log.success(`Review interval updated to ${interval} seconds`);
           }
+          currentContext = 'automation'; // Return to Auto Review sub-menu
           break;
         }
         case 'review': {
