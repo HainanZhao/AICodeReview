@@ -73,8 +73,8 @@ export async function createInteractiveConfig(): Promise<void> {
             hint: `${currentAutoReview} - ${currentProjects} projects, ${currentInterval}s`,
           },
           {
-            value: 'interface',
-            label: '🎨 Interface',
+            value: 'uisettings',
+            label: '🎨 UI Settings',
             hint: `Server: ${currentServer} | UI: ${currentUI}`,
           },
           {
@@ -152,19 +152,29 @@ export async function createInteractiveConfig(): Promise<void> {
           });
           break;
         }
-        case 'interface': {
+        case 'uisettings': {
           action = await p.select({
-            message: '🎨 Interface - Choose what to configure:',
+            message: '🎨 UI Settings - Choose what to configure:',
             options: [
               {
-                value: 'server',
-                label: '🖥️ Server Settings',
-                hint: `Currently: ${currentServer}`,
+                value: 'serverPort',
+                label: '🌐 Server Port',
+                hint: `Currently: ${config.server?.port || 5960}`,
               },
               {
-                value: 'ui',
-                label: '🎨 UI Preferences',
-                hint: `Currently: ${currentUI}`,
+                value: 'serverHost',
+                label: '🖥️ Server Host',
+                hint: `Currently: ${config.server?.host || 'localhost'}`,
+              },
+              {
+                value: 'serverSubPath',
+                label: '📁 Server Sub-path',
+                hint: `Currently: ${config.server?.subPath || 'root path'}`,
+              },
+              {
+                value: 'autoOpenBrowser',
+                label: '🌍 Auto-open Browser',
+                hint: `Currently: ${(config.ui?.autoOpen ?? true) ? 'enabled' : 'disabled'}`,
               },
               { value: 'back', label: '← Back to main menu', hint: '' },
             ],
@@ -204,9 +214,76 @@ export async function createInteractiveConfig(): Promise<void> {
       const actionStr = action as string;
 
       switch (actionStr) {
-        case 'server':
-          config.server = await configureServer(config.server);
+        case 'serverPort': {
+          const port = await p.text({
+            message: 'Server port',
+            defaultValue: config.server?.port?.toString() || '5960',
+            placeholder: config.server?.port?.toString() || '5960',
+            validate: (value) => {
+              const num = parseInt(value);
+              if (isNaN(num) || num < 1 || num > 65535) {
+                return 'Port must be between 1 and 65535';
+              }
+            },
+          });
+          if (!p.isCancel(port)) {
+            config.server = {
+              host: config.server?.host || 'localhost',
+              port: parseInt(port),
+              subPath: config.server?.subPath,
+            };
+            p.log.success(`Server port updated to ${port}`);
+          }
           break;
+        }
+
+        case 'serverHost': {
+          const host = await p.text({
+            message: 'Server host',
+            defaultValue: config.server?.host || 'localhost',
+            placeholder: config.server?.host || 'localhost',
+          });
+          if (!p.isCancel(host)) {
+            config.server = {
+              host,
+              port: config.server?.port || 5960,
+              subPath: config.server?.subPath,
+            };
+            p.log.success(`Server host updated to ${host}`);
+          }
+          break;
+        }
+
+        case 'serverSubPath': {
+          const subPath = await p.text({
+            message: 'Sub-path (optional)',
+            defaultValue: config.server?.subPath || '',
+            placeholder: config.server?.subPath
+              ? `Currently: ${config.server.subPath}`
+              : 'Leave empty for root path',
+          });
+          if (!p.isCancel(subPath)) {
+            config.server = {
+              host: config.server?.host || 'localhost',
+              port: config.server?.port || 5960,
+              subPath,
+            };
+            p.log.success(`Server sub-path updated to ${subPath || 'root path'}`);
+          }
+          break;
+        }
+
+        case 'autoOpenBrowser': {
+          const autoOpen = await p.confirm({
+            message: 'Automatically open browser when starting web interface?',
+            initialValue: config.ui?.autoOpen ?? true,
+          });
+          if (!p.isCancel(autoOpen)) {
+            config.ui = { ...config.ui, autoOpen };
+            p.log.success(`Auto-open browser ${autoOpen ? 'enabled' : 'disabled'}`);
+          }
+          break;
+        }
         case 'llm':
           config.llm = await configureLLM(config.llm);
           break;
@@ -345,9 +422,6 @@ export async function createInteractiveConfig(): Promise<void> {
           }
           break;
         }
-        case 'ui':
-          config.ui = await configureUI(config.ui);
-          break;
         case 'review': {
           const shouldSave = await reviewAndSave(config);
           if (shouldSave) {
