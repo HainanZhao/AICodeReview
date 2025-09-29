@@ -118,12 +118,6 @@ program
       await checkForUpdates(packageJson.version);
 
       if (options.init !== undefined) {
-        if (typeof options.init === 'string') {
-          // Legacy mode: section-specific configuration
-          const { createConfigInteractively } = await import('./config/configWizard.js');
-          await createConfigInteractively(options.init);
-        } else {
-          // Fallback to clack-based interactive UI for now
           const { createInteractiveConfig } = await import('./config/interactiveConfigWizard.js');
           await createInteractiveConfig();
         }
@@ -170,7 +164,6 @@ program
           port: options.port,
           host: options.host,
         });
-      } else {
         // UI Mode - start web server
         // Check if config exists, if not, run init wizard
         const { ConfigLoader } = await import('./config/configLoader.js');
