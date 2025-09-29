@@ -1,7 +1,7 @@
 {
   "name": "aicodereview-cli",
   "private": false,
-  "version": "1.5.5",
+  "version": "1.5.6",
   "description": "AI-powered code review tool with web interface",
   "keywords": [
     "code-review",
