@@ -11,8 +11,51 @@ import {
   GitLabConfig,
   LLMConfig,
   ServerConfig,
-  UIConfig,
 } from './configSchema.js';
+
+// Helper functions for common operations
+function setContext(currentContext: string | null, context: string): string {
+  return context;
+}
+
+function checkGitLabRequired(config: Partial<AppConfig>): boolean {
+  if (!config.gitlab) {
+    p.log.error('GitLab configuration is required for auto-review mode');
+    p.log.info('Please configure GitLab integration first');
+    return false;
+  }
+  return true;
+}
+
+function checkAutoReviewConfigured(config: Partial<AppConfig>): boolean {
+  if (!config.autoReview) {
+    p.log.warn('Auto-review mode is not configured');
+    p.log.info('Please configure auto-review mode first');
+    return false;
+  }
+  return true;
+}
+
+function updateServerConfig(
+  existing: ServerConfig | undefined,
+  updates: Partial<ServerConfig>
+): ServerConfig {
+  return {
+    host: updates.host || existing?.host || 'localhost',
+    port: updates.port || existing?.port || 5960,
+    subPath: updates.subPath !== undefined ? updates.subPath : existing?.subPath,
+  };
+}
+
+function ensureAutoReviewConfig(existing?: AutoReviewConfig): AutoReviewConfig {
+  return (
+    existing || {
+      enabled: false,
+      projects: [],
+      interval: 120,
+    }
+  );
+}
 
 /**
  * Interactive Configuration Wizard using modern CLI UI
@@ -231,20 +274,14 @@ export async function createInteractiveConfig(): Promise<void> {
             placeholder: config.server?.port?.toString() || '5960',
             validate: (value) => {
               const num = parseInt(value);
-              if (isNaN(num) || num < 1 || num > 65535) {
-                return 'Port must be between 1 and 65535';
-              }
+              if (isNaN(num) || num < 1 || num > 65535) return 'Port must be between 1 and 65535';
             },
           });
           if (!p.isCancel(port)) {
-            config.server = {
-              host: config.server?.host || 'localhost',
-              port: parseInt(port),
-              subPath: config.server?.subPath,
-            };
+            config.server = updateServerConfig(config.server, { port: parseInt(port) });
             p.log.success(`Server port updated to ${port}`);
           }
-          currentContext = 'uisettings'; // Return to UI Settings sub-menu
+          currentContext = setContext(currentContext, 'uisettings');
           break;
         }
 
@@ -255,14 +292,10 @@ export async function createInteractiveConfig(): Promise<void> {
             placeholder: config.server?.host || 'localhost',
           });
           if (!p.isCancel(host)) {
-            config.server = {
-              host,
-              port: config.server?.port || 5960,
-              subPath: config.server?.subPath,
-            };
+            config.server = updateServerConfig(config.server, { host });
             p.log.success(`Server host updated to ${host}`);
           }
-          currentContext = 'uisettings'; // Return to UI Settings sub-menu
+          currentContext = setContext(currentContext, 'uisettings');
           break;
         }
 
@@ -275,14 +308,10 @@ export async function createInteractiveConfig(): Promise<void> {
               : 'Leave empty for root path',
           });
           if (!p.isCancel(subPath)) {
-            config.server = {
-              host: config.server?.host || 'localhost',
-              port: config.server?.port || 5960,
-              subPath,
-            };
+            config.server = updateServerConfig(config.server, { subPath });
             p.log.success(`Server sub-path updated to ${subPath || 'root path'}`);
           }
-          currentContext = 'uisettings'; // Return to UI Settings sub-menu
+          currentContext = setContext(currentContext, 'uisettings');
           break;
         }
 
@@ -295,7 +324,7 @@ export async function createInteractiveConfig(): Promise<void> {
             config.ui = { ...config.ui, autoOpen };
             p.log.success(`Auto-open browser ${autoOpen ? 'enabled' : 'disabled'}`);
           }
-          currentContext = 'uisettings'; // Return to UI Settings sub-menu
+          currentContext = setContext(currentContext, 'uisettings');
           break;
         }
         case 'llm':
@@ -309,10 +338,8 @@ export async function createInteractiveConfig(): Promise<void> {
           break;
         }
         case 'autoReviewEnabled': {
-          if (!config.gitlab) {
-            p.log.error('GitLab configuration is required for auto-review mode');
-            p.log.info('Please configure GitLab integration first');
-            currentContext = 'automation'; // Stay in automation context
+          if (!checkGitLabRequired(config)) {
+            currentContext = 'automation';
             continue;
           }
 
@@ -322,25 +349,15 @@ export async function createInteractiveConfig(): Promise<void> {
           });
 
           if (!p.isCancel(enabled)) {
-            if (!config.autoReview) {
-              config.autoReview = {
-                enabled,
-                projects: [],
-                interval: 120,
-              };
-            } else {
-              config.autoReview.enabled = enabled;
-            }
+            config.autoReview = { ...ensureAutoReviewConfig(config.autoReview), enabled };
             p.log.success(`Auto review ${enabled ? 'enabled' : 'disabled'}`);
           }
-          currentContext = 'automation'; // Return to Auto Review sub-menu
+          currentContext = setContext(currentContext, 'automation');
           break;
         }
         case 'autoReviewStorage': {
-          if (!config.autoReview) {
-            p.log.warn('Auto-review mode is not configured');
-            p.log.info('Please configure auto-review mode first');
-            currentContext = 'automation'; // Stay in automation context
+          if (!checkAutoReviewConfigured(config)) {
+            currentContext = 'automation';
             continue;
           }
 
@@ -358,50 +375,42 @@ export async function createInteractiveConfig(): Promise<void> {
                 hint: 'Store state in private GitLab snippets',
               },
             ],
-            initialValue: config.autoReview.state?.storage || 'local',
+            initialValue: config.autoReview!.state?.storage || 'local',
           });
 
           if (!p.isCancel(storage)) {
-            if (!config.autoReview.state) {
-              config.autoReview.state = { storage };
-            } else {
-              config.autoReview.state.storage = storage;
-            }
+            config.autoReview = {
+              ...config.autoReview!,
+              state: { ...config.autoReview!.state, storage },
+            };
             p.log.success(`State storage method updated to ${storage}`);
           }
-          currentContext = 'automation'; // Return to Auto Review sub-menu
+          currentContext = setContext(currentContext, 'automation');
           break;
         }
         case 'autoReviewProjects': {
-          if (!config.gitlab) {
-            p.log.error('GitLab configuration is required for auto-review mode');
-            p.log.info('Please configure GitLab integration first');
-            currentContext = 'automation'; // Stay in automation context
+          if (!checkGitLabRequired(config)) {
+            currentContext = 'automation';
             continue;
           }
 
           const updatedProjects = await configureProjectsOnly(config.autoReview, config.gitlab);
           if (updatedProjects) {
-            // Update the projects while preserving other auto-review settings
-            if (!config.autoReview) {
-              config.autoReview = {
-                enabled: true,
-                projects: updatedProjects,
-                interval: 120,
-              };
-            } else {
-              config.autoReview.projects = updatedProjects;
-            }
+            config.autoReview = {
+              ...ensureAutoReviewConfig(config.autoReview),
+              projects: updatedProjects,
+              enabled: true,
+            };
             p.log.success(`Updated auto-review projects: ${updatedProjects.length} selected`);
           }
-          currentContext = 'automation'; // Return to Auto Review sub-menu
+          currentContext = setContext(currentContext, 'automation');
           break;
         }
         case 'customPrompts': {
           if (!config.autoReview?.projects?.length) {
             p.log.error('No projects configured for auto-review mode');
             p.log.info('Please configure auto-review projects first');
-            currentContext = 'automation'; // Stay in automation context
+            currentContext = 'automation';
             continue;
           }
 
@@ -409,41 +418,32 @@ export async function createInteractiveConfig(): Promise<void> {
           if (updatedConfig) {
             config.autoReview = updatedConfig;
           }
-          currentContext = 'automation'; // Return to Auto Review sub-menu
+          currentContext = setContext(currentContext, 'automation');
           break;
         }
         case 'autoReviewInterval': {
-          // Quick edit interval
-          if (!config.autoReview) {
-            p.log.warn('Auto-review mode is not configured');
-            p.log.info('Please configure auto-review mode first');
-            currentContext = 'automation'; // Stay in automation context
+          if (!checkAutoReviewConfigured(config)) {
+            currentContext = 'automation';
             continue;
           }
 
           const interval = await p.text({
             message: 'Review interval (seconds)',
-            defaultValue: config.autoReview.interval?.toString() || '120',
-            placeholder: config.autoReview.interval?.toString() || '120',
+            defaultValue: config.autoReview!.interval?.toString() || '120',
+            placeholder: config.autoReview!.interval?.toString() || '120',
             validate: (value) => {
-              // If value is empty, allow it (user pressed Enter to use default)
-              if (!value.trim()) {
-                return undefined; // Valid - will use defaultValue
-              }
-
+              if (!value.trim()) return undefined;
               const num = parseInt(value);
-              if (isNaN(num) || num < 30) {
-                return 'Interval must be at least 30 seconds';
-              }
+              if (isNaN(num) || num < 30) return 'Interval must be at least 30 seconds';
               return undefined;
             },
           });
 
           if (!p.isCancel(interval)) {
-            config.autoReview.interval = parseInt(interval);
+            config.autoReview!.interval = parseInt(interval);
             p.log.success(`Review interval updated to ${interval} seconds`);
           }
-          currentContext = 'automation'; // Return to Auto Review sub-menu
+          currentContext = setContext(currentContext, 'automation');
           break;
         }
         case 'review': {
@@ -473,46 +473,6 @@ export async function createInteractiveConfig(): Promise<void> {
     p.log.error(error instanceof Error ? error.message : 'Unknown error');
     p.cancel('Configuration failed');
   }
-}
-
-async function configureServer(existing?: ServerConfig): Promise<ServerConfig> {
-  p.log.step('🖥️  Configuring Server Settings');
-
-  const port = await p.text({
-    message: 'Server port',
-    defaultValue: existing?.port?.toString() || '5960',
-    placeholder: existing?.port?.toString() || '5960',
-    validate: (value) => {
-      const num = parseInt(value);
-      if (isNaN(num) || num < 1 || num > 65535) {
-        return 'Port must be between 1 and 65535';
-      }
-    },
-  });
-
-  if (p.isCancel(port)) throw new Error('Cancelled');
-
-  const host = await p.text({
-    message: 'Server host',
-    defaultValue: existing?.host || 'localhost',
-    placeholder: existing?.host || 'localhost',
-  });
-
-  if (p.isCancel(host)) throw new Error('Cancelled');
-
-  const subPath = await p.text({
-    message: 'Sub-path (optional)',
-    defaultValue: existing?.subPath || '',
-    placeholder: existing?.subPath ? `Currently: ${existing.subPath}` : 'Leave empty for root path',
-  });
-
-  if (p.isCancel(subPath)) throw new Error('Cancelled');
-
-  return {
-    port: parseInt(port),
-    host,
-    ...(subPath && { subPath }),
-  };
 }
 
 async function configureLLM(existing?: LLMConfig): Promise<LLMConfig> {
@@ -619,220 +579,6 @@ async function configureGitLab(existing?: GitLabConfig): Promise<GitLabConfig | 
   }
 
   return { url, accessToken: finalAccessToken };
-}
-
-async function configureAutoReview(
-  existing?: AutoReviewConfig,
-  gitlabConfig?: GitLabConfig
-): Promise<AutoReviewConfig | null> {
-  p.log.step('⚡ Configuring Auto Review Mode');
-
-  const enabled = await p.confirm({
-    message: 'Enable automatic merge request review?',
-    initialValue: existing?.enabled || false,
-  });
-
-  if (p.isCancel(enabled) || !enabled) {
-    return null;
-  }
-
-  // Fetch available projects
-  const projectsSpinner = p.spinner();
-  projectsSpinner.start('Fetching GitLab projects...');
-
-  let availableProjects: GitLabProject[] = [];
-  try {
-    availableProjects = await fetchProjects(gitlabConfig!);
-    projectsSpinner.stop(`Found ${availableProjects.length} projects`);
-  } catch (error) {
-    projectsSpinner.stop('❌ Failed to fetch projects');
-
-    // Provide detailed error information
-    p.log.error('Could not fetch GitLab projects');
-    p.log.error(`GitLab URL: ${gitlabConfig?.url || 'not configured'}`);
-    p.log.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
-
-    if (error instanceof Error) {
-      if (error.message.includes('401') || error.message.includes('authentication')) {
-        p.log.error('🔑 Authentication failed - please check your Personal Access Token');
-      } else if (error.message.includes('fetch failed') || error.message.includes('network')) {
-        p.log.error('🌐 Network error - please check your connection and GitLab URL');
-      } else if (error.message.includes('timeout')) {
-        p.log.error('⏱️  Request timeout - GitLab server might be slow or unreachable');
-      }
-    }
-
-    // Ask if user wants to proceed with manual entry
-    const useManualEntry = await p.confirm({
-      message: 'Would you like to enter project names manually instead?',
-      initialValue: false,
-    });
-
-    if (p.isCancel(useManualEntry) || !useManualEntry) {
-      return null;
-    }
-
-    // Manual project entry fallback
-    const manualProjects = await p.text({
-      message: 'Enter project names (comma-separated)',
-      placeholder: existing?.projects?.length
-        ? existing.projects.join(', ')
-        : 'e.g., my-org/project1, my-org/project2',
-      defaultValue: existing?.projects?.join(', ') || '',
-    });
-
-    if (p.isCancel(manualProjects) || !manualProjects.trim()) {
-      return null;
-    }
-
-    const projectNames = manualProjects
-      .split(',')
-      .map((name: string) => name.trim())
-      .filter((name: string) => name.length > 0);
-
-    if (projectNames.length === 0) {
-      p.log.warn('No valid project names entered');
-      return null;
-    }
-
-    // Skip the project selection step and go directly to interval configuration
-    const interval = await p.text({
-      message: 'Review interval (seconds)',
-      placeholder: existing?.interval ? `${existing.interval} seconds` : 'Default: 60 seconds',
-      defaultValue: existing?.interval?.toString() || '60',
-      validate: (value) => {
-        const num = parseInt(value);
-        if (isNaN(num) || num < 10) return 'Please enter a number >= 10';
-        return undefined;
-      },
-    });
-
-    if (p.isCancel(interval)) throw new Error('Cancelled');
-
-    return {
-      enabled: true,
-      projects: projectNames,
-      interval: parseInt(interval),
-    };
-  }
-
-  if (availableProjects.length === 0) {
-    p.log.warn('No GitLab projects found');
-    return null;
-  }
-
-  // Select projects to monitor
-  const projectOptions = availableProjects
-    .sort((a, b) => a.name_with_namespace.localeCompare(b.name_with_namespace))
-    .map((project) => ({
-      value: project.name_with_namespace,
-      label: project.name_with_namespace,
-      hint: `ID: ${project.id}`,
-    }));
-
-  // Find projects that should be pre-selected based on existing config
-  const existingProjectNames = existing?.projects || [];
-  const preSelectedProjects = projectOptions
-    .filter((option) => {
-      return existingProjectNames.some((existingName) => {
-        // Exact match
-        if (existingName === option.value) return true;
-
-        // Normalized comparison (handle variations in project names)
-        const normalizedExisting = existingName.toLowerCase().replace(/[\s/-]/g, '');
-        const normalizedOption = option.value.toLowerCase().replace(/[\s/-]/g, '');
-
-        return normalizedExisting === normalizedOption;
-      });
-    })
-    .map((option) => option.value);
-
-  if (preSelectedProjects.length > 0) {
-    p.log.info(`Pre-selecting ${preSelectedProjects.length} previously configured projects`);
-  }
-
-  const selectedProjects = await p.multiselect({
-    message: 'Select projects to monitor',
-    options: projectOptions,
-    initialValues: preSelectedProjects,
-  });
-
-  if (p.isCancel(selectedProjects)) throw new Error('Cancelled');
-
-  const interval = await p.text({
-    message: 'Review interval (seconds)',
-    defaultValue: existing?.interval?.toString() || '120',
-    placeholder: existing?.interval ? `${existing.interval} seconds` : 'Default: 120 seconds',
-    validate: (value) => {
-      const num = parseInt(value);
-      if (isNaN(num) || num < 30) {
-        return 'Interval must be at least 30 seconds';
-      }
-    },
-  });
-
-  if (p.isCancel(interval)) throw new Error('Cancelled');
-
-  const storage = await p.select({
-    message: 'State storage method',
-    options: [
-      { value: 'local', label: 'Local Storage', hint: 'Store state locally on this machine' },
-      {
-        value: 'snippet',
-        label: 'GitLab Snippets',
-        hint: 'Store state in private GitLab snippets',
-      },
-    ],
-    initialValue: existing?.state?.storage || 'local',
-  });
-
-  if (p.isCancel(storage)) throw new Error('Cancelled');
-
-  // Ask if user wants to configure custom prompts
-  const configurePrompts = await p.confirm({
-    message: 'Configure custom prompts for selected projects?',
-    initialValue: false,
-  });
-
-  let projectPrompts = existing?.projectPrompts;
-  if (!p.isCancel(configurePrompts) && configurePrompts) {
-    const tempConfig: AutoReviewConfig = {
-      enabled: true,
-      projects: selectedProjects,
-      interval: parseInt(interval),
-      state: { storage },
-      projectPrompts: existing?.projectPrompts,
-    };
-
-    const updatedConfig = await configureCustomPrompts(tempConfig);
-    if (updatedConfig) {
-      projectPrompts = updatedConfig.projectPrompts;
-    }
-  }
-
-  return {
-    enabled: true,
-    projects: selectedProjects,
-    interval: parseInt(interval),
-    state: { storage },
-    ...(projectPrompts && { projectPrompts }),
-    // Preserve other existing settings
-    ...(existing?.promptFile && { promptFile: existing.promptFile }),
-    ...(existing?.promptStrategy && { promptStrategy: existing.promptStrategy }),
-  };
-}
-
-async function configureUI(existing?: UIConfig): Promise<UIConfig> {
-  p.log.step('🎨 Configuring UI Preferences');
-
-  const autoOpen = await p.confirm({
-    message: 'Automatically open browser when starting web interface?',
-    initialValue: existing?.autoOpen ?? true,
-  });
-
-  if (p.isCancel(autoOpen)) throw new Error('Cancelled');
-
-  return { autoOpen };
 }
 
 async function configureProjectsOnly(
