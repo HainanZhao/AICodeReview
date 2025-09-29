@@ -121,8 +121,6 @@ program
           const { createInteractiveConfig } = await import('./config/interactiveConfigWizard.js');
           await createInteractiveConfig();
         }
-        return;
-      }
 
       if (options.listProjects) {
         const { ListProjectsCommand } = await import('./cli/listProjectsCommand.js');
