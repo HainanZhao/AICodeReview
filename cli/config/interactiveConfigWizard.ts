@@ -64,7 +64,7 @@ function ensureAutoReviewConfig(existing?: AutoReviewConfig): AutoReviewConfig {
 export async function createInteractiveConfig(): Promise<void> {
   console.clear();
 
-  p.intro('🎉 Welcome to AI Code Review Interactive Setup');
+  p.intro('*** Welcome to AI Code Review Interactive Setup ***');
 
   try {
     // Load existing configuration
@@ -108,28 +108,33 @@ export async function createInteractiveConfig(): Promise<void> {
           options: [
             {
               value: 'llm',
-              label: '🤖 LLM Provider',
+              label: '[AI] LLM Provider',
               hint: `Currently: ${currentLLM}`,
             },
             {
               value: 'integration',
-              label: '� Integrations',
+              label: '[GL] Integrations',
               hint: `GitLab: ${currentGitLab}`,
             },
             {
               value: 'automation',
-              label: '🤖 Auto Review',
+              label: '[AR] Auto Review',
               hint: `${currentAutoReview} - ${currentProjects} projects, ${currentInterval}s`,
             },
             {
               value: 'uisettings',
-              label: '🎨 UI Settings',
+              label: '[UI] UI Settings',
               hint: `Server: ${currentServer} | UI: ${currentUI}`,
             },
             {
-              value: 'management',
-              label: '📋 Management',
-              hint: 'Save, review, or exit configuration',
+              value: 'review',
+              label: '[OK] Review & Save',
+              hint: 'Review all settings and save configuration',
+            },
+            {
+              value: 'exit',
+              label: '[EX] Exit',
+              hint: 'Exit without saving changes',
             },
           ],
         });
@@ -153,14 +158,14 @@ export async function createInteractiveConfig(): Promise<void> {
         }
         case 'integration': {
           action = await p.select({
-            message: '🔗 Integrations - Choose what to configure:',
+            message: '[+] Integrations - Choose what to configure:',
             options: [
               {
                 value: 'gitlab',
-                label: '🦊 GitLab Integration',
+                label: '[GL] GitLab Integration',
                 hint: `Currently: ${currentGitLab}`,
               },
-              { value: 'back', label: '← Back to main menu', hint: '' },
+              { value: 'back', label: '<- Back to main menu', hint: '' },
             ],
           });
           break;
@@ -172,80 +177,75 @@ export async function createInteractiveConfig(): Promise<void> {
             : 0;
 
           action = await p.select({
-            message: '🤖 Auto Review - Choose what to configure:',
+            message: '[*] Auto Review - Choose what to configure:',
             options: [
               {
                 value: 'autoReviewEnabled',
-                label: '⚡ Enable/Disable Auto Review',
+                label: '[ON] Enable/Disable Auto Review',
                 hint: `Currently: ${currentAutoReview}`,
               },
               {
                 value: 'autoReviewProjects',
-                label: '📂 Review Projects',
+                label: '[PR] Review Projects',
                 hint: `Quick edit: ${currentProjects} projects selected`,
               },
               {
                 value: 'customPrompts',
-                label: '📜 Custom Prompts',
+                label: '[CM] Custom Prompts',
                 hint: `Per-project prompts: ${projectPromptsCount} configured`,
               },
               {
                 value: 'autoReviewInterval',
-                label: '⏱️  Review Interval',
+                label: '[TM] Review Interval',
                 hint: `Quick edit: Current interval ${currentInterval} seconds`,
               },
               {
                 value: 'autoReviewStorage',
-                label: '💾 State Storage',
+                label: '[ST] State Storage',
                 hint: `Method: ${config.autoReview?.state?.storage || 'local'}`,
               },
-              { value: 'back', label: '← Back to main menu', hint: '' },
+              { value: 'back', label: '<- Back to main menu', hint: '' },
             ],
           });
           break;
         }
         case 'uisettings': {
           action = await p.select({
-            message: '🎨 UI Settings - Choose what to configure:',
+            message: '[UI] UI Settings - Choose what to configure:',
             options: [
               {
                 value: 'serverPort',
-                label: '🌐 Server Port',
+                label: '[PT] Server Port',
                 hint: `Currently: ${config.server?.port || 5960}`,
               },
               {
                 value: 'serverHost',
-                label: '🖥️ Server Host',
+                label: '[HS] Server Host',
                 hint: `Currently: ${config.server?.host || 'localhost'}`,
               },
               {
                 value: 'serverSubPath',
-                label: '📁 Server Sub-path',
+                label: '[SP] Server Sub-path',
                 hint: `Currently: ${config.server?.subPath || 'root path'}`,
               },
               {
                 value: 'autoOpenBrowser',
-                label: '🌍 Auto-open Browser',
+                label: '[BR] Auto-open Browser',
                 hint: `Currently: ${(config.ui?.autoOpen ?? true) ? 'enabled' : 'disabled'}`,
               },
-              { value: 'back', label: '← Back to main menu', hint: '' },
+              { value: 'back', label: '<- Back to main menu', hint: '' },
             ],
           });
           break;
         }
-        case 'management': {
-          action = await p.select({
-            message: '📋 Management - Choose an action:',
-            options: [
-              {
-                value: 'review',
-                label: '📋 Review & Save',
-                hint: 'Review all settings and save configuration',
-              },
-              { value: 'exit', label: '❌ Exit', hint: 'Exit without saving changes' },
-              { value: 'back', label: '← Back to main menu', hint: '' },
-            ],
-          });
+        case 'review': {
+          // Direct review action - no sub-menu needed
+          action = 'review';
+          break;
+        }
+        case 'exit': {
+          // Direct exit action - no sub-menu needed
+          action = 'exit';
           break;
         }
         default:
@@ -470,7 +470,7 @@ export async function createInteractiveConfig(): Promise<void> {
       }
     }
 
-    p.outro('✅ Configuration completed successfully!');
+    p.outro('*** Configuration completed successfully! ***');
   } catch (error) {
     p.log.error('An error occurred during configuration');
     p.log.error(error instanceof Error ? error.message : 'Unknown error');
@@ -479,7 +479,7 @@ export async function createInteractiveConfig(): Promise<void> {
 }
 
 async function configureLLM(existing?: LLMConfig): Promise<LLMConfig> {
-  p.log.step('🤖 Configuring LLM Provider');
+  p.log.step('[AI] Configuring LLM Provider');
 
   const provider = await p.select({
     message: 'Select AI provider',
@@ -531,7 +531,7 @@ async function configureLLM(existing?: LLMConfig): Promise<LLMConfig> {
 }
 
 async function configureGitLab(existing?: GitLabConfig): Promise<GitLabConfig | null> {
-  p.log.step('🦊 Configuring GitLab Integration');
+  p.log.step('[GL] Configuring GitLab Integration');
 
   const shouldConfigure = await p.confirm({
     message: 'Configure GitLab integration?',
@@ -588,7 +588,7 @@ async function configureProjectsOnly(
   existing?: AutoReviewConfig,
   gitlabConfig?: GitLabConfig
 ): Promise<string[] | null> {
-  p.log.step('📂 Configuring Review Projects');
+  p.log.step('[PR] Configuring Review Projects');
 
   // Fetch available projects
   const projectsSpinner = p.spinner();
@@ -701,7 +701,7 @@ async function configureCustomPrompts(
     return null;
   }
 
-  p.log.step('📜 Configuring Custom Prompts');
+  p.log.step('[CM] Configuring Custom Prompts');
 
   // Show current project list
   p.log.info(`Configuring prompts for ${existing.projects.length} projects`);
@@ -721,8 +721,8 @@ async function configureCustomPrompts(
       };
     });
 
-    projectOptions.push({ value: 'done', label: '✓ Done configuring prompts', hint: '' });
-    projectOptions.push({ value: 'back', label: '← Back to auto review menu', hint: '' });
+    projectOptions.push({ value: 'done', label: '[OK] Done configuring prompts', hint: '' });
+    projectOptions.push({ value: 'back', label: '<- Back to auto review menu', hint: '' });
 
     const selectedProject = await p.select({
       message: 'Select a project to configure custom prompts:',
@@ -752,15 +752,15 @@ async function configureCustomPrompts(
       options: [
         {
           value: 'set',
-          label: '📄 Set/Update Custom Prompt',
+          label: '[+] Set/Update Custom Prompt',
           hint: currentPrompt?.promptFile ? 'Update existing' : 'Create new',
         },
         {
           value: 'remove',
-          label: '🗑️ Remove Custom Prompt',
+          label: '[-] Remove Custom Prompt',
           hint: currentPrompt?.promptFile ? 'Remove existing' : 'No prompt to remove',
         },
-        { value: 'back', label: '← Back to project list', hint: '' },
+        { value: 'back', label: '<- Back to project list', hint: '' },
       ],
     });
 
@@ -854,34 +854,91 @@ async function configureCustomPrompts(
 }
 
 async function reviewAndSave(config: Partial<AppConfig>): Promise<boolean> {
-  p.log.step('📋 Configuration Review');
+  p.log.step('[OK] Configuration Review');
 
-  // Show configuration summary
-  console.log('\n📋 Configuration Summary:');
+  // Show comprehensive configuration summary
+  process.stdout.write('\n[OK] Configuration Summary:\n');
 
+  // Server Configuration
   if (config.server) {
-    console.log(
-      `🖥️  Server: ${config.server.host}:${config.server.port}${config.server.subPath || ''}`
+    const subPath = config.server.subPath ? config.server.subPath : '';
+    process.stdout.write(
+      `[SV] Server: ${config.server.host}:${config.server.port}${subPath ? '/' + subPath : ''}\n`
     );
+  } else {
+    process.stdout.write('[SV] Server: localhost:5960 (default)\n');
   }
 
+  // LLM Configuration
   if (config.llm) {
-    console.log(`🤖 LLM: ${config.llm.provider}${config.llm.apiKey ? ' (with API key)' : ''}`);
+    const apiKeyStatus = config.llm.apiKey ? ' (with API key)' : '';
+    const projectInfo = config.llm.googleCloudProject
+      ? ` [Project: ${config.llm.googleCloudProject}]`
+      : '';
+    process.stdout.write(`[AI] LLM: ${config.llm.provider}${apiKeyStatus}${projectInfo}\n`);
+  } else {
+    process.stdout.write('[AI] LLM: gemini-cli (default)\n');
   }
 
+  // GitLab Integration
   if (config.gitlab) {
-    console.log(`🦊 GitLab: ${config.gitlab.url}`);
-  }
-
-  if (config.autoReview) {
-    console.log(
-      `⚡ Auto Review: ${config.autoReview.projects?.length ?? 0} projects, ${config.autoReview.interval}s interval`
+    const hostname = new URL(config.gitlab.url).hostname;
+    process.stdout.write(`[GL] GitLab: ${hostname} (${config.gitlab.url})\n`);
+    process.stdout.write(
+      `[GL] Access Token: ${config.gitlab.accessToken ? '***configured***' : 'Not set'}\n`
     );
+  } else {
+    process.stdout.write('[GL] GitLab: Not configured\n');
   }
 
-  if (config.ui) {
-    console.log(`🎨 UI: Auto-open ${config.ui.autoOpen ? 'enabled' : 'disabled'}`);
+  // Auto Review Configuration
+  if (config.autoReview) {
+    const projectCount = config.autoReview.projects?.length ?? 0;
+    const interval = config.autoReview.interval ?? 120;
+    const enabled = config.autoReview.enabled ? 'Enabled' : 'Disabled';
+    const storage = config.autoReview.state?.storage || 'local';
+
+    process.stdout.write(`[AR] Auto Review: ${enabled}\n`);
+    if (projectCount > 0) {
+      process.stdout.write(`[AR] Projects (${projectCount}):\n`);
+      config.autoReview.projects?.forEach((project, index) => {
+        process.stdout.write(`     ${index + 1}. ${project}\n`);
+      });
+      process.stdout.write(`[AR] Review Interval: ${interval} seconds\n`);
+      process.stdout.write(`[AR] State Storage: ${storage}\n`);
+
+      // Custom Prompts Summary
+      if (
+        config.autoReview.projectPrompts &&
+        Object.keys(config.autoReview.projectPrompts).length > 0
+      ) {
+        const promptCount = Object.keys(config.autoReview.projectPrompts).length;
+        process.stdout.write(`[CM] Custom Prompts: ${promptCount} project(s) configured\n`);
+        Object.entries(config.autoReview.projectPrompts).forEach(([project, promptConfig]) => {
+          const strategy = promptConfig.promptStrategy || 'append';
+          const file = promptConfig.promptFile || 'Not set';
+          process.stdout.write(`     - ${project}: ${strategy} (${file})\n`);
+        });
+      } else {
+        process.stdout.write('[CM] Custom Prompts: None configured\n');
+      }
+    } else {
+      process.stdout.write('[AR] Projects: None configured\n');
+    }
+  } else {
+    process.stdout.write('[AR] Auto Review: Not configured\n');
   }
+
+  // UI Configuration
+  if (config.ui) {
+    process.stdout.write(
+      `[UI] Auto-open Browser: ${config.ui.autoOpen ? 'Enabled' : 'Disabled'}\n`
+    );
+  } else {
+    process.stdout.write('[UI] Auto-open Browser: Enabled (default)\n');
+  }
+
+  process.stdout.write('\n'); // Empty line for better spacing
 
   const shouldSave = await p.confirm({
     message: 'Save this configuration?',
