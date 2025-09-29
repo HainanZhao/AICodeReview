@@ -196,7 +196,7 @@ export async function createInteractiveConfig(): Promise<void> {
               },
               {
                 value: 'autoReviewStorage',
-                label: '🖾 State Storage',
+                label: '💾 State Storage',
                 hint: `Method: ${config.autoReview?.state?.storage || 'local'}`,
               },
               { value: 'back', label: '← Back to main menu', hint: '' },
@@ -875,7 +875,7 @@ async function reviewAndSave(config: Partial<AppConfig>): Promise<boolean> {
 
   if (config.autoReview) {
     console.log(
-      `⚡ Auto Review: ${config.autoReview.projects.length} projects, ${config.autoReview.interval}s interval`
+      `⚡ Auto Review: ${config.autoReview.projects?.length ?? 0} projects, ${config.autoReview.interval}s interval`
     );
   }
 
