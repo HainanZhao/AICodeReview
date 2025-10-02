@@ -247,7 +247,9 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   // Conditionally serve frontend based on mode
   if (!isApiOnly) {
     // Serve static files (built frontend) excluding index.html
-    const distPath = join(__dirname, '..', 'public');
+    // Always look for frontend files in dist/public (consistent path for both dev and prod)
+    const projectRoot = join(__dirname, '..', '..');
+    const distPath = join(projectRoot, 'dist', 'public');
     router.use(
       express.static(distPath, {
         index: false, // Don't serve index.html automatically
@@ -296,17 +298,19 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   app.use(`/${subPath}`, router);
 
   // Global error handler to suppress common 404 errors
-  app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    // Don't log common browser 404s
-    if ('status' in err && err.status === 404) {
-      res.status(404).end();
-      return;
-    }
+  app.use(
+    (err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      // Don't log common browser 404s
+      if ('status' in err && err.status === 404) {
+        res.status(404).end();
+        return;
+      }
 
-    // Log other errors
-    console.error('Server error:', err);
-    res.status(500).end();
-  });
+      // Log other errors
+      console.error('Server error:', err);
+      res.status(500).end();
+    }
+  );
 
   // Start server
   const server = app.listen(availablePort, config.server.host, async () => {

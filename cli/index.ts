@@ -118,9 +118,10 @@ program
       await checkForUpdates(packageJson.version);
 
       if (options.init !== undefined) {
-          const { createInteractiveConfig } = await import('./config/interactiveConfigWizard.js');
-          await createInteractiveConfig();
-        }
+        const { createInteractiveConfig } = await import('./config/interactiveConfigWizard.js');
+        await createInteractiveConfig();
+        return;
+      }
 
       if (options.listProjects) {
         const { ListProjectsCommand } = await import('./cli/listProjectsCommand.js');
@@ -162,6 +163,7 @@ program
           port: options.port,
           host: options.host,
         });
+      } else {
         // UI Mode - start web server
         // Check if config exists, if not, run init wizard
         const { ConfigLoader } = await import('./config/configLoader.js');

@@ -6,11 +6,11 @@ import { fetchProjects } from '../shared/services/gitlabCore.js';
 import { GitLabProject } from '../shared/types/gitlab.js';
 import { ConfigLoader } from './configLoader.js';
 import {
-  AppConfig,
-  AutoReviewConfig,
-  GitLabConfig,
-  LLMConfig,
-  ServerConfig,
+    AppConfig,
+    AutoReviewConfig,
+    GitLabConfig,
+    LLMConfig,
+    ServerConfig,
 } from './configSchema.js';
 
 // Helper functions for common operations
@@ -854,19 +854,19 @@ async function configureCustomPrompts(
 }
 
 async function reviewAndSave(config: Partial<AppConfig>): Promise<boolean> {
-  p.log.step('[OK] Configuration Review');
+  p.log.step('✅ Configuration Review');
 
   // Show comprehensive configuration summary
-  process.stdout.write('\n[OK] Configuration Summary:\n');
+  process.stdout.write('\n✅ Configuration Summary:\n');
 
   // Server Configuration
   if (config.server) {
     const subPath = config.server.subPath ? config.server.subPath : '';
     process.stdout.write(
-      `[SV] Server: ${config.server.host}:${config.server.port}${subPath ? '/' + subPath : ''}\n`
+      `🌐 Server: ${config.server.host}:${config.server.port}${subPath ? '/' + subPath : ''}\n`
     );
   } else {
-    process.stdout.write('[SV] Server: localhost:5960 (default)\n');
+    process.stdout.write('🌐 Server: localhost:5960 (default)\n');
   }
 
   // LLM Configuration
@@ -875,20 +875,20 @@ async function reviewAndSave(config: Partial<AppConfig>): Promise<boolean> {
     const projectInfo = config.llm.googleCloudProject
       ? ` [Project: ${config.llm.googleCloudProject}]`
       : '';
-    process.stdout.write(`[AI] LLM: ${config.llm.provider}${apiKeyStatus}${projectInfo}\n`);
+    process.stdout.write(`🤖 LLM: ${config.llm.provider}${apiKeyStatus}${projectInfo}\n`);
   } else {
-    process.stdout.write('[AI] LLM: gemini-cli (default)\n');
+    process.stdout.write('🤖 LLM: gemini-cli (default)\n');
   }
 
   // GitLab Integration
   if (config.gitlab) {
     const hostname = new URL(config.gitlab.url).hostname;
-    process.stdout.write(`[GL] GitLab: ${hostname} (${config.gitlab.url})\n`);
+    process.stdout.write(`📦 GitLab: ${hostname} (${config.gitlab.url})\n`);
     process.stdout.write(
-      `[GL] Access Token: ${config.gitlab.accessToken ? '***configured***' : 'Not set'}\n`
+      `📦 Access Token: ${config.gitlab.accessToken ? '***configured***' : 'Not set'}\n`
     );
   } else {
-    process.stdout.write('[GL] GitLab: Not configured\n');
+    process.stdout.write('📦 GitLab: Not configured\n');
   }
 
   // Auto Review Configuration
@@ -898,14 +898,14 @@ async function reviewAndSave(config: Partial<AppConfig>): Promise<boolean> {
     const enabled = config.autoReview.enabled ? 'Enabled' : 'Disabled';
     const storage = config.autoReview.state?.storage || 'local';
 
-    process.stdout.write(`[AR] Auto Review: ${enabled}\n`);
+    process.stdout.write(`🔄 Auto Review: ${enabled}\n`);
     if (projectCount > 0) {
-      process.stdout.write(`[AR] Projects (${projectCount}):\n`);
+      process.stdout.write(`🔄 Projects (${projectCount}):\n`);
       config.autoReview.projects?.forEach((project, index) => {
         process.stdout.write(`     ${index + 1}. ${project}\n`);
       });
-      process.stdout.write(`[AR] Review Interval: ${interval} seconds\n`);
-      process.stdout.write(`[AR] State Storage: ${storage}\n`);
+      process.stdout.write(`🔄 Review Interval: ${interval} seconds\n`);
+      process.stdout.write(`🔄 State Storage: ${storage}\n`);
 
       // Custom Prompts Summary
       if (
@@ -913,29 +913,27 @@ async function reviewAndSave(config: Partial<AppConfig>): Promise<boolean> {
         Object.keys(config.autoReview.projectPrompts).length > 0
       ) {
         const promptCount = Object.keys(config.autoReview.projectPrompts).length;
-        process.stdout.write(`[CM] Custom Prompts: ${promptCount} project(s) configured\n`);
+        process.stdout.write(`📝 Custom Prompts: ${promptCount} project(s) configured\n`);
         Object.entries(config.autoReview.projectPrompts).forEach(([project, promptConfig]) => {
           const strategy = promptConfig.promptStrategy || 'append';
           const file = promptConfig.promptFile || 'Not set';
           process.stdout.write(`     - ${project}: ${strategy} (${file})\n`);
         });
       } else {
-        process.stdout.write('[CM] Custom Prompts: None configured\n');
+        process.stdout.write('📝 Custom Prompts: None configured\n');
       }
     } else {
-      process.stdout.write('[AR] Projects: None configured\n');
+      process.stdout.write('🔄 Projects: None configured\n');
     }
   } else {
-    process.stdout.write('[AR] Auto Review: Not configured\n');
+    process.stdout.write('🔄 Auto Review: Not configured\n');
   }
 
   // UI Configuration
   if (config.ui) {
-    process.stdout.write(
-      `[UI] Auto-open Browser: ${config.ui.autoOpen ? 'Enabled' : 'Disabled'}\n`
-    );
+    process.stdout.write(`🖥️  Auto-open Browser: ${config.ui.autoOpen ? 'Enabled' : 'Disabled'}\n`);
   } else {
-    process.stdout.write('[UI] Auto-open Browser: Enabled (default)\n');
+    process.stdout.write('🖥️  Auto-open Browser: Enabled (default)\n');
   }
 
   process.stdout.write('\n'); // Empty line for better spacing
