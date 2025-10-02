@@ -5,10 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.5.5] - 2025-09-29
+## [1.5.8] - 2025-10-02
+
+### Fixed
+
+- **UI Mode Startup**: Fixed critical bug where UI mode would not start when running `acr` without arguments
+  - Corrected conditional logic in CLI entry point that was preventing UI server from starting
+  - Fixed frontend file path resolution for both development (`tsx`) and production (`node`) modes
+  - Improved path calculation to work consistently across different execution environments
+  - UI mode now properly starts and serves web interface on configured port
 
 ### Enhanced
-- **--init option**: user can init with interactive cli interface for each section
+
+- **Configuration Display**: Replaced CLI prefix brackets `[OK]`, `[SV]`, `[AI]`, etc. with Unicode emojis for better visual presentation on Mac/Linux
+  - `✅` Configuration Summary & Review
+  - `🌐` Server configuration  
+  - `🤖` LLM/AI configuration
+  - `📦` GitLab configuration
+  - `🔄` Auto Review configuration
+  - `📝` Custom Prompts configuration
+  - `🖥️` UI configuration
+- **Empty State Icon**: Updated feedback panel empty state with better balanced document + magnifying glass icon
 
 ## [1.5.5] - 2025-09-27
 
