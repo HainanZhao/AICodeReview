@@ -146,8 +146,26 @@ const resolveProjectPromptConfig = (
       const configLower = configProjectName.toLowerCase();
       const projectLower = projectName.toLowerCase();
 
+      // Normalize spaces around slashes for both config and project names
+      const normalizeSpaces = (str: string) => str.replace(/\s*\/\s*/g, '/');
+      const configNormalized = normalizeSpaces(configLower);
+      const projectNormalized = normalizeSpaces(projectLower);
+
+      // Direct match after normalization
+      if (configNormalized === projectNormalized) {
+        return true;
+      }
+
       // Direct substring matching (existing logic)
       if (projectLower.includes(configLower) || configLower.includes(projectLower)) {
+        return true;
+      }
+
+      // Also try normalized substring matching
+      if (
+        projectNormalized.includes(configNormalized) ||
+        configNormalized.includes(projectNormalized)
+      ) {
         return true;
       }
 

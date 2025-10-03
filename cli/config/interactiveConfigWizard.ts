@@ -6,12 +6,20 @@ import { fetchProjects } from '../shared/services/gitlabCore.js';
 import { GitLabProject } from '../shared/types/gitlab.js';
 import { ConfigLoader } from './configLoader.js';
 import {
-    AppConfig,
-    AutoReviewConfig,
-    GitLabConfig,
-    LLMConfig,
-    ServerConfig,
+  AppConfig,
+  AutoReviewConfig,
+  GitLabConfig,
+  LLMConfig,
+  ServerConfig,
 } from './configSchema.js';
+
+/**
+ * Normalizes project names by removing spaces around slashes
+ * to ensure consistent matching between config keys and project names
+ */
+function normalizeProjectName(projectName: string): string {
+  return projectName.replace(/\s*\/\s*/g, '/');
+}
 
 // Helper functions for common operations
 function setContext(currentContext: string | null, context: string): string {
@@ -108,32 +116,32 @@ export async function createInteractiveConfig(): Promise<void> {
           options: [
             {
               value: 'llm',
-              label: '[AI] LLM Provider',
+              label: '🤖 LLM Provider',
               hint: `Currently: ${currentLLM}`,
             },
             {
               value: 'integration',
-              label: '[GL] Integrations',
+              label: '🔗 Integrations',
               hint: `GitLab: ${currentGitLab}`,
             },
             {
               value: 'automation',
-              label: '[AR] Auto Review',
+              label: '🔍 Auto Review',
               hint: `${currentAutoReview} - ${currentProjects} projects, ${currentInterval}s`,
             },
             {
               value: 'uisettings',
-              label: '[UI] UI Settings',
+              label: '🎨 UI Settings',
               hint: `Server: ${currentServer} | UI: ${currentUI}`,
             },
             {
               value: 'review',
-              label: '[OK] Review & Save',
+              label: '✅ Review & Save',
               hint: 'Review all settings and save configuration',
             },
             {
               value: 'exit',
-              label: '[EX] Exit',
+              label: '🚪 Exit',
               hint: 'Exit without saving changes',
             },
           ],
@@ -158,14 +166,14 @@ export async function createInteractiveConfig(): Promise<void> {
         }
         case 'integration': {
           action = await p.select({
-            message: '[+] Integrations - Choose what to configure:',
+            message: '🔗 Integrations - Choose what to configure:',
             options: [
               {
                 value: 'gitlab',
-                label: '[GL] GitLab Integration',
+                label: '🦊 GitLab Integration',
                 hint: `Currently: ${currentGitLab}`,
               },
-              { value: 'back', label: '<- Back to main menu', hint: '' },
+              { value: 'back', label: '◀◀ Back to main menu', hint: '' },
             ],
           });
           break;
@@ -177,63 +185,63 @@ export async function createInteractiveConfig(): Promise<void> {
             : 0;
 
           action = await p.select({
-            message: '[*] Auto Review - Choose what to configure:',
+            message: '🔍 Auto Review - Choose what to configure:',
             options: [
               {
                 value: 'autoReviewEnabled',
-                label: '[ON] Enable/Disable Auto Review',
+                label: '🔘 Enable/Disable Auto Review',
                 hint: `Currently: ${currentAutoReview}`,
               },
               {
                 value: 'autoReviewProjects',
-                label: '[PR] Review Projects',
+                label: '📁 Review Projects',
                 hint: `Quick edit: ${currentProjects} projects selected`,
               },
               {
                 value: 'customPrompts',
-                label: '[CM] Custom Prompts',
+                label: '📝 Custom Prompts',
                 hint: `Per-project prompts: ${projectPromptsCount} configured`,
               },
               {
                 value: 'autoReviewInterval',
-                label: '[TM] Review Interval',
+                label: '⏰ Review Interval',
                 hint: `Quick edit: Current interval ${currentInterval} seconds`,
               },
               {
                 value: 'autoReviewStorage',
-                label: '[ST] State Storage',
+                label: '💾 State Storage',
                 hint: `Method: ${config.autoReview?.state?.storage || 'local'}`,
               },
-              { value: 'back', label: '<- Back to main menu', hint: '' },
+              { value: 'back', label: '◀◀ Back to main menu', hint: '' },
             ],
           });
           break;
         }
         case 'uisettings': {
           action = await p.select({
-            message: '[UI] UI Settings - Choose what to configure:',
+            message: '🎨 UI Settings - Choose what to configure:',
             options: [
               {
                 value: 'serverPort',
-                label: '[PT] Server Port',
+                label: '🔌 Server Port',
                 hint: `Currently: ${config.server?.port || 5960}`,
               },
               {
                 value: 'serverHost',
-                label: '[HS] Server Host',
+                label: '🖥️ Server Host',
                 hint: `Currently: ${config.server?.host || 'localhost'}`,
               },
               {
                 value: 'serverSubPath',
-                label: '[SP] Server Sub-path',
+                label: '🛤️ Server Sub-path',
                 hint: `Currently: ${config.server?.subPath || 'root path'}`,
               },
               {
                 value: 'autoOpenBrowser',
-                label: '[BR] Auto-open Browser',
+                label: '🌐 Auto-open Browser',
                 hint: `Currently: ${(config.ui?.autoOpen ?? true) ? 'enabled' : 'disabled'}`,
               },
-              { value: 'back', label: '<- Back to main menu', hint: '' },
+              { value: 'back', label: '◀◀ Back to main menu', hint: '' },
             ],
           });
           break;
@@ -641,7 +649,7 @@ async function configureProjectsOnly(
 
     const projectNames = manualProjects
       .split(',')
-      .map((name: string) => name.trim())
+      .map((name: string) => normalizeProjectName(name.trim()))
       .filter((name: string) => name.length > 0);
 
     return projectNames;
@@ -690,7 +698,8 @@ async function configureProjectsOnly(
 
   if (p.isCancel(selectedProjects)) return null;
 
-  return selectedProjects;
+  // Normalize project names before saving
+  return selectedProjects.map((project: string) => normalizeProjectName(project));
 }
 
 async function configureCustomPrompts(
@@ -707,13 +716,36 @@ async function configureCustomPrompts(
   p.log.info(`Configuring prompts for ${existing.projects.length} projects`);
 
   const projectPrompts = existing.projectPrompts || {};
-  const updatedProjectPrompts = { ...projectPrompts };
+
+  // Initialize with normalized keys to ensure consistency
+  const updatedProjectPrompts: Record<
+    string,
+    { promptFile?: string; promptStrategy?: 'append' | 'prepend' | 'replace' }
+  > = {};
+  Object.entries(projectPrompts).forEach(([key, value]) => {
+    const normalizedKey = normalizeProjectName(key);
+    updatedProjectPrompts[normalizedKey] = value;
+  });
 
   while (true) {
     // Show menu of projects to configure
     const projectOptions = existing.projects.map((project) => {
-      const hasPrompt = updatedProjectPrompts[project]?.promptFile;
-      const strategy = updatedProjectPrompts[project]?.promptStrategy || 'Not set';
+      const normalizedProject = normalizeProjectName(project);
+
+      // Find prompt config by checking both normalized key and any existing key that normalizes to match
+      let promptConfig = updatedProjectPrompts[normalizedProject];
+      if (!promptConfig) {
+        // Check if any existing key normalizes to match this project
+        const matchingKey = Object.keys(updatedProjectPrompts).find(
+          (key) => normalizeProjectName(key) === normalizedProject
+        );
+        if (matchingKey) {
+          promptConfig = updatedProjectPrompts[matchingKey];
+        }
+      }
+
+      const hasPrompt = promptConfig?.promptFile;
+      const strategy = promptConfig?.promptStrategy || 'Not set';
       return {
         value: project,
         label: project,
@@ -721,8 +753,7 @@ async function configureCustomPrompts(
       };
     });
 
-    projectOptions.push({ value: 'done', label: '[OK] Done configuring prompts', hint: '' });
-    projectOptions.push({ value: 'back', label: '<- Back to auto review menu', hint: '' });
+    projectOptions.push({ value: 'back', label: '◀◀ Back to auto review menu', hint: '' });
 
     const selectedProject = await p.select({
       message: 'Select a project to configure custom prompts:',
@@ -730,20 +761,49 @@ async function configureCustomPrompts(
     });
 
     if (p.isCancel(selectedProject)) {
-      return null;
+      // Return the updated configuration even when cancelled
+      const result: AutoReviewConfig = {
+        enabled: existing?.enabled ?? false,
+        projects: existing?.projects ?? [],
+        interval: existing?.interval ?? 120,
+        state: existing?.state,
+        projectPrompts:
+          Object.keys(updatedProjectPrompts).length > 0 ? updatedProjectPrompts : undefined,
+      };
+
+      return result;
     }
 
     if (selectedProject === 'back') {
-      return null;
-    }
+      // Return the updated configuration even when going back
+      const result: AutoReviewConfig = {
+        enabled: existing?.enabled ?? false,
+        projects: existing?.projects ?? [],
+        interval: existing?.interval ?? 120,
+        state: existing?.state,
+        projectPrompts:
+          Object.keys(updatedProjectPrompts).length > 0 ? updatedProjectPrompts : undefined,
+      };
 
-    if (selectedProject === 'done') {
-      break;
+      return result;
     }
 
     // Configure prompt for the selected project
-    const projectName = selectedProject as string;
-    const currentPrompt = updatedProjectPrompts[projectName];
+    const projectName = normalizeProjectName(selectedProject as string);
+
+    // Find current prompt config by checking both normalized key and any existing key that normalizes to match
+    let currentPrompt = updatedProjectPrompts[projectName];
+    let existingKey = projectName;
+    if (!currentPrompt) {
+      // Check if any existing key normalizes to match this project
+      const matchingKey = Object.keys(updatedProjectPrompts).find(
+        (key) => normalizeProjectName(key) === projectName
+      );
+      if (matchingKey) {
+        currentPrompt = updatedProjectPrompts[matchingKey];
+        existingKey = matchingKey;
+      }
+    }
 
     p.log.info(`Configuring custom prompt for: ${projectName}`);
 
@@ -752,15 +812,15 @@ async function configureCustomPrompts(
       options: [
         {
           value: 'set',
-          label: '[+] Set/Update Custom Prompt',
+          label: '➕ Set/Update Custom Prompt',
           hint: currentPrompt?.promptFile ? 'Update existing' : 'Create new',
         },
         {
           value: 'remove',
-          label: '[-] Remove Custom Prompt',
+          label: '❌ Remove Custom Prompt',
           hint: currentPrompt?.promptFile ? 'Remove existing' : 'No prompt to remove',
         },
-        { value: 'back', label: '<- Back to project list', hint: '' },
+        { value: 'back', label: '◀◀ Back to project list', hint: '' },
       ],
     });
 
@@ -769,8 +829,22 @@ async function configureCustomPrompts(
     }
 
     if (action === 'remove') {
-      if (currentPrompt?.promptFile) {
-        delete updatedProjectPrompts[projectName];
+      let removed = false;
+
+      // Remove from the existing key (which could be normalized or unnormalized)
+      if (updatedProjectPrompts[existingKey]) {
+        delete updatedProjectPrompts[existingKey];
+        removed = true;
+      }
+
+      // Also remove from the original project name if it's different
+      const originalProjectName = selectedProject as string;
+      if (originalProjectName !== existingKey && updatedProjectPrompts[originalProjectName]) {
+        delete updatedProjectPrompts[originalProjectName];
+        removed = true;
+      }
+
+      if (removed) {
         p.log.success(`Removed custom prompt for ${projectName}`);
       } else {
         p.log.warn(`No custom prompt configured for ${projectName}`);
@@ -812,17 +886,17 @@ async function configureCustomPrompts(
         options: [
           {
             value: 'replace',
-            label: 'Replace',
+            label: '🔄 Replace',
             hint: 'Use only this custom prompt',
           },
           {
             value: 'prepend',
-            label: 'Prepend',
+            label: '⬆️  Prepend',
             hint: 'Add before default prompt',
           },
           {
             value: 'append',
-            label: 'Append',
+            label: '⬇️  Append',
             hint: 'Add after default prompt',
           },
         ],
@@ -834,6 +908,21 @@ async function configureCustomPrompts(
       }
 
       // Save the configuration
+      // Remove any existing entry (could be under a different key) to avoid duplicates
+      if (existingKey !== projectName && updatedProjectPrompts[existingKey]) {
+        delete updatedProjectPrompts[existingKey];
+      }
+
+      // Also check original project name from selection in case it's different
+      const originalProjectName = selectedProject as string;
+      if (
+        originalProjectName !== projectName &&
+        originalProjectName !== existingKey &&
+        updatedProjectPrompts[originalProjectName]
+      ) {
+        delete updatedProjectPrompts[originalProjectName];
+      }
+
       updatedProjectPrompts[projectName] = {
         promptFile,
         promptStrategy: strategy as 'append' | 'prepend' | 'replace',
@@ -846,11 +935,16 @@ async function configureCustomPrompts(
   }
 
   // Return updated configuration
-  return {
-    ...existing,
+  const result: AutoReviewConfig = {
+    enabled: existing?.enabled ?? false,
+    projects: existing?.projects ?? [],
+    interval: existing?.interval ?? 120,
+    state: existing?.state,
     projectPrompts:
       Object.keys(updatedProjectPrompts).length > 0 ? updatedProjectPrompts : undefined,
   };
+
+  return result;
 }
 
 async function reviewAndSave(config: Partial<AppConfig>): Promise<boolean> {
