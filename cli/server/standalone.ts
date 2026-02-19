@@ -68,13 +68,18 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   // Add GitLab configuration endpoint using shared service
   router.post('/api/config', configService.getConfigHandler());
 
-  // Initialize LLM provider - import from local services
-  try {
-    console.log('\n🤖 Initializing LLM provider...');
-
-    // Import the LLM provider factory from local services
-    const { createLLMProvider } = await import('../services/llm/providerFactory.js');
-
+      // Initialize LLM provider - import from local services
+      try {
+        console.log('\n🤖 Initializing LLM provider...');
+  
+        if (config.llm.provider === 'gemini-cli') {
+          const { GeminiACPSession } = await import('../services/GeminiACPSession.js');
+          const session = GeminiACPSession.getInstance();
+          await session.start();
+        }
+  
+        // Import the LLM provider factory from local services
+        const { createLLMProvider } = await import('../services/llm/providerFactory.js');
     const llmProvider = await createLLMProvider(config.llm.provider, config.llm.apiKey);
 
     // Set up unified API route for MR URL-based reviews

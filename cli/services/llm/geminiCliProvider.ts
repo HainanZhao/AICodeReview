@@ -45,9 +45,11 @@ export class GeminiCliProvider extends BaseLLMProvider {
 
       try {
         // Use shared core for execution with backend-appropriate options
-        const parsedResponse = await GeminiCliCore.executeReview(prompt, {
+        const { GeminiACPSession } = await import('../GeminiACPSession.js');
+        const rawOutput = await GeminiACPSession.getInstance().chat(prompt);
+
+        const parsedResponse = await GeminiCliCore.extractJsonFromOutput(rawOutput, {
           verbose: false,
-          timeout,
         });
 
         // Convert to backend response format
@@ -85,7 +87,8 @@ export class GeminiCliProvider extends BaseLLMProvider {
   ): Promise<string> {
     try {
       const prompt = this.createChatPrompt(messages, filePath, fileContent, lineNumber);
-      const rawOutput = await GeminiCliCore.executeExplanation(prompt, { verbose: false });
+      const { GeminiACPSession } = await import('../GeminiACPSession.js');
+      const rawOutput = await GeminiACPSession.getInstance().chat(prompt);
 
       const jsonExplanation = this.extractJsonExplanation(rawOutput);
       if (jsonExplanation) {
@@ -118,7 +121,8 @@ export class GeminiCliProvider extends BaseLLMProvider {
         contextLines,
         lineNumber
       );
-      const rawOutput = await GeminiCliCore.executeExplanation(prompt, { verbose: false });
+      const { GeminiACPSession } = await import('../GeminiACPSession.js');
+      const rawOutput = await GeminiACPSession.getInstance().chat(prompt);
 
       // Try to extract JSON from the output first
       const jsonExplanation = this.extractJsonExplanation(rawOutput);
