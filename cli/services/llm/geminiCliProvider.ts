@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { loadConfig } from '../../config/configLoader.js';
+import { ConfigLoader } from '../../config/configLoader.js';
 import { GeminiCliCore, type GeminiCliItem } from '../../shared/index.js';
 import { BaseLLMProvider } from './baseLLMProvider.js';
 import type { ReviewRequest, ReviewResponse } from './types.js';
@@ -9,7 +9,7 @@ export class GeminiCliProvider extends BaseLLMProvider {
 
   private async getTimeout(): Promise<number> {
     try {
-      const config = await loadConfig();
+      const config = ConfigLoader.loadConfig();
       return config.llm?.timeout ?? 600000; // Default to 10 minutes
     } catch {
       return 600000; // Default to 10 minutes if config can't be loaded

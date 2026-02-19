@@ -17,5 +17,5 @@
     "noImplicitAny": false
   },
   "include": ["./**/*"],
-  "exclude": ["../node_modules", "../dist", "../frontend"]
+  "exclude": ["../node_modules", "../dist", "../frontend", "**/*.test.ts"]
 }

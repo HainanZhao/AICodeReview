@@ -151,7 +151,11 @@ export class CLIReviewCommand {
     }
 
     // Parse MR URL
-    const mrInfo = CLIReviewCommand.parseMrUrl(mrUrl, config.gitlab?.url, options.mock || false);
+    const gitlabUrl = config.gitlab?.url;
+    if (!gitlabUrl) {
+      throw new Error('GitLab URL is not configured. Please run --init to configure.');
+    }
+    const mrInfo = CLIReviewCommand.parseMrUrl(mrUrl, gitlabUrl, options.mock || false);
     if (options.verbose) {
       console.log(
         CLIOutputFormatter.formatProgress(
