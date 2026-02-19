@@ -1,5 +1,5 @@
 {
-  "name": "aicodereview",
+  "name": "aicodereview-cli",
   "private": false,
   "version": "1.5.10",
   "description": "AI-powered code review tool with web interface",
