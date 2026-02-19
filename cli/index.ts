@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'fs';
-import { homedir } from 'os';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
 import checkForUpdates from './services/updateNotifier.js';
 
 // START: Timestamp and file logging
@@ -37,7 +37,7 @@ console.log = (...args: unknown[]) => {
   const timestamp = formatTimestamp(new Date());
   const message = `[${timestamp}] ${args.join(' ')}`;
   originalLog(message);
-  appendFileSync(getLogFile(), message + '\n');
+  appendFileSync(getLogFile(), `${message}\n`);
 };
 
 const originalError = console.error;
@@ -45,7 +45,7 @@ console.error = (...args: unknown[]) => {
   const timestamp = formatTimestamp(new Date());
   const message = `[${timestamp}] ${args.join(' ')}`;
   originalError(message);
-  appendFileSync(getLogFile(), message + '\n');
+  appendFileSync(getLogFile(), `${message}\n`);
 };
 
 // END: Timestamp and file logging

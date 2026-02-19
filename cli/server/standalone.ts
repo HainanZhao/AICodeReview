@@ -1,8 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
-import { readFileSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import { CLIOptions, ConfigLoader } from '../config/configLoader.js';
+import { type CLIOptions, ConfigLoader } from '../config/configLoader.js';
 import { createConfigService } from '../shared/services/configService.js';
 import { openBrowser } from '../utils/browserUtils.js';
 import { findAvailablePort } from '../utils/portUtils.js';
@@ -17,7 +17,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
 
   // Load configuration
   const config = ConfigLoader.loadConfig(cliOptions);
-  console.log(`📋 Configuration loaded:`);
+  console.log('📋 Configuration loaded:');
   console.log(`   • Provider: ${config.llm.provider}`);
   console.log(`   • Host: ${config.server.host}`);
   console.log(`   • Mode: ${isApiOnly ? 'API-only' : 'Standalone with Web UI'}`);
@@ -299,7 +299,7 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
 
   // Global error handler to suppress common 404 errors
   app.use(
-    (err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    (err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
       // Don't log common browser 404s
       if ('status' in err && err.status === 404) {
         res.status(404).end();
@@ -320,17 +320,17 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     if (isApiOnly) {
       console.log('\n✅ AI Code Review API Server is ready!');
       console.log(`   🔗 API Base URL: ${url}`);
-      console.log(`   📋 Available endpoints:`);
+      console.log('   📋 Available endpoints:');
       console.log(`   • POST ${url}/api/review-mr - Unified MR review endpoint`);
       console.log(`   • POST ${url}/api/config - Configuration endpoint`);
       console.log(`   • POST ${url}/api/post-discussion - Post GitLab discussion endpoint`);
       console.log(`   • POST ${url}/api/chat - Unified AI chat and explain endpoint`);
-      console.log(`   🛑 Press Ctrl+C to stop\n`);
+      console.log('   🛑 Press Ctrl+C to stop\n');
     } else {
       console.log('\n✅ AI Code Review is ready!');
       console.log(`   🌐 Web interface: ${url}`);
       console.log(`   🔗 API Base URL: ${url}`);
-      console.log(`   🛑 Press Ctrl+C to stop\n`);
+      console.log('   🛑 Press Ctrl+C to stop\n');
 
       // Auto-open browser only in standalone mode
       if (config.ui.autoOpen) {

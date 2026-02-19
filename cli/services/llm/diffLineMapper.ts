@@ -55,8 +55,8 @@ export class DiffLineMapper {
       if (line.startsWith('@@')) {
         const match = line.match(/@@ -(\d+),?\d* \+(\d+),?\d* @@/);
         if (match) {
-          oldLineNum = parseInt(match[1], 10);
-          newLineNum = parseInt(match[2], 10);
+          oldLineNum = Number.parseInt(match[1], 10);
+          newLineNum = Number.parseInt(match[2], 10);
         }
         continue;
       }
@@ -138,7 +138,7 @@ export class DiffLineMapper {
 
     // Find the closest change line
     let closestChange: { originalLineNumber: number; changeType: 'add' | 'remove' } | null = null;
-    let minDistance = Infinity;
+    let minDistance = Number.POSITIVE_INFINITY;
 
     for (const mapping of fileMapping.mappings) {
       if (mapping.isChange) {

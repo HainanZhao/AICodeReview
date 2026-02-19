@@ -1,5 +1,5 @@
 import { ConfigLoader } from '../config/configLoader.js';
-import { AppConfig } from '../config/configSchema.js';
+import type { AppConfig } from '../config/configSchema.js';
 import { testGitLabConnection } from '../shared/index.js';
 
 /**
@@ -39,7 +39,7 @@ export class CLIConfigValidator {
     }
 
     // Validate LLM configuration
-    this.validateLLMConfig(config);
+    CLIConfigValidator.validateLLMConfig(config);
   }
 
   /**

@@ -1,13 +1,13 @@
-import { AppConfig } from '../config/configSchema.js';
+import type { AppConfig } from '../config/configSchema.js';
 import {
-  buildReviewPrompt,
-  parseAIResponse,
-  Severity,
+  AIProviderCore,
   type AIReviewRequest,
   type AIReviewResponse,
-  AIProviderCore,
   GeminiCliCore,
   type GeminiCliItem,
+  Severity,
+  buildReviewPrompt,
+  parseAIResponse,
 } from '../shared/index.js';
 
 /**
@@ -129,9 +129,8 @@ export class CLIAIProvider {
             '(npm install -g @google-ai/generative-ai-cli) and that the "gemini" command ' +
             'is available in your PATH and not conflicting with "gcloud".'
         );
-      } else {
-        throw new Error(`Gemini CLI review failed: ${errorMessage}`);
       }
+      throw new Error(`Gemini CLI review failed: ${errorMessage}`);
     }
   }
 

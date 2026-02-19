@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import type { FileDiff } from '../../../types';
 import { parseDiffsToHunks } from './gitlabService';
-import { FileDiff } from '../../../types';
 
 describe('parseDiffsToHunks', () => {
   const mockFileContents: Record<string, { oldContent?: string[]; newContent?: string[] }> = {

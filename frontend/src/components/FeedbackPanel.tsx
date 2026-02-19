@@ -1,19 +1,20 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  GitLabMRDetails,
-  ParsedFileDiff,
-  ParsedHunk,
-  ReviewFeedback,
+  type GitLabMRDetails,
+  type ParsedFileDiff,
+  type ParsedHunk,
+  type ReviewFeedback,
   Severity,
 } from '../../../types';
-import { ParsedDiffLine } from '../types';
+import type { ParsedDiffLine } from '../types';
 import { getStoredViewMode, setStoredViewMode } from '../utils/viewModeStorage';
 import { FeedbackCard } from './FeedbackCard';
 import { FileDiffCard } from './FileDiffCard';
-import { ApproveIcon, ArrowDownIcon, ArrowUpIcon, CheckmarkIcon, RefreshIcon } from './icons';
 import { Spinner } from './Spinner';
 import { SyntaxHighlightedCode } from './SyntaxHighlightedCode';
-import { ViewMode, ViewModeToggle } from './ViewModeToggle';
+import { type ViewMode, ViewModeToggle } from './ViewModeToggle';
+import { ApproveIcon, ArrowDownIcon, ArrowUpIcon, CheckmarkIcon, RefreshIcon } from './icons';
 
 interface FeedbackPanelProps {
   codeTheme?: string;
@@ -237,7 +238,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
       if (!isLineVisible) {
         // Find the best hunk to expand (closest to the comment line)
         let bestHunk: { hunk: ParsedHunk; hunkIndex: number } | null = null;
-        let minDistance = Infinity;
+        let minDistance = Number.POSITIVE_INFINITY;
 
         fileDiff.hunks.forEach((hunk, hunkIndex) => {
           const hunkStart = hunk.newStartLine;

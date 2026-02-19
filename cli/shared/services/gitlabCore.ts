@@ -1,16 +1,16 @@
 import type { LineMapping } from '../types/gitlab.js';
 import {
-  FileDiff,
-  GitLabConfig,
-  GitLabDiscussion,
-  GitLabMergeRequest,
-  GitLabMergeRequestWithState,
-  GitLabMRDetails,
-  GitLabProject,
-  GitLabSnippet,
-  ParsedFileDiff,
-  ParsedHunk,
-  ReviewFeedback,
+  type FileDiff,
+  type GitLabConfig,
+  type GitLabDiscussion,
+  type GitLabMRDetails,
+  type GitLabMergeRequest,
+  type GitLabMergeRequestWithState,
+  type GitLabProject,
+  type GitLabSnippet,
+  type ParsedFileDiff,
+  type ParsedHunk,
+  type ReviewFeedback,
   Severity,
 } from '../types/gitlab.js';
 
@@ -144,10 +144,10 @@ const parseDiffs = (diffString: string): ParsedHunk[] => {
     if (line.startsWith('@@')) {
       const match = line.match(/@@ -(\d+)(,(\d+))? \+(\d+)(,(\d+))? @@/);
       if (match) {
-        const oldStartLine = parseInt(match[1], 10);
-        const oldLineCount = match[3] ? parseInt(match[3], 10) : 1;
-        const newStartLine = parseInt(match[4], 10);
-        const newLineCount = match[6] ? parseInt(match[6], 10) : 1;
+        const oldStartLine = Number.parseInt(match[1], 10);
+        const oldLineCount = match[3] ? Number.parseInt(match[3], 10) : 1;
+        const newStartLine = Number.parseInt(match[4], 10);
+        const newLineCount = match[6] ? Number.parseInt(match[6], 10) : 1;
 
         const currentHunk: ParsedHunk = {
           header: line,
@@ -292,7 +292,7 @@ export const parseDiffsToHunks = (
         if (pattern.startsWith('*.')) {
           return baseName.endsWith(pattern.substring(1));
         }
-        return baseName === pattern || fileName.endsWith('/' + pattern);
+        return baseName === pattern || fileName.endsWith(`/${pattern}`);
       });
     };
 
@@ -312,14 +312,14 @@ export const parseDiffsToHunks = (
         const lineNumber = (index + 1).toString().padStart(4, ' ');
         promptParts.push(`${lineNumber}: ${line}`);
       });
-      promptParts.push(`=== END FILE CONTENT ===\n`);
+      promptParts.push('=== END FILE CONTENT ===\n');
       processedFiles.add(file.new_path); // Mark this file as processed
     }
 
     // Always include the git diff
     promptParts.push(`\n=== GIT DIFF: ${file.new_path} ===`);
     promptParts.push(file.diff);
-    promptParts.push(`=== END DIFF ===\n`);
+    promptParts.push('=== END DIFF ===\n');
 
     allDiffsForPrompt.push(promptParts.join('\n'));
 

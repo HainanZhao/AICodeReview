@@ -1,8 +1,8 @@
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { ConfigLoader } from '../config/configLoader.js';
-import { AppConfig } from '../config/configSchema.js';
+import type { AppConfig } from '../config/configSchema.js';
 import { ProjectCacheService } from '../services/projectCacheService.js';
 import {
   fetchMergeRequestsByIids,
@@ -10,12 +10,12 @@ import {
   fetchOpenMergeRequests,
 } from '../shared/services/gitlabCore.js';
 import {
+  type LocalState,
+  type SnippetState,
   loadLocalState,
   loadSnippetState,
-  LocalState,
   saveLocalState,
   saveSnippetState,
-  SnippetState,
 } from '../state/state.js';
 import { CLIOutputFormatter } from './outputFormatter.js';
 import { CLIReviewCommand } from './reviewCommand.js';
@@ -100,7 +100,7 @@ export class AutoReviewCommand {
     );
     if (allProjects.length === 0) {
       console.log(
-        CLIOutputFormatter.formatWarning(`No projects found matching your configuration.`)
+        CLIOutputFormatter.formatWarning('No projects found matching your configuration.')
       );
       return;
     }
@@ -194,7 +194,7 @@ export class AutoReviewCommand {
 
     // Fetch MRs and prune
     for (const projectIdStr in mrsToPruneByProject) {
-      const projectId = parseInt(projectIdStr, 10);
+      const projectId = Number.parseInt(projectIdStr, 10);
       const iids = mrsToPruneByProject[projectIdStr];
       const fetchedMrs = await fetchMergeRequestsByIids(this.config.gitlab!, projectId, iids);
       for (const mr of fetchedMrs) {
@@ -211,7 +211,7 @@ export class AutoReviewCommand {
   private async processProjectMRs(
     project: { id: number; name: string },
     state: LocalState | SnippetState,
-    storageMode: 'local' | 'snippet'
+    _storageMode: 'local' | 'snippet'
   ): Promise<void> {
     const openMrs = await fetchOpenMergeRequests(this.config.gitlab!, project.id);
 

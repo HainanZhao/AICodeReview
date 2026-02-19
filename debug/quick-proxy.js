@@ -15,7 +15,7 @@ app.use(
 );
 
 // Health check
-app.get('/health', (req, res) =>
+app.get('/health', (_req, res) =>
   res.json({
     status: 'ok',
     proxy: 'localhost:3000/path/to -> localhost:5960/path/to',

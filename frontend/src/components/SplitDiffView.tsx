@@ -1,5 +1,5 @@
-import React from 'react';
-import {
+import type React from 'react';
+import type {
   GitLabMRDetails,
   ParsedDiffLine,
   ParsedFileDiff,
@@ -7,8 +7,8 @@ import {
   Severity,
 } from '../types';
 import { FeedbackCard } from './FeedbackCard';
-import { AddCommentIcon, ChevronDownIcon } from './icons';
 import { SplitDiffLine } from './SplitDiffLine';
+import { AddCommentIcon, ChevronDownIcon } from './icons';
 
 interface SplitDiffViewProps {
   codeTheme?: string;
@@ -107,6 +107,7 @@ const createSplitLinePairs = (
 export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
   codeTheme,
   fileDiff,
+  // biome-ignore lint/correctness/noUnusedVariables: Part of interface, may be used in future
   feedbackForFile,
   onPostComment,
   activeFeedbackId,
@@ -117,6 +118,7 @@ export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
   onAddCustomFeedback,
   onToggleIgnoreFeedback,
   lineLevelFeedbackMap,
+  // biome-ignore lint/correctness/noUnusedVariables: Part of interface, may be used in future
   expandedGaps,
   onExpandGap,
   isGapExpanded,
@@ -127,7 +129,7 @@ export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
   const fullFileContent = newFileContentLines.join('\n');
   const fullOldFileContent = oldFileContentLines.join('\n');
 
-  const handleAddComment = (line: ParsedDiffLine, side: 'left' | 'right') => {
+  const handleAddComment = (line: ParsedDiffLine, _side: 'left' | 'right') => {
     onAddCustomFeedback(fileDiff, line);
   };
 
@@ -197,7 +199,7 @@ export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
         const seenFeedbackIds = new Set<string>();
 
         // Check for feedback on left line (removed lines)
-        if (pair.left && pair.left.newLine) {
+        if (pair.left?.newLine) {
           const leftKey = pair.left.newLine.toString();
           const leftFeedbacks = lineLevelFeedbackMap.get(leftKey) || [];
           leftFeedbacks.forEach((fb) => {
@@ -209,7 +211,7 @@ export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
         }
 
         // Check for feedback on right line (added/context lines)
-        if (pair.right && pair.right.newLine) {
+        if (pair.right?.newLine) {
           const rightKey = pair.right.newLine.toString();
           const rightFeedbacks = lineLevelFeedbackMap.get(rightKey) || [];
           rightFeedbacks.forEach((fb) => {

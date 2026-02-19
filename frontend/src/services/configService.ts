@@ -1,5 +1,5 @@
-import { GitLabConfig, GitLabProject } from '../../../types';
-import { Config } from '../types';
+import type { GitLabConfig, GitLabProject } from '../../../types';
+import type { Config } from '../types';
 import { getApiUrl } from '../utils/api';
 
 const CONFIG_KEY = 'ai-code-reviewer-config-override';
@@ -183,7 +183,7 @@ export const loadProjectsFromCache = (): GitLabProject[] | null => {
       return null;
     }
 
-    const cachedTimestamp = parseInt(timestampStr, 10);
+    const cachedTimestamp = Number.parseInt(timestampStr, 10);
     const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
     if (Date.now() - cachedTimestamp > CACHE_DURATION) {

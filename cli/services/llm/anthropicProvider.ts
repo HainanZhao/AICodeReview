@@ -1,15 +1,11 @@
-import { ReviewRequest, ReviewResponse } from './types.js';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { AIProviderCore, parseAIResponse } from '../../shared/index.js';
-import { ReviewResponseProcessor } from './reviewResponseProcessor.js';
 import { BaseLLMProvider } from './baseLLMProvider.js';
+import { ReviewResponseProcessor } from './reviewResponseProcessor.js';
+import type { ReviewRequest, ReviewResponse } from './types.js';
 
 export class AnthropicProvider extends BaseLLMProvider {
   readonly providerName = 'anthropic';
-
-  constructor(apiKey: string) {
-    super(apiKey);
-  }
 
   public async reviewCode(req: Request, res: Response): Promise<void> {
     const requestData = req.body as ReviewRequest;

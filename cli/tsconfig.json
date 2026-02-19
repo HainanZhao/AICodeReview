@@ -16,12 +16,6 @@
     "noUnusedParameters": false,
     "noImplicitAny": false
   },
-  "include": [
-    "./**/*"
-  ],
-  "exclude": [
-    "../node_modules",
-    "../dist",
-    "../frontend"
-  ]
+  "include": ["./**/*"],
+  "exclude": ["../node_modules", "../dist", "../frontend"]
 }

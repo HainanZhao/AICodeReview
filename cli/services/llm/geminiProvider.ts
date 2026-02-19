@@ -1,14 +1,10 @@
-import { ReviewRequest, ReviewResponse } from './types.js';
-import { Request, Response } from 'express';
-import { BaseLLMProvider } from './baseLLMProvider.js';
+import type { Request, Response } from 'express';
 import { AIProviderCore, parseAIResponse } from '../../shared/index.js';
+import { BaseLLMProvider } from './baseLLMProvider.js';
+import type { ReviewRequest, ReviewResponse } from './types.js';
 
 export class GeminiProvider extends BaseLLMProvider {
   protected providerName = 'gemini' as const;
-
-  constructor(apiKey: string) {
-    super(apiKey);
-  }
 
   public async reviewCode(req: Request, res: Response): Promise<void> {
     const requestData = req.body as ReviewRequest;

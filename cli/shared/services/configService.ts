@@ -3,11 +3,11 @@
  * Provides unified configuration loading and API endpoint handling
  */
 
-import { Request, Response } from 'express';
-import { existsSync, readFileSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
-import { GitLabConfig } from '../types/gitlab.js';
+import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import type { Request, Response } from 'express';
+import type { GitLabConfig } from '../types/gitlab.js';
 
 export interface ConfigServiceOptions {
   /**
@@ -143,7 +143,7 @@ export class ConfigService {
    * Express middleware handler for /api/config endpoint
    */
   public getConfigHandler() {
-    return (req: Request, res: Response) => {
+    return (_req: Request, res: Response) => {
       const response = this.getConfigResponse();
       res.json(response);
     };

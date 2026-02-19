@@ -1,5 +1,5 @@
-import { exec, spawn } from 'child_process';
-import { promisify } from 'util';
+import { exec, spawn } from 'node:child_process';
+import { promisify } from 'node:util';
 
 const execAsync = promisify(exec);
 
@@ -13,6 +13,7 @@ export interface GeminiCliItem {
 
 export interface GeminiCliOptions {
   verbose?: boolean;
+  timeout?: number; // Timeout in milliseconds (default: 600000ms = 10 minutes)
 }
 
 export interface GeminiCliResult {
@@ -46,12 +47,7 @@ export class GeminiCliCore {
       // Check if the resolved path for 'gemini' points to 'gcloud'
       if (geminiPath.includes('gcloud') || geminiPath.includes('google-cloud-sdk')) {
         throw new Error(
-          'The "gemini" command in your PATH (' +
-            geminiPath +
-            ') appears to be part of ' +
-            'the Google Cloud SDK or aliased to "gcloud". ' +
-            'Please ensure you have the correct @google-ai/generative-ai-cli installed ' +
-            'and that "gemini" is not conflicting with "gcloud".'
+          `The "gemini" command in your PATH (${geminiPath}) appears to be part of the Google Cloud SDK or aliased to "gcloud". Please ensure you have the correct @google-ai/generative-ai-cli installed and that "gemini" is not conflicting with "gcloud".`
         );
       }
 
@@ -91,12 +87,14 @@ export class GeminiCliCore {
 
   /**
    * Execute gemini CLI with stdin, with configurable logging
+   * Default timeout is 4 minutes (240000ms) to match typical AI processing limits
    */
   public static async executeGeminiWithStdin(
     prompt: string,
     options: GeminiCliOptions = {}
   ): Promise<GeminiCliResult> {
-    const { verbose = false } = options;
+    const { verbose = false, timeout = 600000 } = options;
+    const timeoutMs = timeout; // Use configurable timeout or default to 10 minutes
 
     return new Promise((resolve, reject) => {
       const child = spawn('gemini', ['--yolo'], {
@@ -106,6 +104,37 @@ export class GeminiCliCore {
 
       let stdout = '';
       let stderr = '';
+      let timeoutId: NodeJS.Timeout | null = null;
+      let isCompleted = false;
+
+      const cleanup = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        isCompleted = true;
+      };
+
+      // Set timeout to kill process if it takes too long
+      timeoutId = setTimeout(() => {
+        if (!isCompleted) {
+          if (verbose) {
+            console.error(`[gemini] Process timed out after ${timeoutMs}ms, killing...`);
+          }
+          child.kill('SIGTERM');
+          // Force kill after 5 seconds if SIGTERM doesn't work
+          setTimeout(() => {
+            if (!child.killed) {
+              child.kill('SIGKILL');
+            }
+          }, 5000);
+          reject(
+            new Error(
+              `Gemini CLI timed out after ${timeoutMs}ms. The AI service may be experiencing high load.`
+            )
+          );
+        }
+      }, timeoutMs);
 
       child.stdout.on('data', (data: Buffer) => {
         const chunk = data.toString();
@@ -124,6 +153,7 @@ export class GeminiCliCore {
       });
 
       child.on('close', (code: number | null) => {
+        cleanup();
         if (verbose) {
           console.log(`[gemini] Process exited with code ${code}`);
         }
@@ -135,8 +165,9 @@ export class GeminiCliCore {
       });
 
       child.on('error', (error: Error) => {
+        cleanup();
         if (verbose) {
-          console.error(`[gemini] Process error:`, error);
+          console.error('[gemini] Process error:', error);
         }
         reject(error);
       });
@@ -160,7 +191,7 @@ export class GeminiCliCore {
     const { verbose = false } = options;
 
     if (verbose) {
-      console.log('📝 Raw Gemini CLI output received:', output.substring(0, 200) + '...');
+      console.log('📝 Raw Gemini CLI output received:', `${output.substring(0, 200)}...`);
     }
 
     const jsonMatch = output.match(/\[[\s\S]*\]/);
@@ -174,7 +205,7 @@ export class GeminiCliCore {
     try {
       const jsonContent = jsonMatch[0];
       if (verbose) {
-        console.log('🔍 Extracted JSON string:', jsonContent.substring(0, 100) + '...');
+        console.log('🔍 Extracted JSON string:', `${jsonContent.substring(0, 100)}...`);
       }
 
       const parsed = JSON.parse(jsonContent);
@@ -201,14 +232,14 @@ export class GeminiCliCore {
     prompt: string,
     options: GeminiCliOptions = {}
   ): Promise<GeminiCliItem[]> {
-    const { verbose = false } = options;
+    const { verbose = false, timeout = 240000 } = options;
 
     if (verbose) {
       console.log('🔄 Checking if gemini CLI is available...');
     }
 
     // Check if gemini CLI is available
-    const isAvailable = await this.isAvailable();
+    const isAvailable = await GeminiCliCore.isAvailable();
     if (!isAvailable) {
       throw new Error(
         'Gemini CLI tool not found. Please install it first:\n' +
@@ -222,14 +253,14 @@ export class GeminiCliCore {
     }
 
     try {
-      const result = await this.executeGeminiWithStdin(prompt, options);
+      const result = await GeminiCliCore.executeGeminiWithStdin(prompt, { verbose, timeout });
 
       if (result.stderr && verbose) {
         console.warn('⚠️  Gemini CLI warnings:', result.stderr);
       }
 
       // Parse and validate the response
-      const parsedResponse = await this.extractJsonFromOutput(result.stdout, options);
+      const parsedResponse = await GeminiCliCore.extractJsonFromOutput(result.stdout, { verbose });
 
       if (verbose) {
         console.log(`✅ Parsed ${parsedResponse.length} review items from gemini CLI`);
@@ -256,7 +287,7 @@ export class GeminiCliCore {
     }
 
     // Check if gemini CLI is available
-    const isAvailable = await this.isAvailable();
+    const isAvailable = await GeminiCliCore.isAvailable();
     if (!isAvailable) {
       throw new Error(
         'Gemini CLI tool not found. Please install it first:\n' +
@@ -270,7 +301,7 @@ export class GeminiCliCore {
     }
 
     try {
-      const result = await this.executeGeminiWithStdin(prompt, options);
+      const result = await GeminiCliCore.executeGeminiWithStdin(prompt, options);
 
       if (result.stderr && verbose) {
         console.warn('⚠️  Gemini CLI warnings:', result.stderr);

@@ -1,7 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import * as prismThemes from 'react-syntax-highlighter/dist/esm/styles/prism';
+import type * as PrismTypes from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { detectLanguageFromPath } from '../utils/languageDetection';
+
+// Type for prism themes module
+const prismThemes = PrismTypes as unknown as Record<string, unknown>;
 
 interface SyntaxHighlightedCodeProps {
   code: string;
@@ -162,24 +166,28 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
   className = '',
   codeTheme,
 }) => {
-  const [style, setStyle] = useState<any>(isDarkMode ? diffDarkTheme : diffLightTheme);
+  const [style, setStyle] = useState<Record<string, React.CSSProperties> | undefined>(
+    isDarkMode ? diffDarkTheme : diffLightTheme
+  );
 
   useEffect(() => {
     if (codeTheme && codeTheme !== 'default') {
       // First try direct name
-      let theme = (prismThemes as any)[codeTheme];
+      let theme = prismThemes[codeTheme] as Record<string, React.CSSProperties> | undefined;
 
       if (!theme) {
         // Try camelCase conversion
         const themeName = kebabToCamel(codeTheme);
-        theme = (prismThemes as any)[themeName];
+        theme = prismThemes[themeName] as Record<string, React.CSSProperties> | undefined;
       }
 
       if (!theme) {
         // Try with 'light' suffix for some themes
         theme =
-          (prismThemes as any)[codeTheme + 'light'] ||
-          (prismThemes as any)[kebabToCamel(codeTheme + 'light')];
+          (prismThemes[`${codeTheme}light`] as Record<string, React.CSSProperties> | undefined) ||
+          (prismThemes[kebabToCamel(`${codeTheme}light`)] as
+            | Record<string, React.CSSProperties>
+            | undefined);
       }
 
       if (theme) {

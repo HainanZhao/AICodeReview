@@ -3,7 +3,7 @@
  * between frontend and CLI
  */
 
-import { GitLabConfig } from '../types/gitlab.js';
+import type { GitLabConfig } from '../types/gitlab.js';
 
 // Frontend configuration format (from UI)
 export interface FrontendGitLabConfig {

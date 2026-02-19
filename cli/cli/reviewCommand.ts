@@ -1,18 +1,18 @@
 import { ConfigLoader } from '../config/configLoader.js';
 import { postDiscussion } from '../services/gitlabService.js';
 import {
-  createReviewSummary,
-  FileDiff,
-  GitLabMRDetails,
-  MrReviewService,
-  ParsedFileDiff,
-  Severity,
+  type FileDiff,
+  type GitLabMRDetails,
   type MrReviewOptions,
+  MrReviewService,
+  type ParsedFileDiff,
   type ReviewFeedback,
+  Severity,
+  createReviewSummary,
 } from '../shared/index.js';
 import { CLIConfigValidator } from './configValidator.js';
 import { CLIOutputFormatter } from './outputFormatter.js';
-import { CLIReviewOptions } from './types.js';
+import type { CLIReviewOptions } from './types.js';
 
 /**
  * Main CLI review command orchestrator
@@ -62,7 +62,11 @@ export class CLIReviewCommand {
             const singleMrUrl = queue.shift()!;
             const promise = (async () => {
               try {
-                const result = await this._executeSingleReview(singleMrUrl, options, config);
+                const result = await CLIReviewCommand._executeSingleReview(
+                  singleMrUrl,
+                  options,
+                  config
+                );
                 reviewResults.push({ mrUrl: singleMrUrl, success: true, summary: result.summary });
               } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
@@ -147,7 +151,7 @@ export class CLIReviewCommand {
     }
 
     // Parse MR URL
-    const mrInfo = this.parseMrUrl(mrUrl, config.gitlab!.url, options.mock || false);
+    const mrInfo = CLIReviewCommand.parseMrUrl(mrUrl, config.gitlab?.url, options.mock || false);
     if (options.verbose) {
       console.log(
         CLIOutputFormatter.formatProgress(
@@ -167,7 +171,7 @@ export class CLIReviewCommand {
 
     if (options.mock) {
       // Use mock response for testing without AI API calls
-      reviewResult = this.generateMockReviewResult(mrUrl);
+      reviewResult = CLIReviewCommand.generateMockReviewResult(mrUrl);
       if (options.verbose) {
         console.log(CLIOutputFormatter.formatProgress('Using mock response (testing mode)'));
       }
@@ -209,7 +213,7 @@ export class CLIReviewCommand {
         if (options.verbose) {
           console.log(CLIOutputFormatter.formatProgress('Falling back to mock response...'));
         }
-        reviewResult = this.generateMockReviewResult(mrUrl);
+        reviewResult = CLIReviewCommand.generateMockReviewResult(mrUrl);
       }
     }
 
@@ -238,7 +242,7 @@ export class CLIReviewCommand {
         }
         for (const feedbackItem of filteredFeedback) {
           try {
-            const result = await postDiscussion(config.gitlab!, mrDetails, feedbackItem);
+            const _result = await postDiscussion(config.gitlab!, mrDetails, feedbackItem);
             if (options.verbose) {
               console.log(
                 CLIOutputFormatter.formatSuccess(
@@ -295,7 +299,7 @@ export class CLIReviewCommand {
     }
 
     // Always display the overall summary for this MR
-    console.log('\n' + reviewSummary);
+    console.log(`\n${reviewSummary}`);
     return { summary: reviewSummary };
   }
 
@@ -360,7 +364,7 @@ export class CLIReviewCommand {
    * Generates a mock review result for testing purposes
    */
   private static generateMockReviewResult(mrUrl: string) {
-    const mockMrDetails = this._fetchMockMrData(mrUrl, 'mock/project', '123');
+    const mockMrDetails = CLIReviewCommand._fetchMockMrData(mrUrl, 'mock/project', '123');
 
     const feedback: ReviewFeedback[] = [];
 

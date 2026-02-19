@@ -1,5 +1,5 @@
 import React from 'react';
-import { ParsedFileDiff } from '../types';
+import type { ParsedFileDiff } from '../types';
 
 // Expand/Collapse icons
 const ExpandAllIcon = () => (
@@ -176,14 +176,14 @@ export const FileTree: React.FC<FileTreeProps> = ({ fileDiffs, onFileClick }) =>
     setExpandedFolders(newExpanded);
   };
 
-  const renderNode = (node: FileTreeNode, depth: number = 0): React.ReactNode => {
+  const renderNode = (node: FileTreeNode, depth = 0): React.ReactNode => {
     if (node.isFile && node.fileDiff) {
       return (
         <div
           key={node.path}
           className="flex items-center space-x-1 py-0.5 px-1 hover:bg-gray-100 dark:hover:bg-brand-primary/30 rounded cursor-pointer text-xs group"
           style={{ paddingLeft: `${depth * 12 + 4}px` }}
-          onClick={() => onFileClick(node.fileDiff!.filePath)}
+          onClick={() => onFileClick(node.fileDiff?.filePath)}
           title={`${node.fileDiff.filePath} - Click to scroll to file`}
         >
           <StatusIcon fileDiff={node.fileDiff} />

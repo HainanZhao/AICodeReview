@@ -113,17 +113,16 @@ export const getThemeColors = (syntaxTheme: string) => {
       accent: '#0ea5e9',
       isDark: true,
     };
-  } else {
-    return {
-      background: '#ffffff',
-      surface: '#f8fafc',
-      primary: '#e2e8f0',
-      text: '#1e293b',
-      subtle: '#64748b',
-      accent: '#0ea5e9',
-      isDark: false,
-    };
   }
+  return {
+    background: '#ffffff',
+    surface: '#f8fafc',
+    primary: '#e2e8f0',
+    text: '#1e293b',
+    subtle: '#64748b',
+    accent: '#0ea5e9',
+    isDark: false,
+  };
 };
 const THEME_COLOR_CONFIGS: Record<
   string,

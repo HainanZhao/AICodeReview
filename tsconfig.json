@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext", 
+    "module": "ESNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
@@ -31,15 +31,8 @@
       "./services/*.js": ["./cli/services/*.ts"]
     }
   },
-  "include": [
-    "cli/**/*",
-    "frontend/src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "frontend/dist"
-  ],
+  "include": ["cli/**/*", "frontend/src/**/*"],
+  "exclude": ["node_modules", "dist", "frontend/dist"],
   "ts-node": {
     "esm": true
   }

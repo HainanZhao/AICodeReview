@@ -1,5 +1,5 @@
-import React from 'react';
-import { GitLabMRDetails } from '../types';
+import type React from 'react';
+import type { GitLabMRDetails } from '../types';
 import { FileTree } from './FileTree';
 import { PlusIcon } from './icons';
 

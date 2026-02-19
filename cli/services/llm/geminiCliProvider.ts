@@ -1,13 +1,19 @@
-import { Request, Response } from 'express';
-import { GeminiCliCore, GeminiCliItem } from '../../shared/index.js';
+import type { Request, Response } from 'express';
+import { loadConfig } from '../../config/configLoader.js';
+import { GeminiCliCore, type GeminiCliItem } from '../../shared/index.js';
 import { BaseLLMProvider } from './baseLLMProvider.js';
-import { ReviewRequest, ReviewResponse } from './types.js';
+import type { ReviewRequest, ReviewResponse } from './types.js';
 
 export class GeminiCliProvider extends BaseLLMProvider {
   readonly providerName = 'gemini-cli';
 
-  constructor() {
-    super(); // No API key needed for CLI provider
+  private async getTimeout(): Promise<number> {
+    try {
+      const config = await loadConfig();
+      return config.llm?.timeout ?? 600000; // Default to 10 minutes
+    } catch {
+      return 600000; // Default to 10 minutes if config can't be loaded
+    }
   }
   public static async isAvailable(): Promise<boolean> {
     try {
@@ -34,9 +40,15 @@ export class GeminiCliProvider extends BaseLLMProvider {
       // Build the prompt using the better prompt builder
       const prompt = this.buildPrompt(requestData);
 
+      // Get configurable timeout
+      const timeout = await this.getTimeout();
+
       try {
         // Use shared core for execution with backend-appropriate options
-        const parsedResponse = await GeminiCliCore.executeReview(prompt, { verbose: false });
+        const parsedResponse = await GeminiCliCore.executeReview(prompt, {
+          verbose: false,
+          timeout,
+        });
 
         // Convert to backend response format
         const validatedResponse = parsedResponse.map(
@@ -95,7 +107,7 @@ export class GeminiCliProvider extends BaseLLMProvider {
     lineContent: string,
     filePath: string,
     fileContent?: string,
-    contextLines: number = 5,
+    contextLines = 5,
     lineNumber?: number
   ): Promise<string> {
     try {
@@ -153,7 +165,7 @@ export class GeminiCliProvider extends BaseLLMProvider {
     lineContent: string,
     filePath: string,
     fileContent?: string,
-    contextLines: number = 5,
+    contextLines = 5,
     lineNumber?: number
   ): string {
     const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';

@@ -7,8 +7,8 @@
  * when hosted behind a proxy on a subpath.
  */
 
-const { spawn } = require('child_process');
-const { setTimeout } = require('timers/promises');
+const { spawn } = require('node:child_process');
+const { setTimeout } = require('node:timers/promises');
 
 console.log('🧪 AI Code Review Subpath Proxy Test');
 console.log('=====================================\n');

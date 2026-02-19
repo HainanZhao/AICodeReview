@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { ReviewFeedback, Severity } from '../../../types';
-import { AddCommentIcon, CheckmarkIcon, EditIcon, EyeSlashIcon, TrashIcon } from './icons';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { type ReviewFeedback, Severity } from '../../../types';
 import { Spinner } from './Spinner';
+import { AddCommentIcon, CheckmarkIcon, EditIcon, EyeSlashIcon, TrashIcon } from './icons';
 
 const BugIcon = () => (
   <svg
@@ -173,8 +174,7 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
             placeholder="Detailed explanation and suggestions..."
             className="w-full p-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-xs font-mono rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
             rows={3}
-            autoFocus
-          ></textarea>
+          />
         </div>
         <div className="px-2 py-1.5 bg-blue-50 dark:bg-blue-950/30 rounded-b-md">
           <div className="flex items-center justify-between">

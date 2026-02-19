@@ -1,10 +1,10 @@
 import React from 'react';
 import { getAiChatResponse } from '../services/aiReviewService';
-import { ParsedDiffLine } from '../types';
+import type { ParsedDiffLine } from '../types';
+import type { ChatMessage } from '../types';
 import { ExplanationPopup } from './ExplanationPopup';
-import { ChatMessage } from '../types';
-import { AIExplainIcon, PlusIcon } from './icons';
 import { SyntaxHighlightedCode } from './SyntaxHighlightedCode';
+import { AIExplainIcon, PlusIcon } from './icons';
 
 interface DiffLineProps {
   line: ParsedDiffLine;

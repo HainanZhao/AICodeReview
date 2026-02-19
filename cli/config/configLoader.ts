@@ -1,7 +1,7 @@
-import { existsSync, readFileSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
-import { AppConfig } from './configSchema.js';
+import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import type { AppConfig } from './configSchema.js';
 import { DEFAULT_CONFIG } from './defaultConfig.js';
 
 export interface CLIOptions {
@@ -29,11 +29,11 @@ export class ConfigLoader {
     let loadedConfigPath: string | null = null;
 
     // Load config from the first path that exists
-    for (const configPath of this.getConfigPaths()) {
+    for (const configPath of ConfigLoader.getConfigPaths()) {
       if (existsSync(configPath)) {
         try {
           const fileConfig = JSON.parse(readFileSync(configPath, 'utf8'));
-          config = this.mergeConfigs(config, fileConfig);
+          config = ConfigLoader.mergeConfigs(config, fileConfig);
           loadedConfigPath = configPath;
           break; // Stop after finding the first valid config
         } catch (error) {
@@ -48,13 +48,13 @@ export class ConfigLoader {
     }
 
     // Override with environment variables
-    config = this.applyEnvironmentVariables(config);
+    config = ConfigLoader.applyEnvironmentVariables(config);
 
     // Override with CLI options
-    config = this.applyCLIOptions(config, cliOptions);
+    config = ConfigLoader.applyCLIOptions(config, cliOptions);
 
     // Validate config
-    this.validateConfig(config);
+    ConfigLoader.validateConfig(config);
 
     return config;
   }
@@ -75,7 +75,7 @@ export class ConfigLoader {
     }
 
     if (process.env.AICR_PORT) {
-      envConfig.server.port = parseInt(process.env.AICR_PORT, 10);
+      envConfig.server.port = Number.parseInt(process.env.AICR_PORT, 10);
     }
 
     if (process.env.AICR_HOST) {
@@ -106,7 +106,7 @@ export class ConfigLoader {
     const newConfig = { ...config };
 
     if (options.port) {
-      newConfig.server.port = parseInt(options.port, 10);
+      newConfig.server.port = Number.parseInt(options.port, 10);
     }
 
     if (options.host) {
@@ -144,7 +144,7 @@ export class ConfigLoader {
     };
 
     // Handle optional gitlab config
-    if (override.gitlab && override.gitlab.url && override.gitlab.accessToken) {
+    if (override.gitlab?.url && override.gitlab.accessToken) {
       merged.gitlab = {
         url: override.gitlab.url,
         accessToken: override.gitlab.accessToken,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { LineMapping, ParsedFileDiff } from '../types/gitlab.js';
+import type { LineMapping, ParsedFileDiff } from '../types/gitlab.js';
 import {
   buildCompleteLineMapping,
   buildLineMapping,

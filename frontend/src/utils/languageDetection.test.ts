@@ -1,8 +1,8 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import {
   detectLanguageFromPath,
-  isLanguageSupported,
   getSupportedLanguages,
+  isLanguageSupported,
 } from './languageDetection';
 
 describe('Language Detection', () => {

@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
-import { ReviewFeedback } from '../../../types';
-import { ChatMessage, Config, GitLabMRDetails } from '../types';
+import type { ReviewFeedback } from '../../../types';
+import type { ChatMessage, Config, GitLabMRDetails } from '../types';
 import { getApiUrl } from '../utils/api';
 import { fetchMrData } from './gitlabService';
 
@@ -62,7 +62,9 @@ export const runAiReview = async (
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes timeout for AI review
+  // Use configurable timeout from config, default to 10 minutes (600000ms)
+  const timeoutMs = config.timeout ?? 600000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(getApiUrl('api/review-mr'), {
@@ -84,7 +86,7 @@ export const runAiReview = async (
       let errorMessage = `AI Review failed with status: ${response.status}`;
       try {
         const errorData = await response.json();
-        if (errorData && errorData.error) {
+        if (errorData?.error) {
           errorMessage = errorData.error;
         }
       } catch {
@@ -130,7 +132,10 @@ export const runAiReview = async (
     };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('The AI review timed out after 3 minutes. Please try again.');
+      const timeoutMinutes = Math.round(timeoutMs / 60000);
+      throw new Error(
+        `The AI review timed out after ${timeoutMinutes} minute${timeoutMinutes > 1 ? 's' : ''}. Please try again.`
+      );
     }
     throw error;
   } finally {
@@ -154,7 +159,7 @@ export const fetchMrDetails = async (
  * @deprecated Use runAiReview() for new unified API. This method is kept for backward compatibility only.
  */
 export const reviewCode = async (
-  code: string,
+  _code: string,
   config: Config
 ): Promise<{ feedback: ReviewFeedback[]; summary?: string; overallRating?: string }> => {
   if (!config || !config.url || !config.accessToken) {
@@ -177,7 +182,7 @@ export const getAiChatResponse = async (
   lineNumber?: number,
   fileContent?: string,
   lineContent?: string,
-  contextLines: number = 5
+  contextLines = 5
 ): Promise<string> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds timeout
@@ -205,7 +210,7 @@ export const getAiChatResponse = async (
       let errorMessage = `AI Chat failed with status: ${response.status}`;
       try {
         const errorData = await response.json();
-        if (errorData && errorData.error) {
+        if (errorData?.error) {
           errorMessage = errorData.error;
         }
       } catch {

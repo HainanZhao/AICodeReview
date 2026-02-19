@@ -1,5 +1,5 @@
-import { exec } from 'child_process';
-import { platform } from 'os';
+import { exec } from 'node:child_process';
+import { platform } from 'node:os';
 
 export function openBrowser(url: string): Promise<void> {
   return new Promise((resolve) => {

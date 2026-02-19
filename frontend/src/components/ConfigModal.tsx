@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Config } from '../types';
-import { saveConfig, resetToBackendConfig } from '../services/configService';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { resetToBackendConfig, saveConfig } from '../services/configService';
+import type { Config } from '../types';
 import { CloseIcon } from './icons';
 
 interface ConfigModalProps {

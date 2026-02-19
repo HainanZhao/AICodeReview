@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { SYNTAX_THEMES } from '../constants';
 import { SettingsIcon } from './icons';
 

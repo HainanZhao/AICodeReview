@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import { ReviewFeedback, ParsedFileDiff } from '../../shared/index.js';
+import type { Request, Response } from 'express';
+import type { ParsedFileDiff, ReviewFeedback } from '../../shared/index.js';
 
 export interface ReviewRequest {
   diffForPrompt: string;

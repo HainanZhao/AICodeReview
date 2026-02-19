@@ -1,6 +1,6 @@
-import { describe, test, expect, beforeEach } from 'vitest';
-import { parseDiffsToHunks } from './gitlabService';
+import { beforeEach, describe, expect, test } from 'vitest';
 import type { FileDiff } from '../../../types';
+import { parseDiffsToHunks } from './gitlabService';
 
 /**
  * Comprehensive test suite for the simplified context building approach
@@ -332,7 +332,7 @@ describe('Simplified Context Building Approach', () => {
         new_file: false,
         renamed_file: false,
         deleted_file: false,
-        diff: `--- a/test.js\n+++ b/test.js\nmalformed diff content without proper headers`,
+        diff: '--- a/test.js\n+++ b/test.js\nmalformed diff content without proper headers',
       };
 
       expect(() => parseDiffsToHunks([malformedDiff], fileContents)).not.toThrow();

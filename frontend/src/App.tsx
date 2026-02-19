@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  GitLabMRDetails,
-  GitLabPosition,
-  GitLabProject,
-  ParsedFileDiff,
-  ReviewFeedback,
+  type GitLabMRDetails,
+  type GitLabPosition,
+  type GitLabProject,
+  type ParsedFileDiff,
+  type ReviewFeedback,
   Severity,
 } from '../../types';
 import { ReviewDashboard } from './components/CodeEditor';
@@ -18,13 +18,13 @@ import { ResizablePane } from './components/ResizablePane';
 import { applyThemeColors, getThemeColors } from './constants';
 import { fetchMrDetailsOnly, runAiReview } from './services/aiReviewService';
 import {
+  type ConfigSource,
   fetchBackendConfig,
   loadConfig,
   loadProjectsFromCache,
   loadSyntaxTheme,
   saveProjectsToCache,
   saveSyntaxTheme,
-  type ConfigSource,
 } from './services/configService';
 import {
   approveMergeRequest,
@@ -38,7 +38,7 @@ import {
   saveReviewState,
   updateReviewStateFeedback,
 } from './services/reviewStateService';
-import { Config, ParsedDiffLine } from './types';
+import type { Config, ParsedDiffLine } from './types';
 
 function App() {
   const [feedback, setFeedback] = useState<ReviewFeedback[] | null>(null);
@@ -129,7 +129,7 @@ function App() {
         // First, check localStorage config (highest priority)
         const localConfig = loadConfig();
 
-        if (localConfig && localConfig.url && localConfig.accessToken) {
+        if (localConfig?.url && localConfig.accessToken) {
           // User has localStorage config - use it (user override)
           setConfig(localConfig);
           setConfigSource('localStorage');
@@ -310,19 +310,19 @@ function App() {
       if (!feedbackItem || feedbackItem.status !== 'pending' || feedbackItem.isEditing) return;
 
       setFeedback((prev) =>
-        prev!.map((f) => (f.id === feedbackId ? { ...f, status: 'submitting' } : f))
+        prev?.map((f) => (f.id === feedbackId ? { ...f, status: 'submitting' } : f))
       );
 
       try {
         await postDiscussion(config, mrDetails, feedbackItem);
         setFeedback((prev) =>
-          prev!.map((f) => (f.id === feedbackId ? { ...f, status: 'submitted' } : f))
+          prev?.map((f) => (f.id === feedbackId ? { ...f, status: 'submitted' } : f))
         );
       } catch (err) {
         console.error('Failed to post comment:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         setFeedback((prev) =>
-          prev!.map((f) =>
+          prev?.map((f) =>
             f.id === feedbackId ? { ...f, status: 'error', submissionError: errorMessage } : f
           )
         );
@@ -360,7 +360,7 @@ function App() {
 
   const handleSetEditing = useCallback((feedbackId: string, isEditing: boolean) => {
     setFeedback((prev) => {
-      const updated = prev!.map((f) => (f.id === feedbackId ? { ...f, isEditing } : f));
+      const updated = prev?.map((f) => (f.id === feedbackId ? { ...f, isEditing } : f));
       updateReviewStateFeedback(updated);
       return updated;
     });
@@ -368,7 +368,7 @@ function App() {
 
   const handleDeleteFeedback = useCallback((feedbackId: string) => {
     setFeedback((prev) => {
-      const updated = prev!.filter((f) => f.id !== feedbackId);
+      const updated = prev?.filter((f) => f.id !== feedbackId);
       updateReviewStateFeedback(updated);
       return updated;
     });
@@ -377,7 +377,7 @@ function App() {
   const handleUpdateFeedback = useCallback(
     (id: string, title: string, description: string, severity: Severity) => {
       setFeedback((prev) => {
-        const updated = prev!.map((f) =>
+        const updated = prev?.map((f) =>
           f.id === id
             ? { ...f, title, description, severity, isEditing: false, isNewlyAdded: false }
             : f
@@ -492,7 +492,7 @@ function App() {
 
   const handleToggleIgnoreFeedback = useCallback((feedbackId: string) => {
     setFeedback((prev) => {
-      const updated = prev!.map((f) =>
+      const updated = prev?.map((f) =>
         f.id === feedbackId ? { ...f, isIgnored: !f.isIgnored } : f
       );
       updateReviewStateFeedback(updated);

@@ -1,11 +1,11 @@
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import * as p from '@clack/prompts';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
 import { fetchProjects } from '../shared/services/gitlabCore.js';
-import { GitLabProject } from '../shared/types/gitlab.js';
+import type { GitLabProject } from '../shared/types/gitlab.js';
 import { ConfigLoader } from './configLoader.js';
-import {
+import type {
   AppConfig,
   AutoReviewConfig,
   GitLabConfig,
@@ -22,7 +22,7 @@ function normalizeProjectName(projectName: string): string {
 }
 
 // Helper functions for common operations
-function setContext(currentContext: string | null, context: string): string {
+function setContext(_currentContext: string | null, context: string): string {
   return context;
 }
 
@@ -283,13 +283,14 @@ export async function createInteractiveConfig(): Promise<void> {
             validate: (value) => {
               // If value is empty, allow it (user pressed Enter to use default)
               if (!value.trim()) return undefined;
-              const num = parseInt(value);
-              if (isNaN(num) || num < 1 || num > 65535) return 'Port must be between 1 and 65535';
+              const num = Number.parseInt(value);
+              if (Number.isNaN(num) || num < 1 || num > 65535)
+                return 'Port must be between 1 and 65535';
               return undefined;
             },
           });
           if (!p.isCancel(port)) {
-            config.server = updateServerConfig(config.server, { port: parseInt(port) });
+            config.server = updateServerConfig(config.server, { port: Number.parseInt(port) });
             p.log.success(`Server port updated to ${port}`);
           }
           currentContext = setContext(currentContext, 'uisettings');
@@ -386,13 +387,13 @@ export async function createInteractiveConfig(): Promise<void> {
                 hint: 'Store state in private GitLab snippets',
               },
             ],
-            initialValue: config.autoReview!.state?.storage || 'local',
+            initialValue: config.autoReview?.state?.storage || 'local',
           });
 
           if (!p.isCancel(storage)) {
             config.autoReview = {
               ...config.autoReview!,
-              state: { ...config.autoReview!.state, storage },
+              state: { ...config.autoReview?.state, storage },
             };
             p.log.success(`State storage method updated to ${storage}`);
           }
@@ -440,18 +441,18 @@ export async function createInteractiveConfig(): Promise<void> {
 
           const interval = await p.text({
             message: 'Review interval (seconds)',
-            defaultValue: config.autoReview!.interval?.toString() || '120',
-            placeholder: config.autoReview!.interval?.toString() || '120',
+            defaultValue: config.autoReview?.interval?.toString() || '120',
+            placeholder: config.autoReview?.interval?.toString() || '120',
             validate: (value) => {
               if (!value.trim()) return undefined;
-              const num = parseInt(value);
-              if (isNaN(num) || num < 30) return 'Interval must be at least 30 seconds';
+              const num = Number.parseInt(value);
+              if (Number.isNaN(num) || num < 30) return 'Interval must be at least 30 seconds';
               return undefined;
             },
           });
 
           if (!p.isCancel(interval)) {
-            config.autoReview!.interval = parseInt(interval);
+            config.autoReview!.interval = Number.parseInt(interval);
             p.log.success(`Review interval updated to ${interval} seconds`);
           }
           currentContext = setContext(currentContext, 'automation');
@@ -957,7 +958,7 @@ async function reviewAndSave(config: Partial<AppConfig>): Promise<boolean> {
   if (config.server) {
     const subPath = config.server.subPath ? config.server.subPath : '';
     process.stdout.write(
-      `🌐 Server: ${config.server.host}:${config.server.port}${subPath ? '/' + subPath : ''}\n`
+      `🌐 Server: ${config.server.host}:${config.server.port}${subPath ? `/${subPath}` : ''}\n`
     );
   } else {
     process.stdout.write('🌐 Server: localhost:5960 (default)\n');

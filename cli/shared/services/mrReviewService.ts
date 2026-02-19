@@ -6,20 +6,20 @@
 
 import {
   AIProviderCore,
+  type AIReviewRequest,
+  type AIReviewResponse,
+  GeminiCliCore,
+  type GeminiCliItem,
+  type GitLabConfig,
+  type GitLabMRDetails,
+  type ReviewFeedback,
+  Severity,
   buildReviewPrompt,
   fetchMrData,
   filterAndDeduplicateFeedback,
-  GeminiCliCore,
-  GitLabConfig,
   parseAIResponse,
-  Severity,
-  type AIReviewRequest,
-  type AIReviewResponse,
-  type GeminiCliItem,
-  type GitLabMRDetails,
-  type ReviewFeedback,
 } from '../index.js';
-import { normalizeGitLabConfig, type FrontendGitLabConfig } from '../types/unifiedConfig.js';
+import { type FrontendGitLabConfig, normalizeGitLabConfig } from '../types/unifiedConfig.js';
 
 export interface MrReviewOptions {
   provider: 'gemini' | 'anthropic' | 'gemini-cli';
@@ -107,12 +107,12 @@ export class MrReviewService {
           `📋 Available project prompt configs: ${Object.keys(options.projectPrompts).join(', ')}`
         );
       } else {
-        console.log(`📋 No project prompt configs available`);
+        console.log('📋 No project prompt configs available');
       }
     }
 
     // Generate AI review
-    const aiResponse = await this.generateAIReview(reviewRequest, options);
+    const aiResponse = await MrReviewService.generateAIReview(reviewRequest, options);
 
     // Filter and deduplicate feedback
     const filteredFeedback = filterAndDeduplicateFeedback(
@@ -121,7 +121,10 @@ export class MrReviewService {
     );
 
     // Populate position information for feedback items
-    const feedbackWithPositions = this.populateFeedbackPositions(filteredFeedback, mrDetails);
+    const feedbackWithPositions = MrReviewService.populateFeedbackPositions(
+      filteredFeedback,
+      mrDetails
+    );
 
     if (options.verbose) {
       console.log(`✅ Generated ${feedbackWithPositions.length} review comments`);
@@ -146,11 +149,11 @@ export class MrReviewService {
 
     switch (options.provider) {
       case 'gemini':
-        return this.generateGeminiReview(prompt, options);
+        return MrReviewService.generateGeminiReview(prompt, options);
       case 'anthropic':
-        return this.generateAnthropicReview(prompt, options);
+        return MrReviewService.generateAnthropicReview(prompt, options);
       case 'gemini-cli':
-        return this.generateGeminiCliReview(prompt, options);
+        return MrReviewService.generateGeminiCliReview(prompt, options);
       default:
         throw new Error(`Unsupported AI provider: ${options.provider}`);
     }

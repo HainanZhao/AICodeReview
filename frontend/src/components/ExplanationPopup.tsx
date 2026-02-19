@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import type { ChatMessage } from '../types';
 import { CloseIcon, SendIcon } from './icons';
-import { ChatMessage } from '../types';
 
 interface ExplanationPopupProps {
   messages: ChatMessage[];
@@ -54,13 +54,15 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
 
       setAdjustedPosition({ x, y });
     }
-  }, [position, messages, isLoading, error]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [position]);
 
   // Scroll to bottom of chat history when new messages are added
   React.useEffect(() => {
     if (chatHistoryRef.current) {
       chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
   const handleSendMessage = () => {
@@ -127,7 +129,7 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
         <div className="space-y-4">
           {messages.map((message, index) => (
             <div
-              key={index}
+              key={`${message.author}-${index}`}
               className={`flex items-start gap-2.5 ${
                 message.author === 'user' ? 'justify-end' : ''
               }`}
@@ -155,7 +157,7 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
                 AI
               </div>
               <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent" />
               </div>
             </div>
           )}

@@ -1,9 +1,9 @@
 import React from 'react';
 import { getAiChatResponse } from '../services/aiReviewService';
-import { ChatMessage, ParsedDiffLine } from '../types';
+import type { ChatMessage, ParsedDiffLine } from '../types';
 import { ExplanationPopup } from './ExplanationPopup';
-import { AIExplainIcon, PlusIcon } from './icons';
 import { SyntaxHighlightedCode } from './SyntaxHighlightedCode';
+import { AIExplainIcon, PlusIcon } from './icons';
 
 interface SplitDiffLineProps {
   leftLine?: ParsedDiffLine;

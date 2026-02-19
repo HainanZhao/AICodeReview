@@ -1,7 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
-import { GitLabConfig } from '../config/configSchema.js';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import type { GitLabConfig } from '../config/configSchema.js';
 import {
   createStateSnippet,
   findStateSnippet,
@@ -96,10 +96,9 @@ export async function saveSnippetState(
         return !!result;
       }
       return true; // Content was already up-to-date
-    } else {
-      const result = await createStateSnippet(config, projectId, content);
-      return !!result;
     }
+    const result = await createStateSnippet(config, projectId, content);
+    return !!result;
   } catch (e) {
     console.error(`Failed to save state to snippet for project ${projectId}.`, e);
     return false;

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, ReactNode } from 'react';
+import type React from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
 interface ResizablePaneProps {
   children: [ReactNode, ReactNode];
@@ -25,8 +26,8 @@ const loadFromLocalStorage = (key: string, defaultValue: number): number => {
   try {
     const saved = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
     if (saved !== null) {
-      const parsed = parseFloat(saved);
-      return isNaN(parsed) ? defaultValue : parsed;
+      const parsed = Number.parseFloat(saved);
+      return Number.isNaN(parsed) ? defaultValue : parsed;
     }
   } catch (error) {
     console.warn('Failed to load resizable pane state from localStorage:', error);
@@ -92,27 +93,30 @@ export const ResizablePane: React.FC<ResizablePaneProps> = ({
     setIsResizing(true);
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isResizing || !containerRef.current) return;
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!containerRef.current) return;
 
-    const rect = containerRef.current.getBoundingClientRect();
-    let newSize;
+      const rect = containerRef.current.getBoundingClientRect();
+      let newSize;
 
-    if (direction === 'horizontal') {
-      const x = e.clientX - rect.left;
-      newSize = (x / rect.width) * 100;
-    } else {
-      const y = e.clientY - rect.top;
-      newSize = (y / rect.height) * 100;
-    }
+      if (direction === 'horizontal') {
+        const x = e.clientX - rect.left;
+        newSize = (x / rect.width) * 100;
+      } else {
+        const y = e.clientY - rect.top;
+        newSize = (y / rect.height) * 100;
+      }
 
-    newSize = Math.max(minSizePercent, Math.min(maxSizePercent, newSize));
-    setLeftSize(newSize);
-  };
+      newSize = Math.max(minSizePercent, Math.min(maxSizePercent, newSize));
+      setLeftSize(newSize);
+    },
+    [direction, minSizePercent, maxSizePercent]
+  );
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsResizing(false);
-  };
+  }, []);
 
   useEffect(() => {
     if (isResizing) {
@@ -128,7 +132,7 @@ export const ResizablePane: React.FC<ResizablePaneProps> = ({
         document.body.style.userSelect = '';
       };
     }
-  }, [isResizing, direction]);
+  }, [isResizing, direction, handleMouseMove, handleMouseUp]);
 
   const rightSize = 100 - leftSize;
 

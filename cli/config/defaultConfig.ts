@@ -1,4 +1,4 @@
-import { AppConfig } from './configSchema.js';
+import type { AppConfig } from './configSchema.js';
 
 export const DEFAULT_CONFIG: AppConfig = {
   server: {
@@ -8,6 +8,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   },
   llm: {
     provider: 'gemini-cli',
+    timeout: 600000, // 10 minutes default timeout for AI requests
   },
   ui: {
     autoOpen: true,

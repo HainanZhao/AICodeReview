@@ -6,6 +6,7 @@
 export interface GitLabConfig {
   url: string;
   accessToken: string;
+  timeout?: number; // Timeout in milliseconds for AI review requests (default: 240000ms = 4 minutes)
 }
 
 export interface GitLabPosition {

@@ -1,10 +1,10 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import {
   getNewLineFromOldLine,
   getOldLineFromNewLine,
   gitlabApiFetch,
 } from '../shared/services/gitlabCore.js';
-import {
+import type {
   GitLabConfig,
   GitLabDiscussion,
   GitLabMRDetails,
@@ -147,8 +147,7 @@ export const postDiscussion = async (
 
   // First, try to post as an inline comment if we have position data
   const hasValidPosition =
-    feedback.position &&
-    feedback.position.base_sha &&
+    feedback.position?.base_sha &&
     feedback.position.start_sha &&
     feedback.position.head_sha &&
     feedback.position.old_path &&

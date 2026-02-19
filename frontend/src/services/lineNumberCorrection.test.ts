@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { DiffLineMapper } from '../../../cli/services/llm/diffLineMapper.js';
 import { ReviewResponseProcessor } from '../../../cli/services/llm/reviewResponseProcessor.js';
 import type { ReviewResponse } from '../../../cli/services/llm/types.js';
@@ -27,7 +27,7 @@ describe('Line Number Correction', () => {
     expect(fileMapping).toBeDefined();
 
     // Check that we have mappings for added lines
-    const changeMappings = fileMapping!.mappings.filter((m) => m.isChange);
+    const changeMappings = fileMapping?.mappings.filter((m) => m.isChange);
     expect(changeMappings.length).toBe(2); // Two + lines
 
     // Verify the line numbers are correctly mapped

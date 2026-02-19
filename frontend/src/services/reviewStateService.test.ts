@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { Severity, type GitLabMRDetails, type ReviewFeedback } from '../../../types';
+import { type GitLabMRDetails, type ReviewFeedback, Severity } from '../../../types';
 import {
   clearReviewState,
   hasValidReviewState,

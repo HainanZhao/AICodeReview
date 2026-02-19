@@ -2,6 +2,7 @@ export interface LLMConfig {
   provider: 'gemini-cli' | 'gemini' | 'anthropic';
   apiKey?: string;
   googleCloudProject?: string;
+  timeout?: number; // Timeout in milliseconds for AI requests (default: 240000ms = 4 minutes)
 }
 
 export interface ServerConfig {
@@ -68,6 +69,7 @@ export const CONFIG_SCHEMA = {
         },
         apiKey: { type: 'string' },
         googleCloudProject: { type: 'string' },
+        timeout: { type: 'number', minimum: 30000, maximum: 600000 }, // 30s to 10min
       },
       required: ['provider'],
     },

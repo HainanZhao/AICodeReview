@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
+import type {
   GitLabMRDetails,
   ParsedDiffLine,
   ParsedFileDiff,
@@ -10,7 +10,7 @@ import {
 import { DiffLine } from './DiffLine';
 import { FeedbackCard } from './FeedbackCard';
 import { SplitDiffView } from './SplitDiffView';
-import { ViewMode } from './ViewModeToggle';
+import type { ViewMode } from './ViewModeToggle';
 import { AddCommentIcon, ChevronDownIcon, ChevronUpIcon } from './icons';
 
 interface FileDiffCardProps {
@@ -295,7 +295,7 @@ export const FileDiffCard: React.FC<FileDiffCardProps> = (props) => {
       } else {
         elements.push(
           <GapExpanderRow
-            key={`gap-expander-final`}
+            key={'gap-expander-final'}
             hiddenLineCount={finalGapSize}
             onClick={() => handleExpandGap(finalGapStartLine, finalGapEndLine)}
           />

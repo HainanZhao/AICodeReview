@@ -1,4 +1,4 @@
-import { ReviewFeedback, Severity } from './types.js';
+import { type ReviewFeedback, Severity } from './types.js';
 
 /**
  * Colors for console output
@@ -24,7 +24,7 @@ export class CLIOutputFormatter {
     const output: string[] = [];
 
     // Header
-    output.push(this.formatHeader(mrUrl, isDryRun));
+    output.push(CLIOutputFormatter.formatHeader(mrUrl, isDryRun));
     output.push('');
 
     if (feedback.length === 0) {
@@ -33,21 +33,21 @@ export class CLIOutputFormatter {
     }
 
     // Group feedback by file
-    const feedbackByFile = this.groupFeedbackByFile(feedback);
+    const feedbackByFile = CLIOutputFormatter.groupFeedbackByFile(feedback);
 
     // Format each file's feedback
     for (const [filePath, fileFeedback] of Object.entries(feedbackByFile)) {
-      output.push(this.formatFileHeader(filePath, fileFeedback.length));
+      output.push(CLIOutputFormatter.formatFileHeader(filePath, fileFeedback.length));
       output.push('');
 
       for (const item of fileFeedback) {
-        output.push(this.formatFeedbackItem(item));
+        output.push(CLIOutputFormatter.formatFeedbackItem(item));
         output.push('');
       }
     }
 
     // Summary
-    output.push(this.formatSummary(feedback, isDryRun));
+    output.push(CLIOutputFormatter.formatSummary(feedback, isDryRun));
 
     return output.join('\n');
   }
@@ -73,8 +73,8 @@ ${colors.gray}Reviewing: ${mrUrl}${colors.reset}`;
    * Formats a single feedback item
    */
   private static formatFeedbackItem(feedback: ReviewFeedback): string {
-    const severityIcon = this.getSeverityIcon(feedback.severity);
-    const severityColor = this.getSeverityColor(feedback.severity);
+    const severityIcon = CLIOutputFormatter.getSeverityIcon(feedback.severity);
+    const severityColor = CLIOutputFormatter.getSeverityColor(feedback.severity);
     const lineInfo = feedback.lineNumber > 0 ? ` (Line ${feedback.lineNumber})` : '';
 
     const output: string[] = [];
@@ -90,7 +90,7 @@ ${colors.gray}Reviewing: ${mrUrl}${colors.reset}`;
     output.push(`${colors.gray}${description}${colors.reset}`);
 
     // Line content if available
-    if (feedback.lineContent && feedback.lineContent.trim()) {
+    if (feedback.lineContent?.trim()) {
       output.push(`    ${colors.gray}Code: ${feedback.lineContent.trim()}${colors.reset}`);
     }
 
@@ -101,7 +101,7 @@ ${colors.gray}Reviewing: ${mrUrl}${colors.reset}`;
    * Formats the summary section
    */
   private static formatSummary(feedback: ReviewFeedback[], isDryRun: boolean): string {
-    const severityCounts = this.countBySeverity(feedback);
+    const severityCounts = CLIOutputFormatter.countBySeverity(feedback);
     const total = feedback.length;
 
     const output: string[] = [];

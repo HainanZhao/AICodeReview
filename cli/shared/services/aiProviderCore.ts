@@ -49,11 +49,11 @@ export class AIProviderCore {
         const err = error instanceof Error ? error : new Error(String(error));
 
         if (i < maxRetries - 1 && retryCondition(err)) {
-          const delayTime = initialDelayMs * Math.pow(2, i); // Exponential backoff
+          const delayTime = initialDelayMs * 2 ** i; // Exponential backoff
           console.warn(
             `Retry condition met. Retrying in ${delayTime / 1000} seconds... (${i + 1}/${maxRetries})`
           );
-          await this.delay(delayTime);
+          await AIProviderCore.delay(delayTime);
         } else {
           throw err; // Re-throw if not retryable or max retries reached
         }
@@ -156,18 +156,18 @@ export class AIProviderCore {
     prompt: string,
     options: RetryOptions = {}
   ): Promise<AIProviderResponse[]> {
-    return this.retryWithCondition(async () => {
+    return AIProviderCore.retryWithCondition(async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const client = (await this.createGeminiClient(apiKey)) as any;
+        const client = (await AIProviderCore.createGeminiClient(apiKey)) as any;
         const model = client.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
 
-        const parsedResponse = this.parseAIResponseArray(text);
-        return this.validateAndNormalizeResponse(parsedResponse);
+        const parsedResponse = AIProviderCore.parseAIResponseArray(text);
+        return AIProviderCore.validateAndNormalizeResponse(parsedResponse);
       } catch (error) {
         throw new Error(
           `Gemini API error: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -187,18 +187,18 @@ export class AIProviderCore {
     lineNumber?: number,
     options: RetryOptions = {}
   ): Promise<string> {
-    return this.retryWithCondition(async () => {
+    return AIProviderCore.retryWithCondition(async () => {
       try {
-        const client = (await this.createGeminiClient(apiKey)) as any;
+        const client = (await AIProviderCore.createGeminiClient(apiKey)) as any;
         const model = client.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
-        const prompt = this.createChatPrompt(messages, filePath, fileContent, lineNumber);
+        const prompt = AIProviderCore.createChatPrompt(messages, filePath, fileContent, lineNumber);
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
 
-        return this.extractExplanationFromJson(text);
+        return AIProviderCore.extractExplanationFromJson(text);
       } catch (error) {
         throw new Error(
           `Gemini API error: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -218,11 +218,11 @@ export class AIProviderCore {
     lineNumber?: number,
     options: RetryOptions = {}
   ): Promise<string> {
-    return this.retryWithCondition(async () => {
+    return AIProviderCore.retryWithCondition(async () => {
       try {
-        const client = (await this.createAnthropicClient(apiKey)) as any;
+        const client = (await AIProviderCore.createAnthropicClient(apiKey)) as any;
 
-        const prompt = this.createChatPrompt(messages, filePath, fileContent, lineNumber);
+        const prompt = AIProviderCore.createChatPrompt(messages, filePath, fileContent, lineNumber);
 
         const response = await client.messages.create({
           model: 'claude-3-5-sonnet-20241010',
@@ -232,7 +232,7 @@ export class AIProviderCore {
         });
 
         const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
-        return this.extractExplanationFromJson(text);
+        return AIProviderCore.extractExplanationFromJson(text);
       } catch (error) {
         throw new Error(
           `Anthropic API error: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -249,10 +249,10 @@ export class AIProviderCore {
     prompt: string,
     options: RetryOptions = {}
   ): Promise<AIProviderResponse[]> {
-    return this.retryWithCondition(async () => {
+    return AIProviderCore.retryWithCondition(async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const client = (await this.createAnthropicClient(apiKey)) as any;
+        const client = (await AIProviderCore.createAnthropicClient(apiKey)) as any;
 
         const response = await client.messages.create({
           model: 'claude-3-5-sonnet-20241010',
@@ -262,8 +262,8 @@ export class AIProviderCore {
         });
 
         const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
-        const parsedResponse = this.parseAIResponseArray(text);
-        return this.validateAndNormalizeResponse(parsedResponse);
+        const parsedResponse = AIProviderCore.parseAIResponseArray(text);
+        return AIProviderCore.validateAndNormalizeResponse(parsedResponse);
       } catch (error) {
         throw new Error(
           `Anthropic API error: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -280,17 +280,17 @@ export class AIProviderCore {
     lineContent: string,
     filePath: string,
     fileContent?: string,
-    contextLines: number = 5,
+    contextLines = 5,
     lineNumber?: number,
     options: RetryOptions = {}
   ): Promise<string> {
-    return this.retryWithCondition(async () => {
+    return AIProviderCore.retryWithCondition(async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const client = (await this.createGeminiClient(apiKey)) as any;
+        const client = (await AIProviderCore.createGeminiClient(apiKey)) as any;
         const model = client.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
-        const prompt = this.createExplanationPrompt(
+        const prompt = AIProviderCore.createExplanationPrompt(
           lineContent,
           filePath,
           fileContent,
@@ -302,7 +302,7 @@ export class AIProviderCore {
         const response = await result.response;
         const text = response.text();
 
-        return this.extractExplanationFromJson(text);
+        return AIProviderCore.extractExplanationFromJson(text);
       } catch (error) {
         throw new Error(
           `Gemini API error: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -342,16 +342,16 @@ export class AIProviderCore {
     lineContent: string,
     filePath: string,
     fileContent?: string,
-    contextLines: number = 5,
+    contextLines = 5,
     lineNumber?: number,
     options: RetryOptions = {}
   ): Promise<string> {
-    return this.retryWithCondition(async () => {
+    return AIProviderCore.retryWithCondition(async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const client = (await this.createAnthropicClient(apiKey)) as any;
+        const client = (await AIProviderCore.createAnthropicClient(apiKey)) as any;
 
-        const prompt = this.createExplanationPrompt(
+        const prompt = AIProviderCore.createExplanationPrompt(
           lineContent,
           filePath,
           fileContent,
@@ -367,7 +367,7 @@ export class AIProviderCore {
         });
 
         const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
-        return this.extractExplanationFromJson(text);
+        return AIProviderCore.extractExplanationFromJson(text);
       } catch (error) {
         throw new Error(
           `Anthropic API error: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -383,11 +383,11 @@ export class AIProviderCore {
     lineContent: string,
     filePath: string,
     fileContent?: string,
-    contextLines: number = 5,
+    contextLines = 5,
     lineNumber?: number
   ): string {
     const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
-    const language = this.getLanguageFromExtension(fileExtension);
+    const language = AIProviderCore.getLanguageFromExtension(fileExtension);
 
     let prompt = `You are a helpful code assistant. When explaining code, prioritize context and broader understanding over line-by-line analysis.
 
@@ -490,7 +490,7 @@ Make sure to return only valid JSON with no additional text before or after.`;
     lineNumber?: number
   ): string {
     const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
-    const language = this.getLanguageFromExtension(fileExtension);
+    const language = AIProviderCore.getLanguageFromExtension(fileExtension);
 
     const initialMessage = messages[0]?.content || '';
     const followUpMessages = messages.slice(1);

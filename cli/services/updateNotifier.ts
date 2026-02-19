@@ -1,4 +1,4 @@
-import https from 'https';
+import https from 'node:https';
 import semver from 'semver';
 
 const checkForUpdates = (currentVersion: string): Promise<void> => {
@@ -15,9 +15,9 @@ const checkForUpdates = (currentVersion: string): Promise<void> => {
             console.log(
               `\n[UPDATE] A new version of aicodereview-cli is available! (${currentVersion} -> ${latestVersion})`
             );
-            console.log(`To update, run: npm install -g aicodereview-cli@latest\n`);
+            console.log('To update, run: npm install -g aicodereview-cli@latest\n');
           }
-        } catch (error) {
+        } catch (_error) {
           // Ignore errors, e.g., parsing JSON
         }
         resolve();

@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { fetchProjects } from '../shared/services/gitlabCore.js';
-import { GitLabConfig, GitLabProject } from '../shared/types/gitlab.js';
+import type { GitLabConfig, GitLabProject } from '../shared/types/gitlab.js';
 import { Util } from '../shared/utils/Util.js';
 
 export interface ProjectCacheEntry {

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Spinner } from './Spinner';
-import { Config, GitLabProject, GitLabMergeRequest } from '../types';
-import { fetchMergeRequestsForProjects } from '../services/gitlabService';
+import type React from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { loadSelectedProjectIds, saveSelectedProjectIds } from '../services/configService';
-import { FilterIcon, BranchIcon } from './icons';
+import { fetchMergeRequestsForProjects } from '../services/gitlabService';
+import type { Config, GitLabMergeRequest, GitLabProject } from '../types';
+import { Spinner } from './Spinner';
+import { BranchIcon, FilterIcon } from './icons';
 
 interface ReviewDashboardProps {
   onReview: (url: string) => void;
@@ -16,16 +17,16 @@ interface ReviewDashboardProps {
 const timeAgo = (date: string) => {
   const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
   let interval = seconds / 31536000;
-  if (interval > 1) return Math.floor(interval) + ' years ago';
+  if (interval > 1) return `${Math.floor(interval)} years ago`;
   interval = seconds / 2592000;
-  if (interval > 1) return Math.floor(interval) + ' months ago';
+  if (interval > 1) return `${Math.floor(interval)} months ago`;
   interval = seconds / 86400;
-  if (interval > 1) return Math.floor(interval) + ' days ago';
+  if (interval > 1) return `${Math.floor(interval)} days ago`;
   interval = seconds / 3600;
-  if (interval > 1) return Math.floor(interval) + ' hours ago';
+  if (interval > 1) return `${Math.floor(interval)} hours ago`;
   interval = seconds / 60;
-  if (interval > 1) return Math.floor(interval) + ' minutes ago';
-  return Math.floor(seconds) + ' seconds ago';
+  if (interval > 1) return `${Math.floor(interval)} minutes ago`;
+  return `${Math.floor(seconds)} seconds ago`;
 };
 
 export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({

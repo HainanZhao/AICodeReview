@@ -3,7 +3,7 @@
  * Validates and corrects line numbers based on diff line mappings
  */
 
-import { DiffLineMapper, type DiffLineMap } from './diffLineMapper.js';
+import { type DiffLineMap, DiffLineMapper } from './diffLineMapper.js';
 import type { ReviewResponse } from './types.js';
 
 export interface LineNumberValidationResult {
@@ -19,14 +19,20 @@ export class ReviewResponseProcessor {
   public static processReviewResponse(response: ReviewResponse[], diff: string): ReviewResponse[] {
     const lineMappings = DiffLineMapper.createLineMapping(diff);
 
-    return response.map((review) => this.processIndividualReview(review, lineMappings));
+    return response.map((review) =>
+      ReviewResponseProcessor.processIndividualReview(review, lineMappings)
+    );
   }
 
   private static processIndividualReview(
     review: ReviewResponse,
     lineMappings: Map<string, DiffLineMap>
   ): ReviewResponse {
-    const validation = this.validateLineNumber(review.filePath, review.lineNumber, lineMappings);
+    const validation = ReviewResponseProcessor.validateLineNumber(
+      review.filePath,
+      review.lineNumber,
+      lineMappings
+    );
 
     if (validation.isValid) {
       return review;
@@ -133,7 +139,11 @@ export class ReviewResponseProcessor {
     const lineMappings = DiffLineMapper.createLineMapping(diff);
 
     return response.filter((review) => {
-      const validation = this.validateLineNumber(review.filePath, review.lineNumber, lineMappings);
+      const validation = ReviewResponseProcessor.validateLineNumber(
+        review.filePath,
+        review.lineNumber,
+        lineMappings
+      );
       if (!validation.isValid && validation.warning?.includes('context line')) {
         console.warn(
           `Filtered out AI review for context line ${review.lineNumber} in ${review.filePath}: ${review.title}`
@@ -168,7 +178,11 @@ export class ReviewResponseProcessor {
     };
 
     response.forEach((review) => {
-      const validation = this.validateLineNumber(review.filePath, review.lineNumber, lineMappings);
+      const validation = ReviewResponseProcessor.validateLineNumber(
+        review.filePath,
+        review.lineNumber,
+        lineMappings
+      );
 
       if (validation.isValid) {
         stats.accurate++;

@@ -1,7 +1,7 @@
-import { LLMProvider } from './types.js';
-import { GeminiProvider } from './geminiProvider.js';
 import { AnthropicProvider } from './anthropicProvider.js';
 import { GeminiCliProvider } from './geminiCliProvider.js';
+import { GeminiProvider } from './geminiProvider.js';
+import type { LLMProvider } from './types.js';
 
 export async function createLLMProvider(type: string, apiKey?: string): Promise<LLMProvider> {
   const providerType = type.toLowerCase();

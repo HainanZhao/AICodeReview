@@ -46,7 +46,7 @@ export class ListProjectsCommand {
         const id = project.id.toString().padEnd(8);
         const name =
           project.name_with_namespace.length > 59
-            ? project.name_with_namespace.substring(0, 56) + '...'
+            ? `${project.name_with_namespace.substring(0, 56)}...`
             : project.name_with_namespace.padEnd(59);
         const lastActivity = new Date(project.last_activity_at).toLocaleDateString();
 

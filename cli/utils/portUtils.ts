@@ -1,6 +1,6 @@
-import { createServer } from 'net';
+import { createServer } from 'node:net';
 
-export function isPortAvailable(port: number, host: string = 'localhost'): Promise<boolean> {
+export function isPortAvailable(port: number, host = 'localhost'): Promise<boolean> {
   return new Promise((resolve) => {
     const server = createServer();
 
@@ -19,8 +19,8 @@ export function isPortAvailable(port: number, host: string = 'localhost'): Promi
 
 export async function findAvailablePort(
   startPort: number,
-  host: string = 'localhost',
-  maxAttempts: number = 10
+  host = 'localhost',
+  maxAttempts = 10
 ): Promise<number> {
   for (let i = 0; i < maxAttempts; i++) {
     const port = startPort + i;

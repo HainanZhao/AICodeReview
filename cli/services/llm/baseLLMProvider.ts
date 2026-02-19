@@ -1,11 +1,11 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import {
-  MrReviewService,
-  type MrReviewOptions,
-  buildReviewPrompt,
   type AIReviewRequest,
+  type MrReviewOptions,
+  MrReviewService,
+  buildReviewPrompt,
 } from '../../shared/index.js';
-import { LLMProvider, MrUrlRequest, ReviewRequest } from './types.js';
+import type { LLMProvider, MrUrlRequest, ReviewRequest } from './types.js';
 
 /**
  * Base LLM provider that implements unified MR review logic

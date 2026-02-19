@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import { ParsedFileDiff, ReviewFeedback, Severity } from '../types/gitlab.js';
+import * as fs from 'node:fs';
+import { type ParsedFileDiff, type ReviewFeedback, Severity } from '../types/gitlab.js';
 import { CRITICAL_RECAP, STATIC_INSTRUCTIONS } from './prompts/index.js';
 
 /**
@@ -203,9 +203,8 @@ const resolveProjectPromptConfig = (
         promptFile: matchingConfig.promptFile,
         strategy: matchingConfig.promptStrategy || 'append',
       };
-    } else {
-      console.log(`❌ No matching project prompt config found for: "${projectName}"`);
     }
+    console.log(`❌ No matching project prompt config found for: "${projectName}"`);
   }
 
   // Fall back to global prompt configuration
@@ -350,8 +349,6 @@ export const buildReviewPrompt = (request: AIReviewRequest): string => {
     case 'replace':
       sections = [customSection, mrDetails, existingFeedback, CRITICAL_RECAP];
       break;
-
-    case 'append':
     default:
       sections = [STATIC_INSTRUCTIONS, customSection, mrDetails, existingFeedback, CRITICAL_RECAP];
       break;
@@ -445,7 +442,6 @@ const validateOverallRating = (rating: string): 'approve' | 'request_changes' | 
       return 'approve';
     case 'request_changes':
       return 'request_changes';
-    case 'comment':
     default:
       return 'comment';
   }
@@ -540,7 +536,8 @@ export const createReviewSummary = (feedback: ReviewFeedback[], overallRating?: 
 
   if (overallRating === 'approve') {
     return `${summary}\n\n✅ **Overall: Approved** - Issues are minor and don't block merging.`;
-  } else if (overallRating === 'request_changes') {
+  }
+  if (overallRating === 'request_changes') {
     return `${summary}\n\n🔄 **Overall: Changes Requested** - Please address the critical issues before merging.`;
   }
 

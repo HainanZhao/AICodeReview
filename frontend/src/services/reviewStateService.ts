@@ -1,4 +1,4 @@
-import { GitLabMRDetails, ReviewFeedback } from '../../../types';
+import type { GitLabMRDetails, ReviewFeedback } from '../../../types';
 
 const REVIEW_STATE_KEY = 'ai-code-reviewer-review-state';
 const REVIEW_STATE_TIMESTAMP_KEY = 'ai-code-reviewer-review-state-timestamp';
@@ -54,7 +54,7 @@ export const loadReviewState = (): ReviewState | null => {
       return null;
     }
 
-    const timestamp = parseInt(timestampStr, 10);
+    const timestamp = Number.parseInt(timestampStr, 10);
     const ONE_WEEK = 7 * 24 * 60 * 60 * 1000; // 1 week in milliseconds
 
     // Check if the state is older than 1 week

@@ -1,4 +1,4 @@
-import { ViewMode } from '../components/ViewModeToggle';
+import type { ViewMode } from '../components/ViewModeToggle';
 
 const STORAGE_KEY = 'aicodereview-view-mode';
 const DEFAULT_VIEW_MODE: ViewMode = 'inline';
