@@ -1,5 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
+import { readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -13,12 +15,6 @@ interface JsonRpcResponse {
   id: number;
   result?: any;
   error?: any;
-}
-
-interface JsonRpcNotification {
-  jsonrpc: '2.0';
-  method: string;
-  params?: any;
 }
 
 export class GeminiACPSession extends EventEmitter {
@@ -62,7 +58,11 @@ export class GeminiACPSession extends EventEmitter {
       // 1. Initialize
       await this.sendRequest('initialize', {
         protocolVersion: 1,
-        clientCapabilities: {},
+        clientCapabilities: {
+          fs: {
+            readTextFile: true, // Advertise read capabilities
+          }
+        },
       });
 
       // 2. Create Session
@@ -94,17 +94,6 @@ export class GeminiACPSession extends EventEmitter {
     if (!this.initialized || !this.sessionId) {
       await this.start();
     }
-
-    // Using session/prompt
-    // The result from session/prompt is usually a stop reason, 
-    // but the content comes via session/update notifications or directly in the result depending on implementation.
-    // Based on ACP spec, we should listen for notifications or check the result.
-    // However, for simplicity in this bridge, we'll see what the prompt returns.
-    // Actually, prompt returns { stopReason: ... } and we need to collect the output from `session/update`.
-    
-    // We need to capture the output during this specific prompt turn.
-    // This simple implementation might have race conditions if multiple chats happen at once,
-    // but for a CLI tool, it's likely sequential.
     
     let responseText = '';
     const onUpdate = (params: any) => {
@@ -129,22 +118,26 @@ export class GeminiACPSession extends EventEmitter {
 
   private handleData(data: Buffer) {
     this.buffer += data.toString();
-    const lines = this.buffer.split('
-');
+    const lines = this.buffer.split('\n');
     this.buffer = lines.pop() || '';
 
     for (const line of lines) {
       if (!line.trim()) continue;
       try {
         const msg = JSON.parse(line);
-        if ('id' in msg && msg.id !== undefined) {
-            // Response
-            if ('result' in msg) {
+        if ('id' in msg) {
+          if ('method' in msg) {
+             // Request from server (e.g. fs/read_text_file)
+             this.handleServerRequest(msg);
+          } else {
+             // Response to our request
+             if ('result' in msg) {
                 this.pendingRequests.get(msg.id)?.resolve(msg.result);
-            } else {
+             } else {
                 this.pendingRequests.get(msg.id)?.reject(msg.error);
-            }
-            this.pendingRequests.delete(msg.id);
+             }
+             this.pendingRequests.delete(msg.id);
+          }
         } else if ('method' in msg) {
             // Notification
             this.emit(msg.method, msg.params);
@@ -153,6 +146,33 @@ export class GeminiACPSession extends EventEmitter {
         console.error('Error parsing JSON-RPC message:', e);
       }
     }
+  }
+
+  private async handleServerRequest(msg: any) {
+    if (msg.method === 'fs/read_text_file') {
+      try {
+        const filePath = msg.params.uri || msg.params.path;
+        // Basic security: ensure we are reading text files
+        const content = readFileSync(filePath, 'utf-8');
+        this.sendResponse(msg.id, { content });
+      } catch (e: any) {
+        this.sendError(msg.id, { code: -32000, message: `Failed to read file: ${e.message}` });
+      }
+    } else {
+        this.sendError(msg.id, { code: -32601, message: 'Method not found' });
+    }
+  }
+
+  private sendResponse(id: number, result: any) {
+    if (!this.process || !this.process.stdin) return;
+    const res: any = { jsonrpc: '2.0', id, result };
+    this.process.stdin.write(JSON.stringify(res) + '\n');
+  }
+
+  private sendError(id: number, error: { code: number; message: string }) {
+    if (!this.process || !this.process.stdin) return;
+    const res: any = { jsonrpc: '2.0', id, error };
+    this.process.stdin.write(JSON.stringify(res) + '\n');
   }
 
   private sendRequest(method: string, params: any): Promise<any> {
@@ -164,8 +184,7 @@ export class GeminiACPSession extends EventEmitter {
       const id = ++this.requestId;
       this.pendingRequests.set(id, { resolve, reject });
       const req: JsonRpcRequest = { jsonrpc: '2.0', id, method, params };
-      this.process.stdin?.write(JSON.stringify(req) + '
-');
+      this.process.stdin?.write(JSON.stringify(req) + '\n');
     });
   }
 }

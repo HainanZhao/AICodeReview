@@ -28,6 +28,43 @@ export class GeminiCliProvider extends BaseLLMProvider {
     console.log('Temporary folder cleanup completed');
   }
 
+  protected buildPrompt(request: ReviewRequest): string {
+    const diffContent = request.diffForPrompt;
+    
+    return `You are an expert code reviewer. You are reviewing a Merge Request.
+Your goal is to find bugs, security issues, and improvements.
+
+**Instructions:**
+1. Review the provided diff below.
+2. If the context in the diff is insufficient to understand the change or its impact, **you must use your file reading capabilities** (e.g., fs.readTextFile) to read the relevant source files. Do not guess.
+3. Provide feedback in the specified JSON format.
+
+**Diff to Review:**
+${diffContent}
+
+**Output Format:**
+Return a JSON array of objects. Each object must have:
+- filePath: string
+- lineNumber: number (use the line number from the "new" version of the file)
+- severity: "Critical" | "Warning" | "Suggestion" | "Info"
+- title: string (concise summary)
+- description: string (detailed explanation)
+
+Example:
+[
+  {
+    "filePath": "src/utils.ts",
+    "lineNumber": 15,
+    "severity": "Warning",
+    "title": "Unsafe type assertion",
+    "description": "Using 'as any' bypasses type checking. Consider using a specific type or unknown."
+  }
+]
+
+If no issues are found, return an empty array [].
+`;
+  }
+
   public async reviewCode(req: Request, res: Response): Promise<void> {
     const requestData = req.body as ReviewRequest;
 
