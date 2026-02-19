@@ -25,6 +25,7 @@ export class GeminiACPSession extends EventEmitter {
   private pendingRequests = new Map<number, { resolve: (value: any) => void; reject: (reason?: any) => void }>();
   private initialized = false;
   private buffer = '';
+  public baseUrl: string | null = null;
 
   private constructor() {
     super();
@@ -35,6 +36,10 @@ export class GeminiACPSession extends EventEmitter {
       GeminiACPSession.instance = new GeminiACPSession();
     }
     return GeminiACPSession.instance;
+  }
+
+  public setBaseUrl(url: string) {
+    this.baseUrl = url;
   }
 
   public async start(): Promise<void> {

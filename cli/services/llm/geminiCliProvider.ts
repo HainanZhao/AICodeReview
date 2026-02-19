@@ -31,12 +31,31 @@ export class GeminiCliProvider extends BaseLLMProvider {
   protected buildPrompt(request: ReviewRequest): string {
     const diffContent = request.diffForPrompt;
     
+    // Dynamically get the base URL if available
+    let fileReadingInstructions = '2. If the context in the diff is insufficient to understand the change or its impact, **you must use your file reading capabilities** (e.g., fs.readTextFile) to read the relevant source files. Do not guess.';
+    
+    try {
+      // Lazy load to avoid circular dependencies if any
+      const { GeminiACPSession } = require('../GeminiACPSession.js');
+      const baseUrl = GeminiACPSession.getInstance().baseUrl;
+      if (baseUrl) {
+        fileReadingInstructions = `2. If the context in the diff is insufficient, you can retrieve file contents by making a GET request to:
+   \`${baseUrl}/api/files?path=<absolute_file_path>\`
+   
+   Example: \`curl "${baseUrl}/api/files?path=/absolute/path/to/file.ts"\`
+   
+   Alternatively, use your built-in file reading tools if available.`;
+      }
+    } catch (e) {
+      // Fallback to generic instruction
+    }
+
     return `You are an expert code reviewer. You are reviewing a Merge Request.
 Your goal is to find bugs, security issues, and improvements.
 
 **Instructions:**
 1. Review the provided diff below.
-2. If the context in the diff is insufficient to understand the change or its impact, **you must use your file reading capabilities** (e.g., fs.readTextFile) to read the relevant source files. Do not guess.
+${fileReadingInstructions}
 3. Provide feedback in the specified JSON format.
 
 **Diff to Review:**

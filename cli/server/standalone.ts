@@ -68,25 +68,44 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   // Add GitLab configuration endpoint using shared service
   router.post('/api/config', configService.getConfigHandler());
 
-      // Initialize LLM provider - import from local services
-      try {
-        console.log('\n🤖 Initializing LLM provider...');
-  
-        if (config.llm.provider === 'gemini-cli') {
-          const { GeminiACPSession } = await import('../services/GeminiACPSession.js');
-          const session = GeminiACPSession.getInstance();
-          await session.start();
-        }
-  
-        // Import the LLM provider factory from local services
-        const { createLLMProvider } = await import('../services/llm/providerFactory.js');
-    const llmProvider = await createLLMProvider(config.llm.provider, config.llm.apiKey);
-
-    // Set up unified API route for MR URL-based reviews
-    if (llmProvider.reviewMr) {
-      router.post('/api/review-mr', llmProvider.reviewMr.bind(llmProvider));
-    }
-
+          // Initialize LLM provider - import from local services
+          let geminiSession: any = null;
+          try {
+            console.log('\n🤖 Initializing LLM provider...');
+      
+            if (config.llm.provider === 'gemini-cli') {
+              const { GeminiACPSession } = await import('../services/GeminiACPSession.js');
+              geminiSession = GeminiACPSession.getInstance();
+              await geminiSession.start();
+            }
+      
+            // Import the LLM provider factory from local services
+            const { createLLMProvider } = await import('../services/llm/providerFactory.js');
+            const llmProvider = await createLLMProvider(config.llm.provider, config.llm.apiKey);
+      
+            // Set up unified API route for MR URL-based reviews
+            if (llmProvider.reviewMr) {
+              router.post('/api/review-mr', llmProvider.reviewMr.bind(llmProvider));
+            }
+      
+            // New endpoint to serve file content for Gemini CLI (ACP tool access)
+            router.get('/api/files', (req, res) => {
+              const filePath = req.query.path as string;
+              if (!filePath) {
+                return res.status(400).json({ error: 'Missing path parameter' });
+              }
+        
+              try {
+                // Basic security check: prevent escaping the project root if needed
+                // For now, allow absolute paths as Gemini might need them
+                const content = readFileSync(filePath, 'utf-8');
+                res.set('Content-Type', 'text/plain');
+                res.send(content);
+              } catch (error) {
+                console.error(`Failed to read file ${filePath}:`, error);
+                res.status(404).json({ error: 'File not found or unreadable' });
+              }
+            });
     router.post('/api/post-discussion', async (req, res) => {
       try {
         const { gitlabConfig, mrDetails, feedbackItem } = req.body;
@@ -321,6 +340,10 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   const server = app.listen(availablePort, config.server.host, async () => {
     const baseUrl = `http://${config.server.host}:${availablePort}`;
     const url = subPath ? `${baseUrl}/${subPath}` : baseUrl;
+
+    if (geminiSession) {
+      geminiSession.setBaseUrl(url);
+    }
 
     if (isApiOnly) {
       console.log('\n✅ AI Code Review API Server is ready!');
