@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.10] - 2026-02-19
+
+### Added
+- **Configurable AI Timeout**: Added `timeout` option to LLM configuration (default: 10 minutes)
+  - Prevents hanging AI requests with proper process termination
+  - Configurable via `llm.timeout` in `aicodereview.config.json`
+
+### Changed
+- **Linting System**: Migrated from ESLint + Prettier to Biome
+  - Faster linting and formatting
+  - Unified configuration in `biome.json`
+  - Updated VS Code settings for Biome integration
+
+### Fixed
+- **AI Timeout Handling**: Added proper timeout mechanism to Gemini CLI execution
+  - Prevents processes from hanging indefinitely
+  - Graceful termination with SIGTERM, force kill with SIGKILL if needed
+- **React Hook Dependencies**: Fixed exhaustive dependency warnings in multiple components
+
 ## [1.5.9] - 2025-10-04
 
 ### Fixed
