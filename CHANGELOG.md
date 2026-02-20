@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.12] - 2026-02-20
+
+### Added
+- **ACP SDK Integration**: Migrated Gemini CLI communication to use the industry-standard `@agentclientprotocol/sdk`
+  - Robust JSON-RPC over stdio handling
+  - Support for streaming chunks and turn management
+- **Local Proxy for Files**: AI agents can now fetch full file contents or list directories on-demand
+  - Implemented `/api/files` local proxy endpoint
+  - Integrated `fs/read_file` and `fs/list_directory` ACP tools that proxy directly to GitLab
+  - Direct context seeding (project ID, head SHA) for accurate file versioning
+- **YAML Response Format**: Switched AI feedback from JSON to YAML for better token efficiency
+  - Improved parsing robustness for multi-line code suggestions
+  - Standardized schema across all providers (Gemini CLI, Gemini API, Anthropic)
+
+### Changed
+- **Optimized Prompts**: Simplified \`STATIC_INSTRUCTIONS\` and removed \`CRITICAL_RECAP\` to save tokens and improve model focus
+- **Clean GitLab Integration**: Removed the \`[AI]\` prefix from review comments posted back to GitLab
+- **Enhanced Debugging**: Added detailed logging for AI thoughts, tool calls, and prompt/response metadata
+
+### Fixed
+- **Backend Port Readiness**: Refactored server startup to listen on the port immediately, resolving \`ECONNREFUSED\` proxy errors in the frontend during initialization
+- **Multi-turn Parsing**: Fixed an issue where only the first turn of an AI response was captured
+- **Indentation Resilience**: Improved YAML parser to handle nested markdown blocks and complex indentation correctly
+
 ## [1.5.10] - 2026-02-19
 
 ### Added
