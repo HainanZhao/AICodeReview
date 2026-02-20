@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import type { ParsedFileDiff, ReviewFeedback } from '../../shared/index.js';
+import type { LineMapping, ParsedFileDiff, ReviewFeedback } from '../../shared/index.js';
 
 export interface ReviewRequest {
   diffForPrompt: string;
@@ -22,6 +22,8 @@ export interface ReviewRequest {
     url: string;
     accessToken: string;
   };
+  // Line mappings for translating between git diff and full file line numbers
+  lineMappings?: Record<string, LineMapping>;
 }
 
 // New interface for MR URL-based requests

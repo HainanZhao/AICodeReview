@@ -929,8 +929,8 @@ export const testGitLabConnection = async (config: GitLabConfig): Promise<boolea
 };
 
 /**
- * Builds a lightweight diff for prompt without full file contents.
- * The agent can request full file contents via the /api/files endpoint when needed.
+ * Builds a comprehensive diff for prompt with full file contents.
+ * This combines the full file content with line numbers and the git diff.
  */
 export const buildOptimizedDiffForPrompt = (
   diffs: FileDiff[],
@@ -938,20 +938,140 @@ export const buildOptimizedDiffForPrompt = (
 ): { diffForPrompt: string; parsedDiffs: ParsedFileDiff[] } => {
   const parsedDiffs: ParsedFileDiff[] = [];
   const allDiffsForPrompt: string[] = [];
-  const changedFiles: string[] = [];
+  const processedFiles = new Set<string>();
+
+  // Files that typically don't contain meaningful code logic and should be excluded from full content
+  const isNonMeaningfulFile = (filePath: string): boolean => {
+    const fileName = filePath.toLowerCase();
+    const baseName = fileName.split('/').pop() || '';
+
+    // Lock files
+    if (
+      baseName.includes('lock') &&
+      (baseName.endsWith('.json') || baseName.endsWith('.yaml') || baseName.endsWith('.yml'))
+    ) {
+      return true;
+    }
+
+    // Common auto-generated or non-code files
+    const skipPatterns = [
+      // Package managers
+      'package-lock.json',
+      'yarn.lock',
+      'pnpm-lock.yaml',
+      'composer.lock',
+      'pipfile.lock',
+      'poetry.lock',
+      'cargo.lock',
+      'gemfile.lock',
+      'go.sum',
+
+      // Build artifacts and dependencies
+      'node_modules/',
+      'vendor/',
+      'target/',
+      'build/',
+      'dist/',
+      '.next/',
+      '.nuxt/',
+
+      // IDE and editor files
+      '.vscode/',
+      '.idea/',
+      '*.iml',
+
+      // Version control
+      '.git/',
+      '.gitignore',
+
+      // Large data files
+      '*.min.js',
+      '*.min.css',
+      '*.bundle.js',
+      '*.chunk.js',
+
+      // Binary or media files
+      '*.png',
+      '*.jpg',
+      '*.jpeg',
+      '*.gif',
+      '*.ico',
+      '*.pdf',
+      '*.zip',
+      '*.tar.gz',
+
+      // Generated documentation
+      'docs/api/',
+      'coverage/',
+
+      // Configuration files that are typically large and auto-generated
+      'webpack.config.js',
+      'vite.config.js',
+      'rollup.config.js',
+
+      // Test files
+      '*.test.js',
+      '*.test.ts',
+      '*.test.jsx',
+      '*.test.tsx',
+      '*.spec.js',
+      '*.spec.ts',
+      '*.spec.jsx',
+      '*.spec.tsx',
+      '*.snap',
+      '__tests__/',
+      '__mocks__/',
+      'test/',
+      'tests/',
+      'e2e/',
+      'cypress/',
+    ];
+
+    return skipPatterns.some((pattern) => {
+      if (pattern.endsWith('/')) {
+        return fileName.includes(pattern);
+      }
+      if (pattern.startsWith('*.')) {
+        return baseName.endsWith(pattern.substring(1));
+      }
+      return baseName === pattern || fileName.endsWith(`/${pattern}`);
+    });
+  };
 
   diffs.forEach((file) => {
+    const newFileContent = fileContents[file.new_path]?.newContent;
+
     // Parse the diff into structured hunks
     const hunks = parseDiffs(file.diff);
 
-    // Generate simplified prompt content - only include the git diff, not full file content
+    // Generate prompt content with full file + diff
     const promptParts: string[] = [];
+
+    // Check if we should include full file content (for small files with meaningful code)
+    const shouldIncludeFullFile =
+      newFileContent &&
+      newFileContent.length <= MAX_FILE_LINES &&
+      !file.deleted_file &&
+      !isNonMeaningfulFile(file.new_path) &&
+      !processedFiles.has(file.new_path);
+
+    if (shouldIncludeFullFile) {
+      // Include full file content with line numbers (use new file content for accurate line numbers)
+      promptParts.push(`\n=== FULL FILE CONTENT: ${file.new_path} ===`);
+      newFileContent.forEach((line: string, index: number) => {
+        const lineNumber = (index + 1).toString().padStart(4, ' ');
+        promptParts.push(`${lineNumber}: ${line}`);
+      });
+      promptParts.push('=== END FILE CONTENT ===\n');
+      processedFiles.add(file.new_path);
+    }
+
+    // Always include the git diff
     promptParts.push(`\n=== GIT DIFF: ${file.new_path} ===`);
     promptParts.push(file.diff);
     promptParts.push('=== END DIFF ===\n');
 
     allDiffsForPrompt.push(promptParts.join('\n'));
-    changedFiles.push(file.new_path);
 
     parsedDiffs.push({
       filePath: file.new_path,

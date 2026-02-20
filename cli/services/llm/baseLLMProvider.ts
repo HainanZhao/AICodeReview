@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
 import {
-  type AIReviewRequest,
-  type MrReviewOptions,
-  MrReviewService,
-  buildReviewPrompt,
+    type AIReviewRequest,
+    type MrReviewOptions,
+    MrReviewService,
+    buildReviewPrompt,
 } from '../../shared/index.js';
 import type { LLMProvider, MrUrlRequest, ReviewRequest } from './types.js';
 
@@ -101,6 +101,7 @@ export abstract class BaseLLMProvider implements LLMProvider {
       headSha: request.headSha,
       gitlabConfig: request.gitlabConfig,
       provider: this.providerName,
+      lineMappings: request.lineMappings, // Pass line mappings for accurate line number translation
     };
 
     return buildReviewPrompt(aiRequest);

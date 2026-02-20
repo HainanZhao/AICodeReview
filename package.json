@@ -1,7 +1,7 @@
 {
   "name": "aicodereview-cli",
   "private": false,
-  "version": "1.5.12",
+  "version": "1.5.13",
   "description": "AI-powered code review tool with web interface",
   "keywords": [
     "code-review",
@@ -69,7 +69,6 @@
     "commander": "^12.1.0",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
-    "js-yaml": "^4.1.0",
     "ink": "^6.3.1",
     "inquirer": "^9.2.23",
     "react": "^19.1.1",

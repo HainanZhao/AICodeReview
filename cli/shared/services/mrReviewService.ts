@@ -5,19 +5,16 @@
  */
 
 import {
-    AIProviderCore,
-    type AIReviewRequest,
-    type AIReviewResponse,
-    GeminiCliCore,
-    type GeminiCliItem,
-    type GitLabConfig,
-    type GitLabMRDetails,
-    type ReviewFeedback,
-    Severity,
-    buildReviewPrompt,
-    fetchMrData,
-    filterAndDeduplicateFeedback,
-    parseAIResponse,
+  AIProviderCore,
+  type AIReviewRequest,
+  type AIReviewResponse,
+  type GitLabConfig,
+  type GitLabMRDetails,
+  type ReviewFeedback,
+  buildReviewPrompt,
+  fetchMrData,
+  filterAndDeduplicateFeedback,
+  parseAIResponse
 } from '../index.js';
 import { type FrontendGitLabConfig, normalizeGitLabConfig } from '../types/unifiedConfig.js';
 
@@ -66,8 +63,8 @@ export class MrReviewService {
     }
 
     // Fetch MR data using unified GitLab service
-    // Use optimized mode for agent-driven file fetching when enabled
-    const mrDetails = await fetchMrData(normalizedConfig, mrUrl, options.optimizedMode ?? true);
+    // Disable optimized mode by default to include full file content with line numbers
+    const mrDetails = await fetchMrData(normalizedConfig, mrUrl, options.optimizedMode ?? false);
 
     if (options.verbose) {
       console.log(`📄 Found ${mrDetails.fileDiffs.length} changed files`);
@@ -103,6 +100,7 @@ export class MrReviewService {
       headSha: mrDetails.head_sha,
       gitlabConfig: normalizedConfig,
       provider: options.provider,
+      lineMappings: mrDetails.lineMappings, // Pass line mappings for accurate line number translation
     };
 
     if (options.verbose) {
