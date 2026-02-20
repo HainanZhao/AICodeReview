@@ -2,7 +2,7 @@ import type { AppConfig } from './configSchema.js';
 
 export const DEFAULT_CONFIG: AppConfig = {
   server: {
-    port: 5960,
+    port: 5959,
     host: 'localhost',
     subPath: '',
   },
