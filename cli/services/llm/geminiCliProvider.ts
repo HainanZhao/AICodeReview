@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { ConfigLoader } from '../../config/configLoader.js';
-import { GeminiCliCore, type GeminiCliItem } from '../../shared/index.js';
+import { GeminiCliCore, type GeminiCliItem, parseAIResponse } from '../../shared/index.js';
 import { BaseLLMProvider } from './baseLLMProvider.js';
 import type { ReviewRequest, ReviewResponse } from './types.js';
 
@@ -37,29 +37,38 @@ export class GeminiCliProvider extends BaseLLMProvider {
     }
 
     try {
-      // Build the prompt using the better prompt builder
-      const prompt = this.buildPrompt(requestData);
+      // Build the prompt using the base class builder
+      const prompt = await this.buildPrompt(requestData);
 
       // Get configurable timeout
       const timeout = await this.getTimeout();
 
       try {
         // Use shared core for execution with backend-appropriate options
-        const parsedResponse = await GeminiCliCore.executeReview(prompt, {
-          verbose: false,
-          timeout,
-        });
+        const { GeminiACPSession } = await import('../GeminiACPSession.js');
+        const session = GeminiACPSession.getInstance();
 
-        // Convert to backend response format
-        const validatedResponse = parsedResponse.map(
-          (item: GeminiCliItem): ReviewResponse => ({
-            filePath: String(item.filePath).replace(/\\/g, '/'), // Normalize path separators
-            lineNumber: Number(item.lineNumber),
-            severity: item.severity as ReviewResponse['severity'],
-            title: String(item.title),
-            description: String(item.description),
-          })
-        );
+        // Set MR context if available for subsequent file fetching requests
+        if (requestData.projectId && requestData.headSha && requestData.gitlabConfig) {
+          session.mrContext = {
+            projectId: requestData.projectId,
+            headSha: requestData.headSha,
+            gitlabConfig: requestData.gitlabConfig,
+          };
+        }
+
+        const rawOutput = await session.chat(prompt);
+
+        const aiReviewResponse = parseAIResponse(rawOutput);
+
+        // Convert to backend response format (ReviewResponse array)
+        const validatedResponse: ReviewResponse[] = aiReviewResponse.feedback.map((item) => ({
+          filePath: item.filePath,
+          lineNumber: item.lineNumber,
+          severity: item.severity as ReviewResponse['severity'],
+          title: item.title,
+          description: item.description,
+        }));
 
         res.json(validatedResponse);
       } catch (execError) {
@@ -85,7 +94,8 @@ export class GeminiCliProvider extends BaseLLMProvider {
   ): Promise<string> {
     try {
       const prompt = this.createChatPrompt(messages, filePath, fileContent, lineNumber);
-      const rawOutput = await GeminiCliCore.executeExplanation(prompt, { verbose: false });
+      const { GeminiACPSession } = await import('../GeminiACPSession.js');
+      const rawOutput = await GeminiACPSession.getInstance().chat(prompt);
 
       const jsonExplanation = this.extractJsonExplanation(rawOutput);
       if (jsonExplanation) {
@@ -118,7 +128,8 @@ export class GeminiCliProvider extends BaseLLMProvider {
         contextLines,
         lineNumber
       );
-      const rawOutput = await GeminiCliCore.executeExplanation(prompt, { verbose: false });
+      const { GeminiACPSession } = await import('../GeminiACPSession.js');
+      const rawOutput = await GeminiACPSession.getInstance().chat(prompt);
 
       // Try to extract JSON from the output first
       const jsonExplanation = this.extractJsonExplanation(rawOutput);

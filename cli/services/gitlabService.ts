@@ -118,14 +118,10 @@ const generateLineCode = (
 };
 
 /**
- * Helper function to format comment body with appropriate prefix
+ * Helper function to format comment body
  */
 const formatCommentBody = (feedback: ReviewFeedback): string => {
-  // Use different prefixes for AI vs manual comments
-  const isManualComment = feedback.title === 'Manual Input' || feedback.isNewlyAdded;
-  const prefix = isManualComment ? '' : '[AI] ';
-
-  return `**${prefix}${feedback.severity}: ${feedback.title}**
+  return `**${feedback.severity}: ${feedback.title}**
 
 ${feedback.description}`;
 };

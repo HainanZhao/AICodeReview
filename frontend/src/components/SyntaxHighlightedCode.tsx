@@ -1,11 +1,11 @@
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import type * as PrismTypes from 'react-syntax-highlighter/dist/esm/styles/prism';
+import * as Prism from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { detectLanguageFromPath } from '../utils/languageDetection';
 
 // Type for prism themes module
-const prismThemes = PrismTypes as unknown as Record<string, unknown>;
+const prismThemes = Prism as unknown as Record<string, unknown>;
 
 interface SyntaxHighlightedCodeProps {
   code: string;

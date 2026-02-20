@@ -498,10 +498,12 @@ export const getNewLineFromOldLine = (
 
 /**
  * Fetches the main MR data with all related information
+ * @param optimizedMode If true, uses lightweight diff without full file contents (agent-driven mode)
  */
 export const fetchMrData = async (
   config: GitLabConfig,
-  mrUrl: string
+  mrUrl: string,
+  optimizedMode: boolean = true
 ): Promise<GitLabMRDetails> => {
   const { projectPath, mrIid } = parseMrUrl(mrUrl, config.url);
   const encodedProjectPath = encodeURIComponent(projectPath);
@@ -568,7 +570,20 @@ export const fetchMrData = async (
   await Promise.all(contentPromises);
 
   // Parse diffs with expanded context AFTER file contents are available
-  const { diffForPrompt, parsedDiffs } = parseDiffsToHunks(diffs, fileContents);
+  // Use optimized diff building that excludes full file contents for agent-driven mode
+  let diffForPrompt: string;
+  let parsedDiffs: ParsedFileDiff[];
+
+  if (optimizedMode) {
+    const result = buildOptimizedDiffForPrompt(diffs, fileContents);
+    diffForPrompt = result.diffForPrompt;
+    parsedDiffs = result.parsedDiffs;
+  } else {
+    // Use full diff with file contents for backward compatibility
+    const result = parseDiffsToHunks(diffs, fileContents);
+    diffForPrompt = result.diffForPrompt;
+    parsedDiffs = result.parsedDiffs;
+  }
 
   // Fill in the SHA values for existing feedback positions
   existingFeedback.forEach((feedback: ReviewFeedback) => {
@@ -611,12 +626,34 @@ export const fetchMrData = async (
     fileDiffs: diffs,
     diffForPrompt,
     parsedDiffs,
-    fileContents,
-    lineMappings,
-    discussions, // Include discussions for reference
-    existingFeedback, // Add existing feedback to the returned object
-    approvals, // Include approval information
-  };
+        fileContents,
+        lineMappings,
+        discussions, // Include discussions for reference
+        existingFeedback, // Add existing feedback to the returned object
+        approvals, // Include approval information
+      };
+    }
+    ;
+
+/**
+ * Fetches repository tree (directory listing) from GitLab
+ */
+export const fetchRepositoryTree = async (
+  config: GitLabConfig,
+  projectId: number,
+  path: string,
+  ref: string,
+  recursive = false
+): Promise<Array<{ path: string; type: string; name: string }> | undefined> => {
+  if (!ref) return undefined;
+  try {
+    const encodedPath = encodeURIComponent(path);
+    const url = `${config.url}/api/v4/projects/${projectId}/repository/tree?path=${encodedPath}&ref=${ref}&recursive=${recursive}`;
+    return await gitlabApiFetch(url, config, {}, 'json');
+  } catch (e) {
+    console.warn(`Could not fetch repository tree for ${path} at ref ${ref}`, e);
+    return undefined;
+  }
 };
 
 /**
@@ -889,4 +926,47 @@ export const testGitLabConnection = async (config: GitLabConfig): Promise<boolea
     console.error('GitLab connection test failed:', error);
     return false;
   }
+};
+
+/**
+ * Builds a lightweight diff for prompt without full file contents.
+ * The agent can request full file contents via the /api/files endpoint when needed.
+ */
+export const buildOptimizedDiffForPrompt = (
+  diffs: FileDiff[],
+  fileContents: Record<string, { oldContent?: string[]; newContent?: string[] }>
+): { diffForPrompt: string; parsedDiffs: ParsedFileDiff[] } => {
+  const parsedDiffs: ParsedFileDiff[] = [];
+  const allDiffsForPrompt: string[] = [];
+  const changedFiles: string[] = [];
+
+  diffs.forEach((file) => {
+    // Parse the diff into structured hunks
+    const hunks = parseDiffs(file.diff);
+
+    // Generate simplified prompt content - only include the git diff, not full file content
+    const promptParts: string[] = [];
+    promptParts.push(`\n=== GIT DIFF: ${file.new_path} ===`);
+    promptParts.push(file.diff);
+    promptParts.push('=== END DIFF ===\n');
+
+    allDiffsForPrompt.push(promptParts.join('\n'));
+    changedFiles.push(file.new_path);
+
+    parsedDiffs.push({
+      filePath: file.new_path,
+      oldPath: file.old_path,
+      isNew: file.new_file,
+      isDeleted: file.deleted_file,
+      isRenamed: file.renamed_file,
+      hunks,
+    });
+  });
+
+  const diffForPrompt = allDiffsForPrompt.join('\n');
+
+  return {
+    diffForPrompt,
+    parsedDiffs,
+  };
 };

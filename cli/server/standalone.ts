@@ -68,182 +68,6 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
   // Add GitLab configuration endpoint using shared service
   router.post('/api/config', configService.getConfigHandler());
 
-  // Initialize LLM provider - import from local services
-  try {
-    console.log('\n🤖 Initializing LLM provider...');
-
-    // Import the LLM provider factory from local services
-    const { createLLMProvider } = await import('../services/llm/providerFactory.js');
-
-    const llmProvider = await createLLMProvider(config.llm.provider, config.llm.apiKey);
-
-    // Set up unified API route for MR URL-based reviews
-    if (llmProvider.reviewMr) {
-      router.post('/api/review-mr', llmProvider.reviewMr.bind(llmProvider));
-    }
-
-    router.post('/api/post-discussion', async (req, res) => {
-      try {
-        const { gitlabConfig, mrDetails, feedbackItem } = req.body;
-
-        // Validate required parameters
-        if (!gitlabConfig) {
-          return res.status(400).json({
-            success: false,
-            error: 'Missing gitlabConfig parameter',
-          });
-        }
-
-        if (!mrDetails) {
-          return res.status(400).json({
-            success: false,
-            error: 'Missing mrDetails parameter',
-          });
-        }
-
-        if (!feedbackItem) {
-          return res.status(400).json({
-            success: false,
-            error: 'Missing feedbackItem parameter',
-          });
-        }
-
-        // Validate GitLab config has required fields
-        if (!gitlabConfig.url || !gitlabConfig.accessToken) {
-          return res.status(400).json({
-            success: false,
-            error: 'GitLab config missing url or accessToken',
-          });
-        }
-
-        // Map to the expected format for postDiscussion
-        const mappedGitlabConfig = {
-          url: gitlabConfig.url,
-          accessToken: gitlabConfig.accessToken,
-        };
-
-        const { postDiscussion } = await import('../services/gitlabService.js');
-        const result = await postDiscussion(mappedGitlabConfig, mrDetails, feedbackItem);
-
-        res.json({ success: true, result });
-      } catch (error) {
-        console.error('Failed to post discussion:', error);
-        res.status(500).json({
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
-    });
-
-    // Unified AI Chat endpoint
-    router.post('/api/chat', async (req, res) => {
-      try {
-        const {
-          messages,
-          lineContent,
-          filePath,
-          lineNumber,
-          fileContent,
-          contextLines = 5,
-        } = req.body;
-
-        const isNewConversation = !messages || messages.length === 0;
-
-        if (isNewConversation && !lineContent) {
-          return res.status(400).json({
-            success: false,
-            error: 'Missing lineContent for new conversation',
-          });
-        }
-
-        if (!filePath) {
-          return res.status(400).json({
-            success: false,
-            error: 'Missing filePath parameter',
-          });
-        }
-
-        const { AIProviderCore } = await import('../shared/services/aiProviderCore.js');
-        let response: string;
-
-        if (config.llm.provider === 'gemini-cli') {
-          const { GeminiCliProvider } = await import('../services/llm/geminiCliProvider.js');
-          const provider = new GeminiCliProvider();
-          if (isNewConversation) {
-            response = await provider.explainLine(
-              lineContent,
-              filePath,
-              fileContent,
-              contextLines,
-              lineNumber
-            );
-          } else {
-            response = await provider.continueChat(messages, filePath, fileContent, lineNumber);
-          }
-        } else if (config.llm.provider === 'gemini' && config.llm.apiKey) {
-          if (isNewConversation) {
-            response = await AIProviderCore.generateGeminiExplanation(
-              config.llm.apiKey,
-              lineContent,
-              filePath,
-              fileContent,
-              contextLines,
-              lineNumber
-            );
-          } else {
-            response = await AIProviderCore.continueGeminiChat(
-              config.llm.apiKey,
-              messages,
-              filePath,
-              fileContent,
-              lineNumber
-            );
-          }
-        } else if (config.llm.provider === 'anthropic' && config.llm.apiKey) {
-          if (isNewConversation) {
-            response = await AIProviderCore.generateAnthropicExplanation(
-              config.llm.apiKey,
-              lineContent,
-              filePath,
-              fileContent,
-              contextLines,
-              lineNumber
-            );
-          } else {
-            response = await AIProviderCore.continueAnthropicChat(
-              config.llm.apiKey,
-              messages,
-              filePath,
-              fileContent,
-              lineNumber
-            );
-          }
-        } else {
-          return res.status(400).json({
-            success: false,
-            error: `Unsupported LLM provider: ${config.llm.provider} or API key missing`,
-          });
-        }
-
-        res.json({
-          success: true,
-          explanation: response, // Keep 'explanation' for consistency with frontend parsing
-        });
-      } catch (error) {
-        console.error('AI chat/explain error:', error);
-        res.status(500).json({
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
-    });
-
-    console.log('✅ LLM provider initialized successfully');
-  } catch (error) {
-    console.error('❌ Failed to initialize LLM provider:', error);
-    process.exit(1);
-  }
-
   // Conditionally serve frontend based on mode
   if (!isApiOnly) {
     // Serve static files (built frontend) excluding index.html
@@ -318,29 +142,159 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
     const url = subPath ? `${baseUrl}/${subPath}` : baseUrl;
 
     if (isApiOnly) {
-      console.log('\n✅ AI Code Review API Server is ready!');
+      console.log('\n✅ AI Code Review API Server is listening');
       console.log(`   🔗 API Base URL: ${url}`);
-      console.log('   📋 Available endpoints:');
-      console.log(`   • POST ${url}/api/review-mr - Unified MR review endpoint`);
-      console.log(`   • POST ${url}/api/config - Configuration endpoint`);
-      console.log(`   • POST ${url}/api/post-discussion - Post GitLab discussion endpoint`);
-      console.log(`   • POST ${url}/api/chat - Unified AI chat and explain endpoint`);
-      console.log('   🛑 Press Ctrl+C to stop\n');
     } else {
-      console.log('\n✅ AI Code Review is ready!');
+      console.log('\n✅ AI Code Review Server is listening');
       console.log(`   🌐 Web interface: ${url}`);
-      console.log(`   🔗 API Base URL: ${url}`);
-      console.log('   🛑 Press Ctrl+C to stop\n');
+    }
 
-      // Auto-open browser only in standalone mode
-      if (config.ui.autoOpen) {
+    // Initialize LLM provider in the background after server is listening
+    try {
+      let geminiSession: any = null;
+      console.log('\n🤖 Initializing LLM provider...');
+
+      if (config.llm.provider === 'gemini-cli') {
+        const { GeminiACPSession } = await import('../services/GeminiACPSession.js');
+        geminiSession = GeminiACPSession.getInstance();
+        geminiSession.setBaseUrl(url);
+        await geminiSession.start();
+      }
+
+      // Import the LLM provider factory from local services
+      const { createLLMProvider } = await import('../services/llm/providerFactory.js');
+      const llmProvider = await createLLMProvider(config.llm.provider, config.llm.apiKey);
+
+      // Set up unified API route for MR URL-based reviews
+      if (llmProvider.reviewMr) {
+        router.post('/api/review-mr', llmProvider.reviewMr.bind(llmProvider));
+      }
+
+      // New endpoint to serve file content for Gemini CLI (ACP tool access)
+      router.get('/api/files', async (req, res) => {
+        const filePath = req.query.path as string;
+        console.log(`🌐 Proxy request: Fetching file content for ${filePath}`);
+
+        if (!filePath) {
+          return res.status(400).json({ error: 'Missing path parameter' });
+        }
+
         try {
-          await openBrowser(url);
-        } catch {
-          // Browser opening is optional, don't fail the server start
-          console.log('Could not automatically open browser');
+          const { GeminiACPSession } = await import('../services/GeminiACPSession.js');
+          const session = GeminiACPSession.getInstance();
+          
+          if (!session.mrContext) {
+            return res.status(503).json({ error: 'MR context not yet initialized' });
+          }
+
+          const { projectId, headSha, gitlabConfig } = session.mrContext;
+          const { fetchFileContentAsLines } = await import('../shared/services/gitlabCore.js');
+          
+          const lines = await fetchFileContentAsLines(
+            gitlabConfig,
+            projectId,
+            filePath,
+            headSha
+          );
+          
+          if (lines) {
+            res.set('Content-Type', 'text/plain');
+            return res.send(lines.join('\n'));
+          }
+          
+          res.status(404).json({ error: 'File not found in GitLab repository' });
+        } catch (error) {
+          console.error(`Failed to fetch file ${filePath} from GitLab:`, error);
+          res.status(500).json({ error: 'Failed to fetch file from GitLab' });
+        }
+      });
+
+      router.post('/api/post-discussion', async (req, res) => {
+        try {
+          const { gitlabConfig, mrDetails, feedbackItem } = req.body;
+
+          if (!gitlabConfig || !mrDetails || !feedbackItem) {
+            return res.status(400).json({ success: false, error: 'Missing parameters' });
+          }
+
+          if (!gitlabConfig.url || !gitlabConfig.accessToken) {
+            return res.status(400).json({ success: false, error: 'GitLab config missing url or accessToken' });
+          }
+
+          const { postDiscussion } = await import('../services/gitlabService.js');
+          const result = await postDiscussion(gitlabConfig, mrDetails, feedbackItem);
+
+          res.json({ success: true, result });
+        } catch (error) {
+          console.error('Failed to post discussion:', error);
+          res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+      });
+
+      // Unified AI Chat endpoint
+      router.post('/api/chat', async (req, res) => {
+        try {
+          const { messages, lineContent, filePath, lineNumber, fileContent, contextLines = 5 } = req.body;
+          const isNewConversation = !messages || messages.length === 0;
+
+          if (isNewConversation && !lineContent) {
+            return res.status(400).json({ success: false, error: 'Missing lineContent for new conversation' });
+          }
+
+          if (!filePath) {
+            return res.status(400).json({ success: false, error: 'Missing filePath parameter' });
+          }
+
+          const { AIProviderCore } = await import('../shared/services/aiProviderCore.js');
+          let response: string;
+
+          if (config.llm.provider === 'gemini-cli') {
+            const { GeminiCliProvider } = await import('../services/llm/geminiCliProvider.js');
+            const provider = new GeminiCliProvider();
+            if (isNewConversation) {
+              response = await provider.explainLine(lineContent, filePath, fileContent, contextLines, lineNumber);
+            } else {
+              response = await provider.continueChat(messages, filePath, fileContent, lineNumber);
+            }
+          } else if (config.llm.provider === 'gemini' && config.llm.apiKey) {
+            if (isNewConversation) {
+              response = await AIProviderCore.generateGeminiExplanation(config.llm.apiKey, lineContent, filePath, fileContent, contextLines, lineNumber);
+            } else {
+              response = await AIProviderCore.continueGeminiChat(config.llm.apiKey, messages, filePath, fileContent, lineNumber);
+            }
+          } else if (config.llm.provider === 'anthropic' && config.llm.apiKey) {
+            if (isNewConversation) {
+              response = await AIProviderCore.generateAnthropicExplanation(config.llm.apiKey, lineContent, filePath, fileContent, contextLines, lineNumber);
+            } else {
+              response = await AIProviderCore.continueAnthropicChat(config.llm.apiKey, messages, filePath, fileContent, lineNumber);
+            }
+          } else {
+            return res.status(400).json({ success: false, error: `Unsupported LLM provider: ${config.llm.provider} or API key missing` });
+          }
+
+          res.json({ success: true, explanation: response });
+        } catch (error) {
+          console.error('AI chat/explain error:', error);
+          res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+      });
+
+      console.log('✅ LLM provider initialized successfully');
+
+      if (!isApiOnly) {
+        console.log('\n🚀 AI Code Review is fully ready!');
+        if (config.ui.autoOpen) {
+          try {
+            await openBrowser(url);
+          } catch {
+            console.log('Could not automatically open browser');
+          }
         }
       }
+    } catch (error) {
+      console.error('❌ Failed to initialize LLM provider:', error);
+      // We don't exit here as the server is already running and might be useful for other things (like config)
+      // but the core features won't work.
     }
   });
 

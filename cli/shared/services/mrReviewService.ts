@@ -5,19 +5,19 @@
  */
 
 import {
-  AIProviderCore,
-  type AIReviewRequest,
-  type AIReviewResponse,
-  GeminiCliCore,
-  type GeminiCliItem,
-  type GitLabConfig,
-  type GitLabMRDetails,
-  type ReviewFeedback,
-  Severity,
-  buildReviewPrompt,
-  fetchMrData,
-  filterAndDeduplicateFeedback,
-  parseAIResponse,
+    AIProviderCore,
+    type AIReviewRequest,
+    type AIReviewResponse,
+    GeminiCliCore,
+    type GeminiCliItem,
+    type GitLabConfig,
+    type GitLabMRDetails,
+    type ReviewFeedback,
+    Severity,
+    buildReviewPrompt,
+    fetchMrData,
+    filterAndDeduplicateFeedback,
+    parseAIResponse,
 } from '../index.js';
 import { type FrontendGitLabConfig, normalizeGitLabConfig } from '../types/unifiedConfig.js';
 
@@ -35,6 +35,7 @@ export interface MrReviewOptions {
     }
   >; // Per-project prompt configurations
   canonicalProjectName?: string; // Canonical project path from GitLab API (e.g., "ghpr-tech/js/jsgh-lib")
+  optimizedMode?: boolean; // Enable agent-driven mode: excludes full file contents, includes file tree
 }
 
 export interface MrReviewResult {
@@ -65,7 +66,8 @@ export class MrReviewService {
     }
 
     // Fetch MR data using unified GitLab service
-    const mrDetails = await fetchMrData(normalizedConfig, mrUrl);
+    // Use optimized mode for agent-driven file fetching when enabled
+    const mrDetails = await fetchMrData(normalizedConfig, mrUrl, options.optimizedMode ?? true);
 
     if (options.verbose) {
       console.log(`📄 Found ${mrDetails.fileDiffs.length} changed files`);
@@ -96,6 +98,11 @@ export class MrReviewService {
       customPromptFile: options.customPromptFile,
       promptStrategy: options.promptStrategy,
       projectPrompts: options.projectPrompts,
+      changedFiles: mrDetails.fileDiffs.map(d => d.new_path), // Explicit list of file paths
+      projectId: mrDetails.projectId,
+      headSha: mrDetails.head_sha,
+      gitlabConfig: normalizedConfig,
+      provider: options.provider,
     };
 
     if (options.verbose) {
@@ -153,7 +160,7 @@ export class MrReviewService {
       case 'anthropic':
         return MrReviewService.generateAnthropicReview(prompt, options);
       case 'gemini-cli':
-        return MrReviewService.generateGeminiCliReview(prompt, options);
+        return MrReviewService.generateGeminiCliReview(prompt, request, options);
       default:
         throw new Error(`Unsupported AI provider: ${options.provider}`);
     }
@@ -201,46 +208,31 @@ export class MrReviewService {
     }
   }
 
-  /**
-   * Generates review using Gemini CLI tool
-   */
   private static async generateGeminiCliReview(
     prompt: string,
+    request: AIReviewRequest,
     options: MrReviewOptions
   ): Promise<AIReviewResponse> {
     try {
       if (options.verbose) {
-        console.log('Calling gemini CLI...');
+        console.log('Calling gemini CLI via ACP session...');
       }
 
-      const geminiItems = await GeminiCliCore.executeReview(prompt, { verbose: !!options.verbose });
+      // Use ACP session for execution to support context-aware file fetching
+      const { GeminiACPSession } = await import('../../services/GeminiACPSession.js');
+      const session = GeminiACPSession.getInstance();
 
-      // Convert to our expected format
-      const feedback = geminiItems.map((item: GeminiCliItem, index: number) => ({
-        id: `gemini-cli-${Date.now()}-${index}`,
-        filePath: String(item.filePath || '').replace(/\\/g, '/'),
-        lineNumber: Number(item.lineNumber || 0),
-        severity:
-          item.severity === 'error'
-            ? Severity.Critical
-            : item.severity === 'warning'
-              ? Severity.Warning
-              : item.severity === 'info'
-                ? Severity.Info
-                : Severity.Suggestion,
-        title: String(item.title || 'Code Review Comment'),
-        description: String(item.description || ''),
-        lineContent: '',
-        position: null,
-        status: 'pending' as const,
-        isExisting: false,
-      }));
+      // Set MR context for on-demand file fetching
+      if (request.projectId && request.headSha && request.gitlabConfig) {
+        session.mrContext = {
+          projectId: request.projectId,
+          headSha: request.headSha,
+          gitlabConfig: request.gitlabConfig,
+        };
+      }
 
-      return {
-        feedback,
-        summary: `Gemini CLI review completed with ${feedback.length} recommendations.`,
-        overallRating: feedback.length > 0 ? 'comment' : 'approve',
-      };
+      const rawOutput = await session.chat(prompt);
+      return parseAIResponse(rawOutput);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 

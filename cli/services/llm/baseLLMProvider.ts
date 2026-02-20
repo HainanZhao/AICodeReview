@@ -85,7 +85,7 @@ export abstract class BaseLLMProvider implements LLMProvider {
    * Shared method to build review prompt from ReviewRequest
    * Converts ReviewRequest to AIReviewRequest format and uses shared buildReviewPrompt
    */
-  protected buildPrompt(request: ReviewRequest): string {
+  protected async buildPrompt(request: ReviewRequest): Promise<string> {
     // Convert ReviewRequest to AIReviewRequest format
     const aiRequest: AIReviewRequest = {
       title: request.title || 'Code Review',
@@ -96,6 +96,11 @@ export abstract class BaseLLMProvider implements LLMProvider {
       parsedDiffs: request.parsedDiffs || [],
       existingFeedback: request.existingFeedback || [],
       authorName: request.authorName || 'Unknown',
+      changedFiles: request.changedFiles,
+      projectId: request.projectId,
+      headSha: request.headSha,
+      gitlabConfig: request.gitlabConfig,
+      provider: this.providerName,
     };
 
     return buildReviewPrompt(aiRequest);

@@ -20,7 +20,7 @@ export class AnthropicProvider extends BaseLLMProvider {
       AIProviderCore.validateApiKey(this.apiKey, 'Anthropic');
 
       // Build prompt using the better prompt builder
-      const prompt = this.buildPrompt(requestData);
+      const prompt = await this.buildPrompt(requestData);
 
       // Generate review using shared core - but we need to parse differently
       const rawResponse = await this.generateRawAnthropicReview(prompt);

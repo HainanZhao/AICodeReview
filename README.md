@@ -325,6 +325,63 @@ Customize the AI review process with project-specific requirements, coding stand
 
 ---
 
+---
+
+## 🚀 Optimized Mode (Agent-Driven File Fetching)
+
+Starting from v1.5.10, the tool supports an optimized mode for code reviews that uses agent-driven file fetching with the Gemini CLI provider.
+
+### How It Works
+
+**Traditional Mode (Default in previous versions):**
+- Fetches full file contents for small files
+- Includes both git diffs AND full file contents in the prompt
+- Sends very large prompts to the AI (can be 100KB+)
+
+**Optimized Mode (New Default):**
+- Only includes git diffs (no full file contents)
+- Generates a file tree showing all changed files
+- AI can request specific file contents on-demand when needed
+- Significantly smaller prompts (typically 10-50KB)
+
+### Benefits
+
+- **Faster Reviews**: Smaller prompts mean faster AI response times
+- **More Contextual**: AI can fetch full file content when it needs more context
+- **Better Accuracy**: AI doesn't rely on potentially outdated cached content
+
+### Configuration
+
+Optimized mode is enabled by default. You can configure it in your config file:
+
+```json
+{
+  "llm": {
+    "provider": "gemini-cli",
+    "optimizedMode": true  // Default is true
+  }
+}
+```
+
+To disable optimized mode and use the traditional approach:
+
+```json
+{
+  "llm": {
+    "provider": "gemini-cli",
+    "optimizedMode": false
+  }
+}
+```
+
+### File Fetching Endpoint
+
+When optimized mode is enabled, the AI can fetch file contents via the `/api/files` endpoint. This is automatically configured when running the web interface or API server.
+
+**Note:** Optimized mode only works with the `gemini-cli` provider.
+
+---
+
 ## 🐛 Troubleshooting
 
 ### Project Configuration Issues (🆕 v1.5.0)

@@ -1,6 +1,7 @@
+import yaml from 'js-yaml';
 import * as fs from 'node:fs';
 import { type ParsedFileDiff, type ReviewFeedback, Severity } from '../types/gitlab.js';
-import { CRITICAL_RECAP, STATIC_INSTRUCTIONS } from './prompts/index.js';
+import { STATIC_INSTRUCTIONS } from './prompts/index.js';
 
 /**
  * Core AI review service functions that can be shared between UI and CLI
@@ -19,6 +20,7 @@ export interface AIReviewItem {
   title: string;
   description: string;
   lineContent: string;
+  suggestion?: string; // Optional field some models might produce
 }
 
 export interface AIReviewResponseRaw {
@@ -46,6 +48,11 @@ export interface AIReviewRequest {
       promptStrategy?: 'append' | 'prepend' | 'replace';
     }
   >; // Available per-project prompts configuration
+  changedFiles?: string[]; // List of changed file paths for unambiguous reference
+  projectId?: number; // Optional GitLab project ID
+  headSha?: string; // Optional GitLab head SHA
+  gitlabConfig?: { url: string; accessToken: string }; // Optional GitLab config
+  provider?: string; // Optional LLM provider name
 }
 
 export interface AIReviewResponse {
@@ -282,9 +289,9 @@ ${customContent}
  * Builds the dynamic header section with MR details
  */
 const buildMRDetails = (request: AIReviewRequest): string => {
-  const { title, description, sourceBranch, targetBranch, diffContent, authorName } = request;
+  const { title, description, sourceBranch, targetBranch, diffContent, authorName, changedFiles } = request;
 
-  return `
+  let details = `
 **Merge Request Details:**
 - Title: ${title}
 - Author: ${authorName}
@@ -292,8 +299,12 @@ const buildMRDetails = (request: AIReviewRequest): string => {
 - Target Branch: ${targetBranch}
 - Description: ${description || 'No description provided'}
 
-**Code Changes:**
+${changedFiles && changedFiles.length > 0 ? `**Changed Files (Full Paths):**\n${changedFiles.map(f => `- ${f}`).join('\n')}` : ''}
+
+**Code Changes (Git Diffs):**
 ${diffContent}`;
+
+  return details;
 };
 
 /**
@@ -319,13 +330,41 @@ ${existingFeedback
 };
 
 /**
+ * Builds generic instructions for AI agents (e.g. for on-demand file fetching)
+ */
+const buildGenericInstructions = (request: AIReviewRequest): string => {
+  try {
+    const { GeminiACPSession } = require('../../services/GeminiACPSession.js');
+    const baseUrl = GeminiACPSession.getInstance().baseUrl;
+    if (baseUrl) {
+      const fetchUrl = `${baseUrl}/api/files?path=<file_path>`;
+      return `
+**🛠️ Tool Instructions:**
+If the git diff alone is insufficient, you MUST retrieve full file contents or list directories by using your built-in tools (e.g. \`fs.read_file\`, \`fs.list_directory\`) or by calling the local proxy endpoint:
+\`curl "${fetchUrl}"\`
+
+Example: \`curl "${baseUrl}/api/files?path=src/utils.ts"\`
+The file path should be EXACTLY as shown in the "Changed Files (Full Paths)" list.
+`;
+    }
+  } catch (e) {
+    // Fallback if session is not available
+  }
+  return '';
+};
+
+/**
  * Builds the AI review prompt based on MR data
  * Structure varies based on promptStrategy:
- * - append (default): Static Instructions → MR Details → Custom Instructions → Existing Comments → Critical Recap
- * - prepend: Custom Instructions → Static Instructions → MR Details → Existing Comments → Critical Recap
- * - replace: Custom Instructions → MR Details → Existing Comments → Critical Recap
+ * - append (default): Static Instructions → Generic Instructions → MR Details → Custom Instructions → Existing Comments
+ * - prepend: Custom Instructions → Static Instructions → Generic Instructions → MR Details → Existing Comments
+ * - replace: Custom Instructions → MR Details → Existing Comments
  */
 export const buildReviewPrompt = (request: AIReviewRequest): string => {
+  if (request.changedFiles && request.changedFiles.length > 0) {
+    console.log('📄 List of changed files for AI review:\n' + request.changedFiles.map(f => `  - ${f}`).join('\n'));
+  }
+
   // Resolve the correct prompt configuration for this project
   const promptConfig = resolveProjectPromptConfig(
     request.projectName,
@@ -335,6 +374,7 @@ export const buildReviewPrompt = (request: AIReviewRequest): string => {
   );
 
   const customSection = buildCustomPromptSection(promptConfig.promptFile, promptConfig.strategy);
+  const genericInstructions = buildGenericInstructions(request);
   const mrDetails = buildMRDetails(request);
   const existingFeedback = buildExistingFeedbackSection(request.existingFeedback || []);
 
@@ -343,54 +383,109 @@ export const buildReviewPrompt = (request: AIReviewRequest): string => {
 
   switch (promptConfig.strategy) {
     case 'prepend':
-      sections = [customSection, STATIC_INSTRUCTIONS, mrDetails, existingFeedback, CRITICAL_RECAP];
+      sections = [customSection, STATIC_INSTRUCTIONS, genericInstructions, mrDetails, existingFeedback];
       break;
 
     case 'replace':
-      sections = [customSection, mrDetails, existingFeedback, CRITICAL_RECAP];
+      sections = [customSection, mrDetails, existingFeedback];
       break;
     default:
-      sections = [STATIC_INSTRUCTIONS, customSection, mrDetails, existingFeedback, CRITICAL_RECAP];
+      sections = [STATIC_INSTRUCTIONS, customSection, genericInstructions, mrDetails, existingFeedback];
       break;
   }
 
-  return sections.filter(Boolean).join('');
+  const prompt = sections.filter(Boolean).join('');
+  console.log(`📊 Total AI prompt length: ${prompt.length} characters`);
+  return prompt;
 };
 
 /**
  * Parses AI response text into structured review feedback
  */
 export const parseAIResponse = (responseText: string): AIReviewResponse => {
+  // Log the start of the response for debugging
+  const preview = responseText.length > 2000 
+    ? responseText.substring(0, 2000) + '...' 
+    : responseText;
+  console.log(`📝 AI Response Preview: ${preview}`);
+
   try {
-    // Try to extract JSON from the response
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('No JSON found in AI response');
+    // Try to extract YAML from the response (preferred format)
+    let yamlContent = '';
+    
+    // 1. Look for YAML inside markdown code blocks
+    // We use a greedier approach but specifically looking for yaml/yml markers
+    const yamlBlockMatch = responseText.match(/```(?:yaml|yml)\s*([\s\S]*?)```/i);
+    if (yamlBlockMatch) {
+      // If we found a YAML block, we need to make sure we didn't stop early due to nested code blocks
+      // We look for the LAST ``` in the string if there are multiple
+      const startTag = '```yaml';
+      const startTagAlt = '```yml';
+      const startIndex = responseText.toLowerCase().indexOf(startTag) !== -1 
+        ? responseText.toLowerCase().indexOf(startTag) + startTag.length
+        : responseText.toLowerCase().indexOf(startTagAlt) + startTagAlt.length;
+      
+      const lastEndIndex = responseText.lastIndexOf('```');
+      
+      if (lastEndIndex > startIndex) {
+        yamlContent = responseText.substring(startIndex, lastEndIndex);
+      } else {
+        yamlContent = yamlBlockMatch[1];
+      }
+    } else {
+      // 2. If no code block, try to find content that looks like YAML (starts with key: value)
+      const lines = responseText.split('\n');
+      const firstKeyIndex = lines.findIndex(l => /^[a-zA-Z0-9_-]+:/.test(l.trim()));
+      if (firstKeyIndex !== -1) {
+        yamlContent = lines.slice(firstKeyIndex).join('\n');
+      } else {
+        yamlContent = responseText;
+      }
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = yaml.load(yamlContent) as any;
 
-    // Validate and transform the response
-    const feedback: ReviewFeedback[] = (parsed.feedback || []).map((item: AIReviewItem) => ({
-      id: `ai-${Math.random().toString(36).substr(2, 9)}`,
-      filePath: item.filePath || '',
-      lineNumber: typeof item.lineNumber === 'number' ? item.lineNumber : 0,
-      severity: validateSeverity(item.severity),
-      title: item.title || 'AI Review Comment',
-      description: item.description || '',
-      lineContent: item.lineContent || '',
-      position: null,
-      status: 'pending' as const,
-      isExisting: false,
-    }));
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Parsed YAML is not an object');
+    }
+
+    // Extract feedback items
+    let feedbackItems: any[] = [];
+    if (parsed.feedback) {
+      feedbackItems = Array.isArray(parsed.feedback) ? parsed.feedback : [];
+    }
+
+    const feedback: ReviewFeedback[] = feedbackItems.map((item: any) => {
+      // Defensively ensure fields are strings
+      const filePath = typeof item.filePath === 'string' ? item.filePath : String(item.filePath || '');
+      const title = typeof item.title === 'string' ? item.title : String(item.title || 'AI Review Comment');
+      const description = typeof item.description === 'string' ? item.description : String(item.description || '');
+      const lineContent = typeof item.lineContent === 'string' ? item.lineContent : String(item.lineContent || '');
+      
+      return {
+        id: `ai-${Math.random().toString(36).substr(2, 9)}`,
+        filePath: filePath,
+        lineNumber: typeof item.lineNumber === 'number' ? item.lineNumber : Number.parseInt(String(item.lineNumber || '0'), 10),
+        severity: validateSeverity(String(item.severity || '')),
+        title: title,
+        description: description,
+        lineContent: lineContent,
+        position: null,
+        status: 'pending' as const,
+        isExisting: false,
+      };
+    });
 
     return {
       feedback,
-      summary: parsed.summary || 'AI review completed',
-      overallRating: validateOverallRating(parsed.overallRating),
+      summary: typeof parsed.summary === 'string' ? parsed.summary : String(parsed.summary || 'AI review completed'),
+      overallRating: validateOverallRating(String(parsed.overallRating || '')),
     };
   } catch (error) {
-    console.error('Failed to parse AI response:', error);
+    console.error('Failed to parse AI response (YAML):', error);
+    
+    // Log full response on failure for debugging
+    console.log('📄 Full unparseable AI response:', responseText);
 
     // Fallback: create a simple feedback item with the raw response
     return {
@@ -400,8 +495,8 @@ export const parseAIResponse = (responseText: string): AIReviewResponse => {
           filePath: '',
           lineNumber: 0,
           severity: Severity.Info,
-          title: 'AI Review Response',
-          description: `Raw AI response (parsing failed):\n\n${responseText}`,
+          title: 'AI Review Response (Parsing Failed)',
+          description: `The AI response could not be parsed. Expected YAML format. Error: ${error instanceof Error ? error.message : String(error)}\n\nRaw response preview:\n${responseText.substring(0, 500)}...`,
           lineContent: '',
           position: null,
           status: 'pending',
