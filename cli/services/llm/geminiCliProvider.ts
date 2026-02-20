@@ -30,6 +30,7 @@ export class GeminiCliProvider extends BaseLLMProvider {
 
   protected buildPrompt(request: ReviewRequest): string {
     const diffContent = request.diffForPrompt;
+    const fileTree = (request as any).fileTree;
     
     // Dynamically get the base URL if available
     let fileReadingInstructions = '2. If the context in the diff is insufficient to understand the change or its impact, **you must use your file reading capabilities** (e.g., fs.readTextFile) to read the relevant source files. Do not guess.';
@@ -50,15 +51,17 @@ export class GeminiCliProvider extends BaseLLMProvider {
       // Fallback to generic instruction
     }
 
+    const fileTreeSection = fileTree ? `\n**Changed Files (File Tree):**\n${fileTree}\n` : '';
+
     return `You are an expert code reviewer. You are reviewing a Merge Request.
 Your goal is to find bugs, security issues, and improvements.
 
 **Instructions:**
-1. Review the provided diff below.
+1. Review the provided file tree and diff below.
 ${fileReadingInstructions}
-3. Provide feedback in the specified JSON format.
-
-**Diff to Review:**
+2. Provide feedback in the specified JSON format.
+${fileTreeSection}
+**Code Changes (Git Diffs):**
 ${diffContent}
 
 **Output Format:**

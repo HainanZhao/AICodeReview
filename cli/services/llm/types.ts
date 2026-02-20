@@ -13,6 +13,8 @@ export interface ReviewRequest {
   parsedDiffs?: ParsedFileDiff[];
   // File contents for better AI context
   fileContents?: Record<string, { oldContent?: string[]; newContent?: string[] }>;
+  // Optional file tree for agent-driven file fetching
+  fileTree?: string;
 }
 
 // New interface for MR URL-based requests

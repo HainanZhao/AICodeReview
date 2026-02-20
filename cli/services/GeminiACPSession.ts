@@ -1,7 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
-import { readFileSync } from 'node:fs';
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';

@@ -3,6 +3,7 @@ export interface LLMConfig {
   apiKey?: string;
   googleCloudProject?: string;
   timeout?: number; // Timeout in milliseconds for AI requests (default: 240000ms = 4 minutes)
+  optimizedMode?: boolean; // Enable agent-driven mode: excludes full file contents, includes file tree for on-demand fetching
 }
 
 export interface ServerConfig {

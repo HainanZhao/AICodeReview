@@ -498,10 +498,12 @@ export const getNewLineFromOldLine = (
 
 /**
  * Fetches the main MR data with all related information
+ * @param optimizedMode If true, uses lightweight diff without full file contents (agent-driven mode)
  */
 export const fetchMrData = async (
   config: GitLabConfig,
-  mrUrl: string
+  mrUrl: string,
+  optimizedMode: boolean = true
 ): Promise<GitLabMRDetails> => {
   const { projectPath, mrIid } = parseMrUrl(mrUrl, config.url);
   const encodedProjectPath = encodeURIComponent(projectPath);
@@ -568,7 +570,23 @@ export const fetchMrData = async (
   await Promise.all(contentPromises);
 
   // Parse diffs with expanded context AFTER file contents are available
-  const { diffForPrompt, parsedDiffs } = parseDiffsToHunks(diffs, fileContents);
+  // Use optimized diff building that excludes full file contents for agent-driven mode
+  let diffForPrompt: string;
+  let parsedDiffs: ParsedFileDiff[];
+  let fileTree: string | undefined;
+
+  if (optimizedMode) {
+    const result = buildOptimizedDiffForPrompt(diffs, fileContents);
+    diffForPrompt = result.diffForPrompt;
+    parsedDiffs = result.parsedDiffs;
+    fileTree = result.fileTree;
+  } else {
+    // Use full diff with file contents for backward compatibility
+    const result = parseDiffsToHunks(diffs, fileContents);
+    diffForPrompt = result.diffForPrompt;
+    parsedDiffs = result.parsedDiffs;
+    fileTree = generateFileTree(diffs.map(d => d.new_path));
+  }
 
   // Fill in the SHA values for existing feedback positions
   existingFeedback.forEach((feedback: ReviewFeedback) => {
@@ -613,6 +631,7 @@ export const fetchMrData = async (
     parsedDiffs,
     fileContents,
     lineMappings,
+    fileTree, // Include file tree for agent-driven file fetching
     discussions, // Include discussions for reference
     existingFeedback, // Add existing feedback to the returned object
     approvals, // Include approval information
@@ -889,4 +908,103 @@ export const testGitLabConnection = async (config: GitLabConfig): Promise<boolea
     console.error('GitLab connection test failed:', error);
     return false;
   }
+};
+
+/**
+ * Builds a lightweight diff for prompt without full file contents.
+ * The agent can request full file contents via the /api/files endpoint when needed.
+ */
+export const buildOptimizedDiffForPrompt = (
+  diffs: FileDiff[],
+  fileContents: Record<string, { oldContent?: string[]; newContent?: string[] }>
+): { diffForPrompt: string; parsedDiffs: ParsedFileDiff[]; fileTree: string } => {
+  const parsedDiffs: ParsedFileDiff[] = [];
+  const allDiffsForPrompt: string[] = [];
+  const changedFiles: string[] = [];
+
+  diffs.forEach((file) => {
+    // Parse the diff into structured hunks
+    const hunks = parseDiffs(file.diff);
+
+    // Generate simplified prompt content - only include the git diff, not full file content
+    const promptParts: string[] = [];
+    promptParts.push(`\n=== GIT DIFF: ${file.new_path} ===`);
+    promptParts.push(file.diff);
+    promptParts.push('=== END DIFF ===\n');
+
+    allDiffsForPrompt.push(promptParts.join('\n'));
+    changedFiles.push(file.new_path);
+
+    parsedDiffs.push({
+      filePath: file.new_path,
+      oldPath: file.old_path,
+      isNew: file.new_file,
+      isDeleted: file.deleted_file,
+      isRenamed: file.renamed_file,
+      hunks,
+    });
+  });
+
+  const diffForPrompt = allDiffsForPrompt.join('\n');
+  const fileTree = generateFileTree(changedFiles);
+
+  return {
+    diffForPrompt,
+    parsedDiffs,
+    fileTree,
+  };
+};
+
+/**
+ * Generates a file tree representation from a list of file paths
+ */
+export const generateFileTree = (filePaths: string[]): string => {
+  if (filePaths.length === 0) {
+    return '';
+  }
+
+  // Build a tree structure
+  const tree: Record<string, any> = {};
+
+  filePaths.forEach((filePath) => {
+    const parts = filePath.split('/');
+    let current = tree;
+    parts.forEach((part, index) => {
+      if (index === parts.length - 1) {
+        // This is a file
+        current[part] = null;
+      } else {
+        // This is a directory
+        if (!current[part]) {
+          current[part] = {};
+        }
+        current = current[part];
+      }
+    });
+  });
+
+  // Convert tree to string representation
+  const renderTree = (obj: Record<string, any>, prefix = ''): string => {
+    const entries = Object.entries(obj);
+    const lines: string[] = [];
+
+    entries.forEach(([key, value], index) => {
+      const isLast = index === entries.length - 1;
+      const connector = isLast ? '└── ' : '├── ';
+      const childPrefix = isLast ? prefix + '    ' : prefix + '│   ';
+
+      if (value === null) {
+        // File
+        lines.push(`${prefix}${connector}${key}`);
+      } else {
+        // Directory
+        lines.push(`${prefix}${connector}${key}/`);
+        lines.push(renderTree(value, childPrefix));
+      }
+    });
+
+    return lines.join('\n');
+  };
+
+  return renderTree(tree);
 };

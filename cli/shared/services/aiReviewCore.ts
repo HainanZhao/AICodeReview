@@ -46,6 +46,7 @@ export interface AIReviewRequest {
       promptStrategy?: 'append' | 'prepend' | 'replace';
     }
   >; // Available per-project prompts configuration
+  fileTree?: string; // Optional file tree for agent-driven file fetching
 }
 
 export interface AIReviewResponse {
@@ -282,9 +283,9 @@ ${customContent}
  * Builds the dynamic header section with MR details
  */
 const buildMRDetails = (request: AIReviewRequest): string => {
-  const { title, description, sourceBranch, targetBranch, diffContent, authorName } = request;
+  const { title, description, sourceBranch, targetBranch, diffContent, authorName, fileTree } = request;
 
-  return `
+  let details = `
 **Merge Request Details:**
 - Title: ${title}
 - Author: ${authorName}
@@ -292,8 +293,13 @@ const buildMRDetails = (request: AIReviewRequest): string => {
 - Target Branch: ${targetBranch}
 - Description: ${description || 'No description provided'}
 
-**Code Changes:**
+**Changed Files (File Tree):**
+${fileTree || '(File tree not available)'}
+
+**Code Changes (Git Diffs):**
 ${diffContent}`;
+
+  return details;
 };
 
 /**

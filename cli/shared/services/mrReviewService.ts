@@ -5,19 +5,19 @@
  */
 
 import {
-  AIProviderCore,
-  type AIReviewRequest,
-  type AIReviewResponse,
-  GeminiCliCore,
-  type GeminiCliItem,
-  type GitLabConfig,
-  type GitLabMRDetails,
-  type ReviewFeedback,
-  Severity,
-  buildReviewPrompt,
-  fetchMrData,
-  filterAndDeduplicateFeedback,
-  parseAIResponse,
+    AIProviderCore,
+    type AIReviewRequest,
+    type AIReviewResponse,
+    GeminiCliCore,
+    type GeminiCliItem,
+    type GitLabConfig,
+    type GitLabMRDetails,
+    type ReviewFeedback,
+    Severity,
+    buildReviewPrompt,
+    fetchMrData,
+    filterAndDeduplicateFeedback,
+    parseAIResponse,
 } from '../index.js';
 import { type FrontendGitLabConfig, normalizeGitLabConfig } from '../types/unifiedConfig.js';
 
@@ -35,6 +35,7 @@ export interface MrReviewOptions {
     }
   >; // Per-project prompt configurations
   canonicalProjectName?: string; // Canonical project path from GitLab API (e.g., "ghpr-tech/js/jsgh-lib")
+  optimizedMode?: boolean; // Enable agent-driven mode: excludes full file contents, includes file tree
 }
 
 export interface MrReviewResult {
@@ -65,7 +66,8 @@ export class MrReviewService {
     }
 
     // Fetch MR data using unified GitLab service
-    const mrDetails = await fetchMrData(normalizedConfig, mrUrl);
+    // Use optimized mode for agent-driven file fetching when enabled
+    const mrDetails = await fetchMrData(normalizedConfig, mrUrl, options.optimizedMode ?? true);
 
     if (options.verbose) {
       console.log(`📄 Found ${mrDetails.fileDiffs.length} changed files`);
@@ -96,6 +98,7 @@ export class MrReviewService {
       customPromptFile: options.customPromptFile,
       promptStrategy: options.promptStrategy,
       projectPrompts: options.projectPrompts,
+      fileTree: mrDetails.fileTree, // Include file tree for agent-driven file fetching
     };
 
     if (options.verbose) {
