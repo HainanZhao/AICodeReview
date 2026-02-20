@@ -1,5 +1,5 @@
+import yaml from 'js-yaml';
 import * as fs from 'node:fs';
-import { XMLParser } from 'fast-xml-parser';
 import { type ParsedFileDiff, type ReviewFeedback, Severity } from '../types/gitlab.js';
 import { STATIC_INSTRUCTIONS } from './prompts/index.js';
 
@@ -340,7 +340,7 @@ const buildGenericInstructions = (request: AIReviewRequest): string => {
       const fetchUrl = `${baseUrl}/api/files?path=<file_path>`;
       return `
 **🛠️ Tool Instructions:**
-If the git diff alone is insufficient, you MUST retrieve full file contents by calling the local proxy endpoint:
+If the git diff alone is insufficient, you MUST retrieve full file contents or list directories by using your built-in tools (e.g. \`fs.read_file\`, \`fs.list_directory\`) or by calling the local proxy endpoint:
 \`curl "${fetchUrl}"\`
 
 Example: \`curl "${baseUrl}/api/files?path=src/utils.ts"\`
@@ -404,50 +404,68 @@ export const buildReviewPrompt = (request: AIReviewRequest): string => {
  */
 export const parseAIResponse = (responseText: string): AIReviewResponse => {
   // Log the start of the response for debugging
-  const preview = responseText.length > 200 
-    ? responseText.substring(0, 200) + '...' 
+  const preview = responseText.length > 2000 
+    ? responseText.substring(0, 2000) + '...' 
     : responseText;
   console.log(`📝 AI Response Preview: ${preview}`);
 
   try {
-    // Try to extract XML from the response (unifed format for all providers)
-    const xmlMatch = responseText.match(/<review>[\s\S]*<\/review>/);
+    // Try to extract YAML from the response (preferred format)
+    let yamlContent = '';
     
-    if (!xmlMatch) {
-      throw new Error('No <review> XML tags found in AI response');
+    // 1. Look for YAML inside markdown code blocks
+    // We use a greedier approach but specifically looking for yaml/yml markers
+    const yamlBlockMatch = responseText.match(/```(?:yaml|yml)\s*([\s\S]*?)```/i);
+    if (yamlBlockMatch) {
+      // If we found a YAML block, we need to make sure we didn't stop early due to nested code blocks
+      // We look for the LAST ``` in the string if there are multiple
+      const startTag = '```yaml';
+      const startTagAlt = '```yml';
+      const startIndex = responseText.toLowerCase().indexOf(startTag) !== -1 
+        ? responseText.toLowerCase().indexOf(startTag) + startTag.length
+        : responseText.toLowerCase().indexOf(startTagAlt) + startTagAlt.length;
+      
+      const lastEndIndex = responseText.lastIndexOf('```');
+      
+      if (lastEndIndex > startIndex) {
+        yamlContent = responseText.substring(startIndex, lastEndIndex);
+      } else {
+        yamlContent = yamlBlockMatch[1];
+      }
+    } else {
+      // 2. If no code block, try to find content that looks like YAML (starts with key: value)
+      const lines = responseText.split('\n');
+      const firstKeyIndex = lines.findIndex(l => /^[a-zA-Z0-9_-]+:/.test(l.trim()));
+      if (firstKeyIndex !== -1) {
+        yamlContent = lines.slice(firstKeyIndex).join('\n');
+      } else {
+        yamlContent = responseText;
+      }
     }
 
-    const parser = new XMLParser({
-      ignoreAttributes: false,
-      trimValues: true,
-    });
-    const jsonObj = parser.parse(xmlMatch[0]);
-    const review = jsonObj.review;
+    const parsed = yaml.load(yamlContent) as any;
 
-    if (!review) {
-      throw new Error('Malformed XML: <review> root element not found');
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Parsed YAML is not an object');
     }
 
     // Extract feedback items
     let feedbackItems: any[] = [];
-    if (review.feedback && review.feedback.item) {
-      // Handle both single item and array of items
-      feedbackItems = Array.isArray(review.feedback.item) 
-        ? review.feedback.item 
-        : [review.feedback.item];
+    if (parsed.feedback) {
+      feedbackItems = Array.isArray(parsed.feedback) ? parsed.feedback : [];
     }
 
     const feedback: ReviewFeedback[] = feedbackItems.map((item: any) => {
       // Defensively ensure fields are strings
-      const filePath = typeof item.file_path === 'string' ? item.file_path : String(item.file_path || '');
+      const filePath = typeof item.filePath === 'string' ? item.filePath : String(item.filePath || '');
       const title = typeof item.title === 'string' ? item.title : String(item.title || 'AI Review Comment');
       const description = typeof item.description === 'string' ? item.description : String(item.description || '');
-      const lineContent = typeof item.line_content === 'string' ? item.line_content : String(item.line_content || '');
+      const lineContent = typeof item.lineContent === 'string' ? item.lineContent : String(item.lineContent || '');
       
       return {
         id: `ai-${Math.random().toString(36).substr(2, 9)}`,
         filePath: filePath,
-        lineNumber: typeof item.line_number === 'number' ? item.line_number : Number.parseInt(String(item.line_number || '0'), 10),
+        lineNumber: typeof item.lineNumber === 'number' ? item.lineNumber : Number.parseInt(String(item.lineNumber || '0'), 10),
         severity: validateSeverity(String(item.severity || '')),
         title: title,
         description: description,
@@ -460,11 +478,11 @@ export const parseAIResponse = (responseText: string): AIReviewResponse => {
 
     return {
       feedback,
-      summary: typeof review.summary === 'string' ? review.summary : String(review.summary || 'AI review completed'),
-      overallRating: validateOverallRating(String(review.overall_rating || '')),
+      summary: typeof parsed.summary === 'string' ? parsed.summary : String(parsed.summary || 'AI review completed'),
+      overallRating: validateOverallRating(String(parsed.overallRating || '')),
     };
   } catch (error) {
-    console.error('Failed to parse AI response:', error);
+    console.error('Failed to parse AI response (YAML):', error);
     
     // Log full response on failure for debugging
     console.log('📄 Full unparseable AI response:', responseText);
@@ -478,7 +496,7 @@ export const parseAIResponse = (responseText: string): AIReviewResponse => {
           lineNumber: 0,
           severity: Severity.Info,
           title: 'AI Review Response (Parsing Failed)',
-          description: `The AI response could not be parsed. Expected XML <review> format. Error: ${error instanceof Error ? error.message : String(error)}\n\nRaw response preview:\n${responseText.substring(0, 500)}...`,
+          description: `The AI response could not be parsed. Expected YAML format. Error: ${error instanceof Error ? error.message : String(error)}\n\nRaw response preview:\n${responseText.substring(0, 500)}...`,
           lineContent: '',
           position: null,
           status: 'pending',

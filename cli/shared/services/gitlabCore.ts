@@ -636,6 +636,27 @@ export const fetchMrData = async (
     ;
 
 /**
+ * Fetches repository tree (directory listing) from GitLab
+ */
+export const fetchRepositoryTree = async (
+  config: GitLabConfig,
+  projectId: number,
+  path: string,
+  ref: string,
+  recursive = false
+): Promise<Array<{ path: string; type: string; name: string }> | undefined> => {
+  if (!ref) return undefined;
+  try {
+    const encodedPath = encodeURIComponent(path);
+    const url = `${config.url}/api/v4/projects/${projectId}/repository/tree?path=${encodedPath}&ref=${ref}&recursive=${recursive}`;
+    return await gitlabApiFetch(url, config, {}, 'json');
+  } catch (e) {
+    console.warn(`Could not fetch repository tree for ${path} at ref ${ref}`, e);
+    return undefined;
+  }
+};
+
+/**
  * Lightweight function to fetch only the head SHA of a merge request
  * This is much faster than fetchMrData as it only fetches MR details and versions
  */
