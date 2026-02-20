@@ -226,21 +226,9 @@ export function isNonMeaningfulFile(filePath: string): boolean {
   const fileName = filePath.toLowerCase();
   const baseName = fileName.split('/').pop() || '';
 
-  // Lock files
-  if (
-    baseName.includes('lock') &&
-    (baseName.endsWith('.json') || baseName.endsWith('.yaml') || baseName.endsWith('.yml'))
-  ) {
-    return true;
-  }
-
   return NON_MEANINGFUL_FILE_PATTERNS.some((pattern) => {
-    if (pattern.endsWith('/')) {
-      return fileName.includes(pattern);
-    }
-    if (pattern.startsWith('*.')) {
-      return baseName.endsWith(pattern.substring(1));
-    }
+    if (pattern.endsWith('/')) return fileName.includes(pattern);
+    if (pattern.startsWith('*.')) return baseName.endsWith(pattern.slice(1));
     return baseName === pattern || fileName.endsWith(`/${pattern}`);
   });
 }
