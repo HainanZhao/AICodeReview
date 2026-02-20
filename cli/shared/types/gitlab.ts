@@ -118,7 +118,6 @@ export interface GitLabMRDetails {
   parsedDiffs: ParsedFileDiff[];
   fileContents: Record<string, { oldContent?: string[]; newContent?: string[] }>; // Serializable object instead of Map
   lineMappings: Record<string, LineMapping>; // Pre-computed line mappings for each file, serializable
-  fileTree?: string; // Optional file tree for agent-driven file fetching
   discussions: GitLabDiscussion[];
   existingFeedback: ReviewFeedback[];
   approvals?: {

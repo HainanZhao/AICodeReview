@@ -1,30 +1,32 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { readFileSync } from 'node:fs';
+import { Readable, Writable } from 'node:stream';
+import {
+  ClientSideConnection,
+  ndJsonStream,
+  type Client,
+  type SessionNotification,
+  type RequestPermissionRequest,
+  type RequestPermissionResponse,
+  type ReadTextFileRequest,
+  type ReadTextFileResponse,
+} from '@agentclientprotocol/sdk';
 
-interface JsonRpcRequest {
-  jsonrpc: '2.0';
-  id: number;
-  method: string;
-  params?: any;
-}
-
-interface JsonRpcResponse {
-  jsonrpc: '2.0';
-  id: number;
-  result?: any;
-  error?: any;
-}
-
-export class GeminiACPSession extends EventEmitter {
+export class GeminiACPSession extends EventEmitter implements Client {
   private static instance: GeminiACPSession;
   private process: ChildProcess | null = null;
   private sessionId: string | null = null;
-  private requestId = 0;
-  private pendingRequests = new Map<number, { resolve: (value: any) => void; reject: (reason?: any) => void }>();
+  private connection: ClientSideConnection | null = null;
   private initialized = false;
-  private buffer = '';
   public baseUrl: string | null = null;
+  public mrContext: {
+    projectId: number;
+    headSha: string;
+    gitlabConfig: {
+      url: string;
+      accessToken: string;
+    };
+  } | null = null;
 
   private constructor() {
     super();
@@ -45,36 +47,47 @@ export class GeminiACPSession extends EventEmitter {
     if (this.process) return;
 
     console.log('🚀 Starting Gemini ACP Session...');
-    this.process = spawn('gemini', ['--experimental-acp'], {
+    this.process = spawn('gemini', ['--experimental-acp', '--approval-mode', 'yolo'], {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
-    this.process.stdout?.on('data', (data) => this.handleData(data));
     this.process.stderr?.on('data', (data) => console.error(`[Gemini ACP stderr] ${data}`));
     this.process.on('exit', (code) => {
       console.log(`Gemini ACP process exited with code ${code}`);
       this.process = null;
       this.sessionId = null;
+      this.connection = null;
       this.initialized = false;
     });
 
+    if (this.process.stdout && this.process.stdin) {
+      const acpStream = ndJsonStream(
+        Writable.toWeb(this.process.stdin) as WritableStream<Uint8Array>,
+        Readable.toWeb(this.process.stdout) as ReadableStream<Uint8Array>
+      );
+      this.connection = new ClientSideConnection(() => this, acpStream);
+    } else {
+      throw new Error('Failed to establish pipes to gemini process');
+    }
+
     try {
       // 1. Initialize
-      await this.sendRequest('initialize', {
+      await this.connection.initialize({
         protocolVersion: 1,
         clientCapabilities: {
           fs: {
-            readTextFile: true, // Advertise read capabilities
-          }
+            readTextFile: true, // Re-enable native file reading tool
+          },
+          terminal: true, // Keep terminal for flexibility
         },
       });
 
       // 2. Create Session
-      const sessionResult = await this.sendRequest('session/new', {
+      const sessionResult = await this.connection.newSession({
         cwd: process.cwd(),
-        mcpServers: [], 
+        mcpServers: [],
       });
-      
+
       this.sessionId = sessionResult.sessionId;
       this.initialized = true;
       console.log(`✅ Gemini ACP Session started. ID: ${this.sessionId}`);
@@ -91,104 +104,104 @@ export class GeminiACPSession extends EventEmitter {
       this.process = null;
     }
     this.sessionId = null;
+    this.connection = null;
     this.initialized = false;
   }
 
   public async chat(message: string): Promise<string> {
-    if (!this.initialized || !this.sessionId) {
+    if (!this.initialized || !this.connection || !this.sessionId) {
       await this.start();
     }
-    
-    let responseText = '';
-    const onUpdate = (params: any) => {
-        if (params.sessionUpdate === 'agent_message_chunk' && params.content?.type === 'text') {
-            responseText += params.content.text;
-        }
-    };
 
-    this.on('session/update', onUpdate);
+    let responseText = '';
+
+    const onUpdate = (params: SessionNotification) => {
+      const update = params.update;
+      if (update.sessionUpdate === 'agent_message_chunk' && update.content?.type === 'text') {
+        responseText += update.content.text;
+      }
+    };
+    
+    this.on('session/update_internal', onUpdate);
 
     try {
-      await this.sendRequest('session/prompt', {
-        sessionId: this.sessionId,
+      console.log(`[Gemini ACP] Sending prompt to session ${this.sessionId} (${message.length} chars)...`);
+      const response = await this.connection!.prompt({
+        sessionId: this.sessionId!,
         prompt: [{ type: 'text', text: message }],
       });
+
+      console.log(`[Gemini ACP] Turn finished with reason: ${response.stopReason}. Captured ${responseText.length} characters.`);
+    } catch (error) {
+      console.error('[Gemini ACP] Chat error:', error);
+      throw error;
     } finally {
-      this.off('session/update', onUpdate);
+      this.off('session/update_internal', onUpdate);
     }
 
     return responseText;
   }
 
-  private handleData(data: Buffer) {
-    this.buffer += data.toString();
-    const lines = this.buffer.split('\n');
-    this.buffer = lines.pop() || '';
+  // --- Client interface implementation ---
 
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      try {
-        const msg = JSON.parse(line);
-        if ('id' in msg) {
-          if ('method' in msg) {
-             // Request from server (e.g. fs/read_text_file)
-             this.handleServerRequest(msg);
-          } else {
-             // Response to our request
-             if ('result' in msg) {
-                this.pendingRequests.get(msg.id)?.resolve(msg.result);
-             } else {
-                this.pendingRequests.get(msg.id)?.reject(msg.error);
-             }
-             this.pendingRequests.delete(msg.id);
-          }
-        } else if ('method' in msg) {
-            // Notification
-            this.emit(msg.method, msg.params);
-        }
-      } catch (e) {
-        console.error('Error parsing JSON-RPC message:', e);
-      }
-    }
+  async requestPermission(params: RequestPermissionRequest): Promise<RequestPermissionResponse> {
+    console.log(`[Gemini ACP ←] Permission requested for session: ${params.sessionId}`);
+    
+    // Auto-approve in yolo mode by selecting the first option
+    return { outcome: 'selected', optionId: params.options[0].optionId } as any;
   }
 
-  private async handleServerRequest(msg: any) {
-    if (msg.method === 'fs/read_text_file') {
-      try {
-        const filePath = msg.params.uri || msg.params.path;
-        // Basic security: ensure we are reading text files
-        const content = readFileSync(filePath, 'utf-8');
-        this.sendResponse(msg.id, { content });
-      } catch (e: any) {
-        this.sendError(msg.id, { code: -32000, message: `Failed to read file: ${e.message}` });
+  async sessionUpdate(params: SessionNotification): Promise<void> {
+    const update = params.update;
+    // Log incoming session updates for debugging
+    if (update.sessionUpdate === 'agent_message_chunk') {
+      if (update.content?.type === 'text') {
+        // Optional: log chunk size if needed
+        // console.log(`[Gemini ACP ←] Message chunk: ${update.content.text.length} chars`);
       }
+    } else if (update.sessionUpdate === 'agent_thought_chunk') {
+      if (update.content?.type === 'text') {
+        console.log(`[Gemini Thought] ${update.content.text}`);
+      }
+    } else if (update.sessionUpdate === 'tool_call') {
+      const tool = update as any;
+      console.log(`[Gemini ACP ←] Tool Call: ${tool.title || 'unknown'} (ID: ${tool.toolCallId})`);
+    } else if (update.sessionUpdate === 'tool_call_update') {
+      const toolUpdate = update as any;
+      const cmd = toolUpdate.rawInput || (toolUpdate.content?.[0] as any)?.text;
+      console.log(`[Gemini ACP ←] Tool Call Update (ID: ${toolUpdate.toolCallId}): ${cmd || ''}`);
     } else {
-        this.sendError(msg.id, { code: -32601, message: 'Method not found' });
+      console.log(`[Gemini ACP ←] Session Update: ${update.sessionUpdate}`);
     }
+    
+    // Emit internally for chat() to handle
+    this.emit('session/update_internal', params);
   }
 
-  private sendResponse(id: number, result: any) {
-    if (!this.process || !this.process.stdin) return;
-    const res: any = { jsonrpc: '2.0', id, result };
-    this.process.stdin.write(JSON.stringify(res) + '\n');
-  }
+  async readTextFile(params: ReadTextFileRequest): Promise<ReadTextFileResponse> {
+    const filePath = params.path;
+    console.log(`🔍 AI is reading file (native tool): ${filePath}`);
 
-  private sendError(id: number, error: { code: number; message: string }) {
-    if (!this.process || !this.process.stdin) return;
-    const res: any = { jsonrpc: '2.0', id, error };
-    this.process.stdin.write(JSON.stringify(res) + '\n');
-  }
+    if (!this.mrContext) {
+      throw new Error('MR context not set. Ensure review context is initialized before reading files.');
+    }
 
-  private sendRequest(method: string, params: any): Promise<any> {
-    return new Promise((resolve, reject) => {
-      if (!this.process) {
-        reject(new Error('Process not running'));
-        return;
+    try {
+      const { fetchFileContentAsLines } = await import('../shared/services/gitlabCore.js');
+      const lines = await fetchFileContentAsLines(
+        this.mrContext.gitlabConfig,
+        this.mrContext.projectId,
+        filePath,
+        this.mrContext.headSha
+      );
+
+      if (lines) {
+        return { content: lines.join('\n') };
       }
-      const id = ++this.requestId;
-      this.pendingRequests.set(id, { resolve, reject });
-      const req: JsonRpcRequest = { jsonrpc: '2.0', id, method, params };
-      this.process.stdin?.write(JSON.stringify(req) + '\n');
-    });
+      throw new Error(`File not found in GitLab: ${filePath}`);
+    } catch (e: any) {
+      console.error('Gemini ACP readTextFile error:', e);
+      throw e;
+    }
   }
 }

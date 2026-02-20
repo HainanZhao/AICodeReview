@@ -171,19 +171,41 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
       }
 
       // New endpoint to serve file content for Gemini CLI (ACP tool access)
-      router.get('/api/files', (req, res) => {
+      router.get('/api/files', async (req, res) => {
         const filePath = req.query.path as string;
+        console.log(`🌐 Proxy request: Fetching file content for ${filePath}`);
+
         if (!filePath) {
           return res.status(400).json({ error: 'Missing path parameter' });
         }
 
         try {
-          const content = readFileSync(filePath, 'utf-8');
-          res.set('Content-Type', 'text/plain');
-          res.send(content);
+          const { GeminiACPSession } = await import('../services/GeminiACPSession.js');
+          const session = GeminiACPSession.getInstance();
+          
+          if (!session.mrContext) {
+            return res.status(503).json({ error: 'MR context not yet initialized' });
+          }
+
+          const { projectId, headSha, gitlabConfig } = session.mrContext;
+          const { fetchFileContentAsLines } = await import('../shared/services/gitlabCore.js');
+          
+          const lines = await fetchFileContentAsLines(
+            gitlabConfig,
+            projectId,
+            filePath,
+            headSha
+          );
+          
+          if (lines) {
+            res.set('Content-Type', 'text/plain');
+            return res.send(lines.join('\n'));
+          }
+          
+          res.status(404).json({ error: 'File not found in GitLab repository' });
         } catch (error) {
-          console.error(`Failed to read file ${filePath}:`, error);
-          res.status(404).json({ error: 'File not found or unreadable' });
+          console.error(`Failed to fetch file ${filePath} from GitLab:`, error);
+          res.status(500).json({ error: 'Failed to fetch file from GitLab' });
         }
       });
 

@@ -573,19 +573,16 @@ export const fetchMrData = async (
   // Use optimized diff building that excludes full file contents for agent-driven mode
   let diffForPrompt: string;
   let parsedDiffs: ParsedFileDiff[];
-  let fileTree: string | undefined;
 
   if (optimizedMode) {
     const result = buildOptimizedDiffForPrompt(diffs, fileContents);
     diffForPrompt = result.diffForPrompt;
     parsedDiffs = result.parsedDiffs;
-    fileTree = result.fileTree;
   } else {
     // Use full diff with file contents for backward compatibility
     const result = parseDiffsToHunks(diffs, fileContents);
     diffForPrompt = result.diffForPrompt;
     parsedDiffs = result.parsedDiffs;
-    fileTree = generateFileTree(diffs.map(d => d.new_path));
   }
 
   // Fill in the SHA values for existing feedback positions
@@ -629,14 +626,14 @@ export const fetchMrData = async (
     fileDiffs: diffs,
     diffForPrompt,
     parsedDiffs,
-    fileContents,
-    lineMappings,
-    fileTree, // Include file tree for agent-driven file fetching
-    discussions, // Include discussions for reference
-    existingFeedback, // Add existing feedback to the returned object
-    approvals, // Include approval information
-  };
-};
+        fileContents,
+        lineMappings,
+        discussions, // Include discussions for reference
+        existingFeedback, // Add existing feedback to the returned object
+        approvals, // Include approval information
+      };
+    }
+    ;
 
 /**
  * Lightweight function to fetch only the head SHA of a merge request
@@ -917,7 +914,7 @@ export const testGitLabConnection = async (config: GitLabConfig): Promise<boolea
 export const buildOptimizedDiffForPrompt = (
   diffs: FileDiff[],
   fileContents: Record<string, { oldContent?: string[]; newContent?: string[] }>
-): { diffForPrompt: string; parsedDiffs: ParsedFileDiff[]; fileTree: string } => {
+): { diffForPrompt: string; parsedDiffs: ParsedFileDiff[] } => {
   const parsedDiffs: ParsedFileDiff[] = [];
   const allDiffsForPrompt: string[] = [];
   const changedFiles: string[] = [];
@@ -946,65 +943,9 @@ export const buildOptimizedDiffForPrompt = (
   });
 
   const diffForPrompt = allDiffsForPrompt.join('\n');
-  const fileTree = generateFileTree(changedFiles);
 
   return {
     diffForPrompt,
     parsedDiffs,
-    fileTree,
   };
-};
-
-/**
- * Generates a file tree representation from a list of file paths
- */
-export const generateFileTree = (filePaths: string[]): string => {
-  if (filePaths.length === 0) {
-    return '';
-  }
-
-  // Build a tree structure
-  const tree: Record<string, any> = {};
-
-  filePaths.forEach((filePath) => {
-    const parts = filePath.split('/');
-    let current = tree;
-    parts.forEach((part, index) => {
-      if (index === parts.length - 1) {
-        // This is a file
-        current[part] = null;
-      } else {
-        // This is a directory
-        if (!current[part]) {
-          current[part] = {};
-        }
-        current = current[part];
-      }
-    });
-  });
-
-  // Convert tree to string representation
-  const renderTree = (obj: Record<string, any>, prefix = ''): string => {
-    const entries = Object.entries(obj);
-    const lines: string[] = [];
-
-    entries.forEach(([key, value], index) => {
-      const isLast = index === entries.length - 1;
-      const connector = isLast ? '└── ' : '├── ';
-      const childPrefix = isLast ? prefix + '    ' : prefix + '│   ';
-
-      if (value === null) {
-        // File
-        lines.push(`${prefix}${connector}${key}`);
-      } else {
-        // Directory
-        lines.push(`${prefix}${connector}${key}/`);
-        lines.push(renderTree(value, childPrefix));
-      }
-    });
-
-    return lines.join('\n');
-  };
-
-  return renderTree(tree);
 };

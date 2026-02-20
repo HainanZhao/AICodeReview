@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { ConfigLoader } from '../../config/configLoader.js';
-import { GeminiCliCore, type GeminiCliItem } from '../../shared/index.js';
+import { GeminiCliCore, type GeminiCliItem, parseAIResponse } from '../../shared/index.js';
 import { BaseLLMProvider } from './baseLLMProvider.js';
 import type { ReviewRequest, ReviewResponse } from './types.js';
 
@@ -28,65 +28,6 @@ export class GeminiCliProvider extends BaseLLMProvider {
     console.log('Temporary folder cleanup completed');
   }
 
-  protected buildPrompt(request: ReviewRequest): string {
-    const diffContent = request.diffForPrompt;
-    const fileTree = (request as any).fileTree;
-    
-    // Dynamically get the base URL if available
-    let fileReadingInstructions = '2. If the context in the diff is insufficient to understand the change or its impact, **you must use your file reading capabilities** (e.g., fs.readTextFile) to read the relevant source files. Do not guess.';
-    
-    try {
-      // Lazy load to avoid circular dependencies if any
-      const { GeminiACPSession } = require('../GeminiACPSession.js');
-      const baseUrl = GeminiACPSession.getInstance().baseUrl;
-      if (baseUrl) {
-        fileReadingInstructions = `2. If the context in the diff is insufficient, you can retrieve file contents by making a GET request to:
-   \`${baseUrl}/api/files?path=<absolute_file_path>\`
-   
-   Example: \`curl "${baseUrl}/api/files?path=/absolute/path/to/file.ts"\`
-   
-   Alternatively, use your built-in file reading tools if available.`;
-      }
-    } catch (e) {
-      // Fallback to generic instruction
-    }
-
-    const fileTreeSection = fileTree ? `\n**Changed Files (File Tree):**\n${fileTree}\n` : '';
-
-    return `You are an expert code reviewer. You are reviewing a Merge Request.
-Your goal is to find bugs, security issues, and improvements.
-
-**Instructions:**
-1. Review the provided file tree and diff below.
-${fileReadingInstructions}
-2. Provide feedback in the specified JSON format.
-${fileTreeSection}
-**Code Changes (Git Diffs):**
-${diffContent}
-
-**Output Format:**
-Return a JSON array of objects. Each object must have:
-- filePath: string
-- lineNumber: number (use the line number from the "new" version of the file)
-- severity: "Critical" | "Warning" | "Suggestion" | "Info"
-- title: string (concise summary)
-- description: string (detailed explanation)
-
-Example:
-[
-  {
-    "filePath": "src/utils.ts",
-    "lineNumber": 15,
-    "severity": "Warning",
-    "title": "Unsafe type assertion",
-    "description": "Using 'as any' bypasses type checking. Consider using a specific type or unknown."
-  }
-]
-
-If no issues are found, return an empty array [].
-`;
-  }
-
   public async reviewCode(req: Request, res: Response): Promise<void> {
     const requestData = req.body as ReviewRequest;
 
@@ -96,8 +37,8 @@ If no issues are found, return an empty array [].
     }
 
     try {
-      // Build the prompt using the better prompt builder
-      const prompt = this.buildPrompt(requestData);
+      // Build the prompt using the base class builder
+      const prompt = await this.buildPrompt(requestData);
 
       // Get configurable timeout
       const timeout = await this.getTimeout();
@@ -105,22 +46,29 @@ If no issues are found, return an empty array [].
       try {
         // Use shared core for execution with backend-appropriate options
         const { GeminiACPSession } = await import('../GeminiACPSession.js');
-        const rawOutput = await GeminiACPSession.getInstance().chat(prompt);
+        const session = GeminiACPSession.getInstance();
 
-        const parsedResponse = await GeminiCliCore.extractJsonFromOutput(rawOutput, {
-          verbose: false,
-        });
+        // Set MR context if available for subsequent file fetching requests
+        if (requestData.projectId && requestData.headSha && requestData.gitlabConfig) {
+          session.mrContext = {
+            projectId: requestData.projectId,
+            headSha: requestData.headSha,
+            gitlabConfig: requestData.gitlabConfig,
+          };
+        }
 
-        // Convert to backend response format
-        const validatedResponse = parsedResponse.map(
-          (item: GeminiCliItem): ReviewResponse => ({
-            filePath: String(item.filePath).replace(/\\/g, '/'), // Normalize path separators
-            lineNumber: Number(item.lineNumber),
-            severity: item.severity as ReviewResponse['severity'],
-            title: String(item.title),
-            description: String(item.description),
-          })
-        );
+        const rawOutput = await session.chat(prompt);
+
+        const aiReviewResponse = parseAIResponse(rawOutput);
+
+        // Convert to backend response format (ReviewResponse array)
+        const validatedResponse: ReviewResponse[] = aiReviewResponse.feedback.map((item) => ({
+          filePath: item.filePath,
+          lineNumber: item.lineNumber,
+          severity: item.severity as ReviewResponse['severity'],
+          title: item.title,
+          description: item.description,
+        }));
 
         res.json(validatedResponse);
       } catch (execError) {
