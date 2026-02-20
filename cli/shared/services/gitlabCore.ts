@@ -13,6 +13,7 @@ import {
   type ReviewFeedback,
   Severity,
 } from '../types/gitlab.js';
+import { isNonMeaningfulFile } from './filePatterns.js';
 
 /**
  * Core GitLab service functions that can be shared between UI and CLI
@@ -214,87 +215,6 @@ export const parseDiffsToHunks = (
 
     // Generate simplified prompt content
     const promptParts: string[] = [];
-
-    // Files that typically don't contain meaningful code logic and should be excluded from full content
-    const isNonMeaningfulFile = (filePath: string): boolean => {
-      const fileName = filePath.toLowerCase();
-      const baseName = fileName.split('/').pop() || '';
-
-      // Lock files
-      if (
-        baseName.includes('lock') &&
-        (baseName.endsWith('.json') || baseName.endsWith('.yaml') || baseName.endsWith('.yml'))
-      ) {
-        return true;
-      }
-
-      // Common auto-generated or non-code files
-      const skipPatterns = [
-        // Package managers
-        'package-lock.json',
-        'yarn.lock',
-        'pnpm-lock.yaml',
-        'composer.lock',
-        'pipfile.lock',
-        'poetry.lock',
-        'cargo.lock',
-        'gemfile.lock',
-        'go.sum',
-
-        // Build artifacts and dependencies
-        'node_modules/',
-        'vendor/',
-        'target/',
-        'build/',
-        'dist/',
-        '.next/',
-        '.nuxt/',
-
-        // IDE and editor files
-        '.vscode/',
-        '.idea/',
-        '*.iml',
-
-        // Version control
-        '.git/',
-        '.gitignore',
-
-        // Large data files
-        '*.min.js',
-        '*.min.css',
-        '*.bundle.js',
-        '*.chunk.js',
-
-        // Binary or media files (though these shouldn't be in diffs usually)
-        '*.png',
-        '*.jpg',
-        '*.jpeg',
-        '*.gif',
-        '*.ico',
-        '*.pdf',
-        '*.zip',
-        '*.tar.gz',
-
-        // Generated documentation
-        'docs/api/',
-        'coverage/',
-
-        // Configuration files that are typically large and auto-generated
-        'webpack.config.js',
-        'vite.config.js',
-        'rollup.config.js',
-      ];
-
-      return skipPatterns.some((pattern) => {
-        if (pattern.endsWith('/')) {
-          return fileName.includes(pattern);
-        }
-        if (pattern.startsWith('*.')) {
-          return baseName.endsWith(pattern.substring(1));
-        }
-        return baseName === pattern || fileName.endsWith(`/${pattern}`);
-      });
-    };
 
     // Check if we should include full file content (for small files with meaningful code)
     // Use new file content for accurate line numbers
@@ -939,104 +859,6 @@ export const buildOptimizedDiffForPrompt = (
   const parsedDiffs: ParsedFileDiff[] = [];
   const allDiffsForPrompt: string[] = [];
   const processedFiles = new Set<string>();
-
-  // Files that typically don't contain meaningful code logic and should be excluded from full content
-  const isNonMeaningfulFile = (filePath: string): boolean => {
-    const fileName = filePath.toLowerCase();
-    const baseName = fileName.split('/').pop() || '';
-
-    // Lock files
-    if (
-      baseName.includes('lock') &&
-      (baseName.endsWith('.json') || baseName.endsWith('.yaml') || baseName.endsWith('.yml'))
-    ) {
-      return true;
-    }
-
-    // Common auto-generated or non-code files
-    const skipPatterns = [
-      // Package managers
-      'package-lock.json',
-      'yarn.lock',
-      'pnpm-lock.yaml',
-      'composer.lock',
-      'pipfile.lock',
-      'poetry.lock',
-      'cargo.lock',
-      'gemfile.lock',
-      'go.sum',
-
-      // Build artifacts and dependencies
-      'node_modules/',
-      'vendor/',
-      'target/',
-      'build/',
-      'dist/',
-      '.next/',
-      '.nuxt/',
-
-      // IDE and editor files
-      '.vscode/',
-      '.idea/',
-      '*.iml',
-
-      // Version control
-      '.git/',
-      '.gitignore',
-
-      // Large data files
-      '*.min.js',
-      '*.min.css',
-      '*.bundle.js',
-      '*.chunk.js',
-
-      // Binary or media files
-      '*.png',
-      '*.jpg',
-      '*.jpeg',
-      '*.gif',
-      '*.ico',
-      '*.pdf',
-      '*.zip',
-      '*.tar.gz',
-
-      // Generated documentation
-      'docs/api/',
-      'coverage/',
-
-      // Configuration files that are typically large and auto-generated
-      'webpack.config.js',
-      'vite.config.js',
-      'rollup.config.js',
-
-      // Test files
-      '*.test.js',
-      '*.test.ts',
-      '*.test.jsx',
-      '*.test.tsx',
-      '*.spec.js',
-      '*.spec.ts',
-      '*.spec.jsx',
-      '*.spec.tsx',
-      '*.snap',
-      '__tests__/',
-      '__mocks__/',
-      'test/',
-      'tests/',
-      'e2e/',
-      'cypress/',
-    ];
-
-    return skipPatterns.some((pattern) => {
-      if (pattern.endsWith('/')) {
-        return fileName.includes(pattern);
-      }
-      if (pattern.startsWith('*.')) {
-        return baseName.endsWith(pattern.substring(1));
-      }
-      return baseName === pattern || fileName.endsWith(`/${pattern}`);
-    });
-  };
 
   diffs.forEach((file) => {
     const newFileContent = fileContents[file.new_path]?.newContent;
