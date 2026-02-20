@@ -142,6 +142,79 @@ export const NON_MEANINGFUL_FILE_PATTERNS = [
   'seeds/',
   '*.migration.ts',
   '*.seed.ts',
+
+  // CI/CD and infrastructure
+  '.github/',
+  '.gitlab-ci.yml',
+  '.travis.yml',
+  'azure-pipelines.yml',
+  'Jenkinsfile',
+  'Dockerfile',
+  'docker-compose.yml',
+  'docker-compose.yaml',
+  '.dockerignore',
+  '.kubernetes/',
+  'k8s/',
+  'helm/',
+
+  // Linting and formatting configs
+  '.eslintrc',
+  '.eslintrc.js',
+  '.eslintrc.json',
+  '.prettierrc',
+  '.prettierrc.js',
+  '.prettierrc.json',
+  '.editorconfig',
+  'biome.json',
+  '.stylelintrc',
+  '.htmlhintrc',
+
+  // TypeScript and build configs
+  'tsconfig.json',
+  'tsconfig.build.json',
+  'tsconfig.node.json',
+  'tsconfig.app.json',
+  'jsconfig.json',
+  '.babelrc',
+  'babel.config.js',
+
+  // Package manager configs
+  '.npmrc',
+  '.yarnrc',
+  '.yarnrc.yml',
+  'pnpm-workspace.yaml',
+  '.nvmrc',
+  '.node-version',
+
+  // Git files
+  '.gitattributes',
+  '.gitmodules',
+  '.gitkeep',
+
+  // Python specific
+  'requirements.txt',
+  'requirements/',
+  'setup.py',
+  'pyproject.toml',
+  'Pipfile',
+  '__pycache__/',
+  '*.pyc',
+
+  // Java specific
+  'pom.xml',
+  'build.gradle',
+  'gradle/',
+  '.gradle/',
+
+  // Log files
+  '*.log',
+  'logs/',
+
+  // Temp and cache files
+  '.cache/',
+  'tmp/',
+  'temp/',
+  '.temp/',
 ] as const;
 
 /**
