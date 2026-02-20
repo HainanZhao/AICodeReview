@@ -227,8 +227,16 @@ export const parseDiffsToHunks = (
 
     if (shouldIncludeFullFile) {
       // Include full file content with line numbers (use new file content for accurate line numbers)
+      // Cap to 1000 lines to prevent context explosion
+      const MAX_CONTENT_LINES = 1000;
+      const cappedContent = newFileContent.slice(0, MAX_CONTENT_LINES);
+      const isTruncated = newFileContent.length > MAX_CONTENT_LINES;
+
       promptParts.push(`\n=== FULL FILE CONTENT: ${file.new_path} ===`);
-      newFileContent.forEach((line: string, index: number) => {
+      if (isTruncated) {
+        promptParts.push(`(Note: File truncated to ${MAX_CONTENT_LINES} lines of ${newFileContent.length} total)\n`);
+      }
+      cappedContent.forEach((line: string, index: number) => {
         const lineNumber = (index + 1).toString().padStart(4, ' ');
         promptParts.push(`${lineNumber}: ${line}`);
       });
@@ -879,8 +887,16 @@ export const buildOptimizedDiffForPrompt = (
 
     if (shouldIncludeFullFile) {
       // Include full file content with line numbers (use new file content for accurate line numbers)
+      // Cap to 1000 lines to prevent context explosion
+      const MAX_CONTENT_LINES = 1000;
+      const cappedContent = newFileContent.slice(0, MAX_CONTENT_LINES);
+      const isTruncated = newFileContent.length > MAX_CONTENT_LINES;
+
       promptParts.push(`\n=== FULL FILE CONTENT: ${file.new_path} ===`);
-      newFileContent.forEach((line: string, index: number) => {
+      if (isTruncated) {
+        promptParts.push(`(Note: File truncated to ${MAX_CONTENT_LINES} lines of ${newFileContent.length} total)\n`);
+      }
+      cappedContent.forEach((line: string, index: number) => {
         const lineNumber = (index + 1).toString().padStart(4, ' ');
         promptParts.push(`${lineNumber}: ${line}`);
       });
