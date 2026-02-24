@@ -50,73 +50,90 @@ export const MrSummary: React.FC<MrSummaryProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-[#18191d] rounded-md shadow-sm h-full flex flex-col border border-[#dbdbdb] dark:border-[#404040] overflow-hidden">
-      <div className="p-4 border-b border-[#dbdbdb] dark:border-[#404040] bg-[#fbfbfb] dark:bg-[#1f1e24]">
+    <div className="cyber-card h-full flex flex-col overflow-hidden animate-in fade-in slide-in-from-left duration-500">
+      <div className="p-4 border-b border-[#00f0ff]/20 bg-[#00f0ff]/5">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-[11px] font-bold uppercase tracking-wider text-[#444444] dark:text-[#a1a1aa]">
-            Merge Request
+          <h2 className="text-[10px] font-bold uppercase tracking-widest text-[#00f0ff] cyber-text-glow">
+            {/* // MERGE REQUEST */}
           </h2>
-          <div className="px-1.5 py-0.5 rounded bg-[#1f75cb]/10 text-[#1f75cb] dark:text-[#428fdc] text-[11px] font-bold border border-[#1f75cb]/20">
+          <div className="px-2 py-0.5 rounded bg-[#00f0ff]/10 text-[#00f0ff] text-[11px] font-bold border border-[#00f0ff]/30 shadow-[0_0_8px_rgba(0,240,255,0.2)]">
             !{mrDetails.mrIid}
           </div>
         </div>
-        <h3 className="font-bold text-[#111111] dark:text-[#ececec] break-words text-[13px] leading-snug">
+        <h3
+          className="font-bold text-[#ececec] break-words text-[14px] leading-tight cyber-glitch"
+          data-text={mrDetails.title}
+        >
           {mrDetails.title}
         </h3>
-        <div className="mt-2 flex items-center">
-          <div className="w-4 h-4 rounded-full bg-[#e5e5e5] dark:bg-[#2e2e33] flex items-center justify-center text-[9px] font-bold text-[#444444] dark:text-[#a1a1aa] mr-1.5">
+        <div className="mt-3 flex items-center">
+          <div className="w-5 h-5 rounded bg-[#00f0ff]/20 border border-[#00f0ff]/40 flex items-center justify-center text-[10px] font-bold text-[#00f0ff] mr-2 shadow-[0_0_5px_rgba(0,240,255,0.1)]">
             {mrDetails.authorName.charAt(0)}
           </div>
-          <p className="text-[11px] font-semibold text-[#444444] dark:text-[#a1a1aa]">
+          <p className="text-[11px] font-bold text-[#a1a1aa] uppercase tracking-wider">
             {mrDetails.authorName}
           </p>
         </div>
-        
+
         {isRestoredFromCache && (
-          <div className="mt-3 px-2 py-1 rounded bg-[#1f75cb]/5 text-[10px] font-bold text-[#1f75cb] dark:text-[#428fdc] flex items-center">
-            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+          <div className="mt-3 px-2 py-1 bg-[#ff2a6d]/10 text-[10px] font-bold text-[#ff2a6d] flex items-center border border-[#ff2a6d]/30 animate-pulse">
+            <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                clipRule="evenodd"
+              />
             </svg>
-            Session Restored
+            SESSION RESTORED
           </div>
         )}
       </div>
-      <div className="p-4 flex-grow flex flex-col min-h-0 bg-white dark:bg-[#18191d]">
+      <div className="p-4 flex-grow flex flex-col min-h-0 bg-transparent">
         <div className="flex-grow flex flex-col min-h-0 space-y-4">
-          <div className="flex items-center space-x-2 text-[10px] font-mono bg-[#fbfbfb] dark:bg-[#1f1e24] p-2 rounded border border-[#dbdbdb] dark:border-[#404040] flex-shrink-0">
-            <span className="text-[#1f75cb] dark:text-[#428fdc] font-bold truncate max-w-[80px]" title={mrDetails.sourceBranch}>
+          <div className="flex items-center space-x-2 text-[10px] font-mono bg-[#00f0ff]/5 p-2 border border-[#00f0ff]/20 flex-shrink-0">
+            <span
+              className="text-[#00f0ff] font-bold truncate max-w-[80px]"
+              title={mrDetails.sourceBranch}
+            >
               {mrDetails.sourceBranch}
             </span>
-            <span className="text-[#444444] dark:text-[#a1a1aa] mx-1">→</span>
-            <span className="text-[#444444] dark:text-[#a1a1aa] font-medium truncate max-w-[80px]" title={mrDetails.targetBranch}>
+            <span className="text-[#a1a1aa] mx-1 opacity-50">{'>>'}</span>
+            <span
+              className="text-[#a1a1aa] font-medium truncate max-w-[80px]"
+              title={mrDetails.targetBranch}
+            >
               {mrDetails.targetBranch}
             </span>
           </div>
 
           <div className="flex-grow flex flex-col min-h-0">
-             <div className="flex items-center justify-between mb-1.5">
-               <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#444444] dark:text-[#a1a1aa]">Files</h4>
-               <span className="text-[10px] font-bold text-[#444444] dark:text-[#a1a1aa]">{mrDetails.parsedDiffs.length}</span>
-             </div>
-             <FileTree fileDiffs={mrDetails.parsedDiffs} onFileClick={scrollToFile} />
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#a1a1aa]">
+                {/* // FILESYSTEM */}
+              </h4>
+              <span className="text-[10px] font-bold text-[#00f0ff] bg-[#00f0ff]/10 px-1.5 rounded">
+                {mrDetails.parsedDiffs.length}
+              </span>
+            </div>
+            <FileTree fileDiffs={mrDetails.parsedDiffs} onFileClick={scrollToFile} />
           </div>
 
-          <div className="space-y-2 pt-2 border-t border-[#dbdbdb] dark:border-[#404040]">
+          <div className="space-y-3 pt-3 border-t border-[#00f0ff]/20">
             <a
               href={mrDetails.webUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center w-full px-3 py-1.5 rounded bg-[#fbfbfb] dark:bg-[#1f1e24] border border-[#dbdbdb] dark:border-[#404040] text-[#111111] dark:text-[#ececec] hover:bg-[#f0f0f0] dark:hover:bg-[#2e2e33] transition-all text-[11px] font-bold"
+              className="cyber-btn cyber-btn--ghost cyber-btn--sm w-full flex items-center justify-center text-[10px]"
             >
-              <span>Open in GitLab</span>
+              <span>OPEN IN GITLAB</span>
             </a>
-            
+
             <button
               onClick={onNewReview}
-              className="flex items-center justify-center w-full px-3 py-2 rounded bg-[#1f75cb] text-white hover:bg-[#1068bf] transition-all active:scale-[0.98] shadow-sm"
+              className="cyber-btn cyber-btn--magenta cyber-btn--sm w-full flex items-center justify-center"
             >
-              <PlusIcon className="w-3.5 h-3.5 mr-1.5" />
-              <span className="text-[11px] font-bold">New Review Cycle</span>
+              <PlusIcon className="w-3.5 h-3.5 mr-2" />
+              <span className="text-[10px] font-bold">RE-INIT CYCLE</span>
             </button>
           </div>
         </div>

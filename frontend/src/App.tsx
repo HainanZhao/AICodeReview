@@ -659,7 +659,7 @@ function App() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col font-sans h-screen bg-gray-50 dark:bg-brand-bg transition-colors duration-500 overflow-hidden">
+    <div className="min-h-screen flex flex-col font-mono h-screen bg-[#0a0a0f] transition-colors duration-500 overflow-hidden">
       <Header onOpenSettings={() => setIsConfigModalOpen(true)} />
       <ConfigModal
         isOpen={isConfigModalOpen}

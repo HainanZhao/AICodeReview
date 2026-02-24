@@ -1,15 +1,15 @@
-import { spawn, type ChildProcess } from 'node:child_process';
+import { type ChildProcess, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { Readable, Writable } from 'node:stream';
 import {
-  ClientSideConnection,
-  ndJsonStream,
   type Client,
-  type SessionNotification,
-  type RequestPermissionRequest,
-  type RequestPermissionResponse,
+  ClientSideConnection,
   type ReadTextFileRequest,
   type ReadTextFileResponse,
+  type RequestPermissionRequest,
+  type RequestPermissionResponse,
+  type SessionNotification,
+  ndJsonStream,
 } from '@agentclientprotocol/sdk';
 
 export class GeminiACPSession extends EventEmitter implements Client {
@@ -121,17 +121,21 @@ export class GeminiACPSession extends EventEmitter implements Client {
         responseText += update.content.text;
       }
     };
-    
+
     this.on('session/update_internal', onUpdate);
 
     try {
-      console.log(`[Gemini ACP] Sending prompt to session ${this.sessionId} (${message.length} chars)...`);
+      console.log(
+        `[Gemini ACP] Sending prompt to session ${this.sessionId} (${message.length} chars)...`
+      );
       const response = await this.connection!.prompt({
         sessionId: this.sessionId!,
         prompt: [{ type: 'text', text: message }],
       });
 
-      console.log(`[Gemini ACP] Turn finished with reason: ${response.stopReason}. Captured ${responseText.length} characters.`);
+      console.log(
+        `[Gemini ACP] Turn finished with reason: ${response.stopReason}. Captured ${responseText.length} characters.`
+      );
     } catch (error) {
       console.error('[Gemini ACP] Chat error:', error);
       throw error;
@@ -146,7 +150,7 @@ export class GeminiACPSession extends EventEmitter implements Client {
 
   async requestPermission(params: RequestPermissionRequest): Promise<RequestPermissionResponse> {
     console.log(`[Gemini ACP ←] Permission requested for session: ${params.sessionId}`);
-    
+
     // Auto-approve in yolo mode by selecting the first option
     return { outcome: 'selected', optionId: params.options[0].optionId } as any;
   }
@@ -173,12 +177,15 @@ export class GeminiACPSession extends EventEmitter implements Client {
     } else {
       console.log(`[Gemini ACP ←] Session Update: ${update.sessionUpdate}`);
     }
-    
+
     // Emit internally for chat() to handle
     this.emit('session/update_internal', params);
   }
 
-  async extMethod(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async extMethod(
+    method: string,
+    params: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
     if (method === 'fs/list_directory') {
       const dirPath = (params.path as string) || '';
       console.log(`🔍 AI is listing directory: ${dirPath}`);
@@ -229,7 +236,9 @@ export class GeminiACPSession extends EventEmitter implements Client {
     console.log(`🔍 AI is reading file: ${filePath}`);
 
     if (!this.mrContext) {
-      throw new Error('MR context not set. Ensure review context is initialized before reading files.');
+      throw new Error(
+        'MR context not set. Ensure review context is initialized before reading files.'
+      );
     }
 
     try {

@@ -27,30 +27,30 @@ const SplitViewIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4'
 
 export const ViewModeToggle: React.FC<ViewModeToggleProps> = ({ currentMode, onModeChange }) => {
   return (
-    <div className="flex items-center bg-gray-100 dark:bg-brand-primary/30 rounded-lg p-1">
+    <div className="flex items-center bg-[#00f0ff]/10 border border-[#00f0ff]/20 p-1">
       <button
         onClick={() => onModeChange('inline')}
-        className={`flex items-center space-x-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+        className={`flex items-center space-x-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
           currentMode === 'inline'
-            ? 'bg-white dark:bg-brand-surface text-gray-900 dark:text-brand-text shadow-sm'
-            : 'text-gray-600 dark:text-brand-subtle hover:text-gray-900 dark:hover:text-brand-text'
+            ? 'cyber-btn cyber-btn--cyan cyber-btn--xs'
+            : 'text-[#a1a1aa] hover:text-[#00f0ff]'
         }`}
         title="Inline view"
       >
-        <InlineViewIcon />
-        <span>Inline</span>
+        <InlineViewIcon className="w-3.5 h-3.5" />
+        <span>INLINE</span>
       </button>
       <button
         onClick={() => onModeChange('split')}
-        className={`flex items-center space-x-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+        className={`flex items-center space-x-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
           currentMode === 'split'
-            ? 'bg-white dark:bg-brand-surface text-gray-900 dark:text-brand-text shadow-sm'
-            : 'text-gray-600 dark:text-brand-subtle hover:text-gray-900 dark:hover:text-brand-text'
+            ? 'cyber-btn cyber-btn--cyan cyber-btn--xs'
+            : 'text-[#a1a1aa] hover:text-[#00f0ff]'
         }`}
         title="Split view"
       >
-        <SplitViewIcon />
-        <span>Split</span>
+        <SplitViewIcon className="w-3.5 h-3.5" />
+        <span>SPLIT</span>
       </button>
     </div>
   );

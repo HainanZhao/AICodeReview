@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { ConfigLoader } from '../../config/configLoader.js';
-import { GeminiCliCore, type GeminiCliItem, parseAIResponse } from '../../shared/index.js';
+import { GeminiCliCore, parseAIResponse } from '../../shared/index.js';
 import { BaseLLMProvider } from './baseLLMProvider.js';
 import type { ReviewRequest, ReviewResponse } from './types.js';
 
@@ -39,9 +39,6 @@ export class GeminiCliProvider extends BaseLLMProvider {
     try {
       // Build the prompt using the base class builder
       const prompt = await this.buildPrompt(requestData);
-
-      // Get configurable timeout
-      const timeout = await this.getTimeout();
 
       try {
         // Use shared core for execution with backend-appropriate options

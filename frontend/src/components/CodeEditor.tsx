@@ -17,16 +17,16 @@ interface ReviewDashboardProps {
 const timeAgo = (date: string) => {
   const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
   let interval = seconds / 31536000;
-  if (interval > 1) return `${Math.floor(interval)} years ago`;
+  if (interval > 1) return `${Math.floor(interval)}y ago`;
   interval = seconds / 2592000;
-  if (interval > 1) return `${Math.floor(interval)} months ago`;
+  if (interval > 1) return `${Math.floor(interval)}mo ago`;
   interval = seconds / 86400;
-  if (interval > 1) return `${Math.floor(interval)} days ago`;
+  if (interval > 1) return `${Math.floor(interval)}d ago`;
   interval = seconds / 3600;
-  if (interval > 1) return `${Math.floor(interval)} hours ago`;
+  if (interval > 1) return `${Math.floor(interval)}h ago`;
   interval = seconds / 60;
-  if (interval > 1) return `${Math.floor(interval)} minutes ago`;
-  return `${Math.floor(seconds)} seconds ago`;
+  if (interval > 1) return `${Math.floor(interval)}m ago`;
+  return `${Math.floor(seconds)}s ago`;
 };
 
 export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
@@ -118,52 +118,49 @@ export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-[#18191d] rounded-md shadow-sm h-full flex flex-col border border-[#dbdbdb] dark:border-[#404040] overflow-hidden">
-      <div className="p-4 border-b border-[#dbdbdb] dark:border-[#404040] bg-[#fbfbfb] dark:bg-[#1f1e24] flex justify-between items-center">
-        <div>
-          <h2 className="text-[13px] font-bold text-[#111111] dark:text-[#ececec] tracking-tight">Review Dashboard</h2>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#444444] dark:text-[#a1a1aa] mt-0.5">Project Overview</p>
-        </div>
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#ececec]/10 flex justify-between items-center">
+        <h2 className="text-sm font-bold text-[#ececec]">Dashboard</h2>
         <div className="relative" ref={filterRef}>
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="flex items-center space-x-2 text-[11px] font-bold bg-white dark:bg-[#2e2e33] border border-[#dbdbdb] dark:border-[#404040] hover:bg-[#f0f0f0] dark:hover:bg-[#404040] text-[#111111] dark:text-[#ececec] py-1.5 px-3 rounded shadow-sm transition-all"
+            className="flex items-center space-x-2 px-2 py-1 text-[11px] font-bold text-[#a1a1aa] hover:text-[#00f0ff] transition-colors"
           >
             <FilterIcon className="w-3.5 h-3.5" />
-            <span>Filter</span>
-            <span className="bg-[#1f75cb] text-white text-[10px] font-bold rounded px-1.5 py-0.5 ml-1">
+            <span>Projects</span>
+            <span className="bg-[#00f0ff]/20 text-[#00f0ff] text-[10px] px-1.5">
               {selectedProjectIds.length}
             </span>
           </button>
           {isFilterOpen && (
-            <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-[#1f1e24] border border-[#dbdbdb] dark:border-[#404040] rounded shadow-lg z-30">
-              <div className="p-3 border-b border-[#dbdbdb] dark:border-[#404040]">
+            <div className="absolute top-full right-0 mt-1 w-72 bg-[#1a1a24] border border-[#ececec]/10 z-50">
+              <div className="p-2 border-b border-[#ececec]/10">
                 <input
                   type="text"
                   placeholder="Search projects..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full p-2 bg-white dark:bg-[#18191d] border border-[#dbdbdb] dark:border-[#404040] text-[#111111] dark:text-[#ececec] text-xs rounded focus:outline-none focus:border-[#1f75cb]"
+                  className="w-full p-2 bg-transparent text-[11px] text-[#ececec] focus:outline-none"
                 />
               </div>
-              <div className="max-h-64 overflow-y-auto p-2 scrollbar-thin">
+              <div className="max-h-48 overflow-y-auto p-1">
                 {isLoadingProjects ? (
-                  <div className="p-6 text-center">
-                    <Spinner size="md" />
+                  <div className="p-4 text-center">
+                    <Spinner size="sm" />
                   </div>
                 ) : (
                   filteredProjects.map((project) => (
                     <label
                       key={project.id}
-                      className="flex items-center space-x-3 p-2 hover:bg-[#f0f0f0] dark:hover:bg-[#2e2e33] rounded cursor-pointer transition-colors"
+                      className="flex items-center space-x-2 p-2 hover:bg-[#ececec]/5 cursor-pointer transition-colors"
                     >
                       <input
                         type="checkbox"
                         checked={selectedProjectIds.includes(project.id)}
                         onChange={() => handleProjectSelectionChange(project.id)}
-                        className="form-checkbox h-4 w-4 rounded border-[#dbdbdb] dark:border-[#404040] text-[#1f75cb] focus:ring-[#1f75cb]"
+                        className="h-3 w-3 border-[#ececec]/30 text-[#00f0ff] bg-transparent"
                       />
-                      <span className="text-xs font-medium text-[#111111] dark:text-[#ececec]">
+                      <span className="text-[11px] text-[#a1a1aa] truncate">
                         {project.name_with_namespace}
                       </span>
                     </label>
@@ -174,7 +171,8 @@ export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
           )}
         </div>
       </div>
-      <div className="p-4 border-b border-[#dbdbdb] dark:border-[#404040] bg-white dark:bg-[#18191d]">
+
+      <div className="px-4 py-3 border-b border-[#ececec]/10">
         <form onSubmit={handleUrlSubmit}>
           <div className="flex space-x-2">
             <input
@@ -182,44 +180,42 @@ export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
               type="url"
               value={mrUrlInput}
               onChange={(e) => setMrUrlInput(e.target.value)}
-              placeholder="Paste Merge Request URL..."
-              className="flex-grow px-3 py-2 bg-white dark:bg-[#18191d] border border-[#dbdbdb] dark:border-[#404040] text-[#111111] dark:text-[#ececec] text-[12px] rounded focus:outline-none focus:border-[#1f75cb] transition-all"
+              placeholder="Paste MR URL..."
+              className="flex-grow px-3 py-2 bg-transparent text-[11px] text-[#ececec] focus:outline-none border border-[#ececec]/10 focus:border-[#00f0ff]/50 transition-colors"
               disabled={isLoading}
             />
             <button
               type="submit"
               disabled={!mrUrlInput.trim() || isLoading}
-              className="bg-[#1f75cb] hover:bg-[#1068bf] disabled:opacity-50 text-white font-bold py-2 px-4 rounded transition-all text-[11px]"
+              className="px-4 py-2 text-[11px] font-bold bg-[#00f0ff]/10 text-[#00f0ff] hover:bg-[#00f0ff]/20 disabled:opacity-50 transition-colors"
             >
               Review
             </button>
           </div>
         </form>
       </div>
-      <div className="flex-grow overflow-y-auto p-4 bg-white dark:bg-[#18191d]">
+
+      <div className="flex-grow overflow-y-auto p-4">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-60">
+          <div className="flex flex-col items-center justify-center h-full text-center">
             <Spinner size="lg" />
-            <p className="mt-4 text-[11px] font-bold uppercase tracking-widest text-[#444444] dark:text-[#a1a1aa]">
-              Analyzing...
-            </p>
+            <p className="mt-4 text-[11px] text-[#a1a1aa]">Analyzing...</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {error && (
-              <div className="text-center bg-[#db3b21]/10 border border-[#db3b21]/20 p-3 rounded mb-4">
-                <h3 className="font-bold text-[11px] text-[#db3b21] uppercase tracking-wider mb-1">Error</h3>
-                <p className="text-[11px] text-[#db3b21]">{error}</p>
+              <div className="text-center p-3 bg-[#ff2a6d]/10 text-[#ff2a6d] text-[11px]">
+                {error}
               </div>
             )}
-            
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#444444] dark:text-[#a1a1aa]">
+
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#a1a1aa] mb-2">
               Open Merge Requests
             </h3>
 
             {isLoadingMrs ? (
-              <div className="py-12 text-center opacity-40">
-                <Spinner size="lg" />
+              <div className="py-8 text-center">
+                <Spinner size="md" />
               </div>
             ) : mergeRequests.length > 0 ? (
               <ul className="space-y-2">
@@ -227,42 +223,40 @@ export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
                   <li
                     key={mr.web_url}
                     onClick={() => onReview(mr.web_url)}
-                    className="bg-white dark:bg-[#1f1e24] border border-[#dbdbdb] dark:border-[#404040] hover:border-[#1f75cb] dark:hover:border-[#428fdc] p-3 rounded cursor-pointer transition-all group"
+                    className="p-3 cursor-pointer hover:bg-[#ececec]/5 transition-colors border-l-2 border-transparent hover:border-[#00f0ff]"
                   >
-                    <div className="flex justify-between items-start mb-1.5">
-                       <h4 className="font-bold text-[#111111] dark:text-[#ececec] group-hover:text-[#1f75cb] dark:group-hover:text-[#428fdc] transition-colors text-[13px] leading-tight">
-                         {mr.title}
-                       </h4>
-                       <span className="text-[10px] font-bold text-[#444444] dark:text-[#a1a1aa] tabular-nums whitespace-nowrap ml-2">
-                         {timeAgo(mr.updated_at)}
-                       </span>
-                    </div>
-                    
-                    <div className="flex items-center text-[11px] font-semibold text-[#444444] dark:text-[#a1a1aa] mb-2.5">
-                      <span className="bg-[#f0f0f0] dark:bg-[#2e2e33] px-1.5 py-0.5 rounded border border-[#dbdbdb] dark:border-[#404040] mr-2 font-bold tracking-tight">
-                        !{mr.iid}
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 className="font-bold text-[#ececec] text-[12px] leading-tight">
+                        {mr.title}
+                      </h4>
+                      <span className="text-[10px] text-[#a1a1aa] whitespace-nowrap ml-2">
+                        {timeAgo(mr.updated_at)}
                       </span>
-                      <span className="truncate">{mr.project_name}</span>
-                      <span className="mx-1.5 opacity-30">•</span>
-                      <span>@{mr.author.name}</span>
                     </div>
-                    
-                    <div className="flex items-center text-[10px] font-mono bg-[#fbfbfb] dark:bg-[#18191d] p-1.5 rounded border border-[#dbdbdb] dark:border-[#404040]">
-                      <BranchIcon className="w-3 h-3 text-[#444444] dark:text-[#a1a1aa]" />
-                      <span className="ml-1.5 text-[#1f75cb] dark:text-[#428fdc] font-bold truncate max-w-[100px]">{mr.source_branch}</span>
-                      <span className="text-[#444444] dark:text-[#a1a1aa] mx-1.5">→</span>
-                      <span className="text-[#444444] dark:text-[#a1a1aa] font-medium truncate max-w-[100px]">{mr.target_branch}</span>
+
+                    <div className="flex items-center text-[10px] text-[#a1a1aa] mb-2">
+                      <span className="text-[#00f0ff] mr-2">!{mr.iid}</span>
+                      <span className="truncate">{mr.project_name}</span>
+                      <span className="mx-2 opacity-30">·</span>
+                      <span className="text-[#ff2a6d]">@{mr.author.name}</span>
+                    </div>
+
+                    <div className="flex items-center text-[10px] text-[#a1a1aa]">
+                      <BranchIcon className="w-3 h-3 mr-1 opacity-60" />
+                      <span className="text-[#00f0ff] truncate max-w-[100px]">
+                        {mr.source_branch}
+                      </span>
+                      <span className="mx-1">→</span>
+                      <span className="truncate max-w-[100px]">{mr.target_branch}</span>
                     </div>
                   </li>
                 ))}
               </ul>
             ) : (
-              <div className="text-center py-12 opacity-40">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-[#444444] dark:text-[#a1a1aa]">
-                  {selectedProjectIds.length > 0
-                    ? 'No open merge requests'
-                    : 'Select projects to begin'}
-                </p>
+              <div className="text-center py-8 text-[11px] text-[#a1a1aa]">
+                {selectedProjectIds.length > 0
+                  ? 'No merge requests found'
+                  : 'Select projects to view merge requests'}
               </div>
             )}
           </div>

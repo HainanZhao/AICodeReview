@@ -290,9 +290,10 @@ ${customContent}
  * Builds the dynamic header section with MR details
  */
 const buildMRDetails = (request: AIReviewRequest): string => {
-  const { title, description, sourceBranch, targetBranch, diffContent, authorName, changedFiles } = request;
+  const { title, description, sourceBranch, targetBranch, diffContent, authorName, changedFiles } =
+    request;
 
-  let details = `
+  const details = `
 **Merge Request Details:**
 - Title: ${title}
 - Author: ${authorName}
@@ -300,7 +301,7 @@ const buildMRDetails = (request: AIReviewRequest): string => {
 - Target Branch: ${targetBranch}
 - Description: ${description || 'No description provided'}
 
-${changedFiles && changedFiles.length > 0 ? `**Changed Files (Full Paths):**\n${changedFiles.map(f => `- ${f}`).join('\n')}` : ''}
+${changedFiles && changedFiles.length > 0 ? `**Changed Files (Full Paths):**\n${changedFiles.map((f) => `- ${f}`).join('\n')}` : ''}
 
 **Code Changes:**
 ${diffContent}`;
@@ -333,7 +334,7 @@ ${existingFeedback
 /**
  * Builds generic instructions for AI agents (e.g. for on-demand file fetching)
  */
-const buildGenericInstructions = (request: AIReviewRequest): string => {
+const buildGenericInstructions = (_: AIReviewRequest): string => {
   try {
     const { GeminiACPSession } = require('../../services/GeminiACPSession.js');
     const baseUrl = GeminiACPSession.getInstance().baseUrl;
@@ -348,7 +349,7 @@ Example: \`curl "${baseUrl}/api/files?path=src/utils.ts"\`
 The file path should be EXACTLY as shown in the "Changed Files (Full Paths)" list.
 `;
     }
-  } catch (e) {
+  } catch (_e) {
     // Fallback if session is not available
   }
   return '';
@@ -363,7 +364,9 @@ The file path should be EXACTLY as shown in the "Changed Files (Full Paths)" lis
  */
 export const buildReviewPrompt = (request: AIReviewRequest): string => {
   if (request.changedFiles && request.changedFiles.length > 0) {
-    console.log('📄 List of changed files for AI review:\n' + request.changedFiles.map(f => `  - ${f}`).join('\n'));
+    console.log(
+      `📄 List of changed files for AI review:\n${request.changedFiles.map((f) => `  - ${f}`).join('\n')}`
+    );
   }
 
   // Resolve the correct prompt configuration for this project
@@ -384,14 +387,26 @@ export const buildReviewPrompt = (request: AIReviewRequest): string => {
 
   switch (promptConfig.strategy) {
     case 'prepend':
-      sections = [customSection, STATIC_INSTRUCTIONS, genericInstructions, mrDetails, existingFeedback];
+      sections = [
+        customSection,
+        STATIC_INSTRUCTIONS,
+        genericInstructions,
+        mrDetails,
+        existingFeedback,
+      ];
       break;
 
     case 'replace':
       sections = [customSection, mrDetails, existingFeedback];
       break;
     default:
-      sections = [STATIC_INSTRUCTIONS, customSection, genericInstructions, mrDetails, existingFeedback];
+      sections = [
+        STATIC_INSTRUCTIONS,
+        customSection,
+        genericInstructions,
+        mrDetails,
+        existingFeedback,
+      ];
       break;
   }
 
@@ -406,9 +421,11 @@ export const buildReviewPrompt = (request: AIReviewRequest): string => {
  */
 export const parseAIResponse = (responseText: string): AIReviewResponse => {
   // Log the start of the response for debugging
-  const preview = responseText.length > 2000 
-    ? responseText.substring(0, 2000) + '...' 
-    : responseText;
+  const preview =
+    `${responseText.length > 2000 ? responseText.substring(0, 2000) : responseText}...`.replace(
+      /\n/g,
+      '\\n'
+    );
   console.log(`📝 AI Response Preview: ${preview}`);
 
   try {
@@ -422,7 +439,7 @@ export const parseAIResponse = (responseText: string): AIReviewResponse => {
     throw new Error('Could not parse AI response in Markdown format');
   } catch (error) {
     console.error('Failed to parse AI response:', error);
-    
+
     // Log full response on failure for debugging
     console.log('📄 Full unparseable AI response:', responseText);
 
@@ -492,27 +509,29 @@ const parseMarkdownResponse = (responseText: string): AIReviewResponse | null =>
     }
 
     const feedbackSection = feedbackSectionMatch[1];
-    
+
     // Split by "---" to separate feedback items
     const feedbackBlocks = feedbackSection.split(/\n---\s*\n/);
-    
+
     for (const block of feedbackBlocks) {
       if (!block.trim()) continue;
-      
+
       // Parse each field from the block
       const fileMatch = block.match(/\*\*file\*\*:\s*([^\n]+)/i);
       const lineMatch = block.match(/\*\*line\*\*:\s*(\d+)/i);
       const severityMatch = block.match(/\*\*severity\*\*:\s*(\w+)/i);
       const titleMatch = block.match(/\*\*title\*\*:\s*([^\n]+)/i);
-      const descriptionMatch = block.match(/\*\*description\*\*:\s*([\s\S]*?)(?=\*\*lineContent|$)/i);
+      const descriptionMatch = block.match(
+        /\*\*description\*\*:\s*([\s\S]*?)(?=\*\*lineContent|$)/i
+      );
       const lineContentMatch = block.match(/\*\*lineContent\*\*:\s*([\s\S]*?)$/i);
 
       if (fileMatch && lineMatch) {
         const filePath = fileMatch[1].trim();
-        const lineNumber = parseInt(lineMatch[1], 10);
+        const lineNumber = Number.parseInt(lineMatch[1], 10);
         const severity = severityMatch ? severityMatch[1].trim().toLowerCase() : 'info';
         const title = titleMatch ? titleMatch[1].trim() : 'AI Review Comment';
-        
+
         // Get description, handling multiline content
         let description = '';
         if (descriptionMatch) {
@@ -520,7 +539,7 @@ const parseMarkdownResponse = (responseText: string): AIReviewResponse | null =>
           // Clean up any leading markers
           description = description.replace(/^-\s*\*\*/g, '').trim();
         }
-        
+
         // Get lineContent
         let lineContent = '';
         if (lineContentMatch) {
@@ -570,20 +589,6 @@ const validateSeverity = (severity: string): Severity => {
       return Severity.Suggestion;
     default:
       return Severity.Info;
-  }
-};
-
-/**
- * Validates and normalizes overall rating values
- */
-const validateOverallRating = (rating: string): 'approve' | 'request_changes' | 'comment' => {
-  switch (rating?.toLowerCase()) {
-    case 'approve':
-      return 'approve';
-    case 'request_changes':
-      return 'request_changes';
-    default:
-      return 'comment';
   }
 };
 

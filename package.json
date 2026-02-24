@@ -3,14 +3,7 @@
   "private": false,
   "version": "1.5.13",
   "description": "AI-powered code review tool with web interface",
-  "keywords": [
-    "code-review",
-    "ai",
-    "gemini",
-    "claude",
-    "static-analysis",
-    "cli"
-  ],
+  "keywords": ["code-review", "ai", "gemini", "claude", "static-analysis", "cli"],
   "author": "HainanZhao",
   "license": "MIT",
   "repository": {
@@ -25,19 +18,12 @@
     "acr": "./dist/index.js",
     "aicodereview": "./dist/index.js"
   },
-  "files": [
-    "dist/",
-    "frontend/package.json",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["dist/", "frontend/package.json", "README.md", "LICENSE"],
   "engines": {
     "node": ">=16.0.0"
   },
   "type": "module",
-  "workspaces": [
-    "frontend"
-  ],
+  "workspaces": ["frontend"],
   "scripts": {
     "start": "concurrently \"npm run start:standalone\" \"npm run start:frontend\"",
     "start:frontend": "cd frontend && npm run dev",

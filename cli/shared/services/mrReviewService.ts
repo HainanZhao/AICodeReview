@@ -14,7 +14,7 @@ import {
   buildReviewPrompt,
   fetchMrData,
   filterAndDeduplicateFeedback,
-  parseAIResponse
+  parseAIResponse,
 } from '../index.js';
 import { type FrontendGitLabConfig, normalizeGitLabConfig } from '../types/unifiedConfig.js';
 
@@ -95,7 +95,7 @@ export class MrReviewService {
       customPromptFile: options.customPromptFile,
       promptStrategy: options.promptStrategy,
       projectPrompts: options.projectPrompts,
-      changedFiles: mrDetails.fileDiffs.map(d => d.new_path), // Explicit list of file paths
+      changedFiles: mrDetails.fileDiffs.map((d) => d.new_path), // Explicit list of file paths
       projectId: mrDetails.projectId,
       headSha: mrDetails.head_sha,
       gitlabConfig: normalizedConfig,

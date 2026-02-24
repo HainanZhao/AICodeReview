@@ -18,13 +18,13 @@ interface DiffLineProps {
 const getLineClasses = (type: ParsedDiffLine['type']) => {
   switch (type) {
     case 'add':
-      return 'bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-l-2 border-green-500/50';
+      return 'bg-[#05ffa1]/10 text-[#05ffa1] border-l-2 border-[#05ffa1]/50';
     case 'remove':
-      return 'bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-l-2 border-red-500/50';
+      return 'bg-[#ff2a6d]/10 text-[#ff2a6d] border-l-2 border-[#ff2a6d]/50';
     case 'meta':
-      return 'bg-brand-secondary/10 dark:bg-brand-secondary/20 text-brand-secondary dark:text-brand-secondary/80 border-l-2 border-brand-secondary/50';
+      return 'bg-[#00f0ff]/10 text-[#00f0ff] border-l-2 border-[#00f0ff]/50';
     default:
-      return 'bg-transparent text-gray-600 dark:text-brand-subtle border-l-2 border-transparent';
+      return 'bg-transparent text-[#a1a1aa] border-l-2 border-transparent';
   }
 };
 
@@ -168,17 +168,17 @@ export const DiffLine: React.FC<DiffLineProps> = ({
 
   return (
     <>
-      <tr className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/5 transition-all h-4`}>
-        <td className="w-12 text-center align-middle h-4 pr-1">
+      <tr className={`${lineClasses} group hover:bg-[#00f0ff]/5 transition-all h-5`}>
+        <td className="w-14 text-center align-middle h-5 pr-1">
           {/* Action buttons container */}
-          <div className="flex items-center justify-center space-x-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200">
+          <div className="flex items-center justify-center space-x-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
             {/* Add comment button */}
             <button
               onClick={onAddComment}
               title={canComment ? 'Add Comment' : ''}
               disabled={!canComment}
               className={`
-                        bg-brand-secondary text-white rounded-lg p-[4px] leading-none shadow-glass hover:scale-110 active:scale-95 transition-transform
+                        cyber-btn cyber-btn--cyan cyber-btn--xs p-[2px] leading-none min-w-0 w-5 h-5
                         ${canComment ? '' : 'pointer-events-none opacity-0'}
                       `}
             >
@@ -190,20 +190,20 @@ export const DiffLine: React.FC<DiffLineProps> = ({
               <button
                 onClick={handleExplainClick}
                 title="AI Explain"
-                className="bg-brand-accent text-white rounded-lg p-[4px] leading-none shadow-glass hover:scale-110 active:scale-95 transition-transform"
+                className="cyber-btn cyber-btn--magenta cyber-btn--xs p-[2px] leading-none min-w-0 w-5 h-5"
               >
                 <AIExplainIcon className="w-3 h-3" />
               </button>
             )}
           </div>
         </td>
-        <td className="w-10 text-right px-1 select-none text-[11px] font-mono text-[#444444] dark:text-[#a1a1aa] align-middle h-4 leading-none tabular-nums">
+        <td className="w-12 text-right px-2 select-none text-[10px] font-mono text-[#a1a1aa] align-middle h-5 leading-none tabular-nums opacity-60">
           {line.oldLine || ''}
         </td>
-        <td className="w-10 text-right px-1 select-none text-[11px] font-mono text-[#444444] dark:text-[#a1a1aa] align-middle h-4 border-r border-[#dbdbdb] dark:border-[#404040] leading-none tabular-nums">
+        <td className="w-12 text-right px-2 select-none text-[10px] font-mono text-[#a1a1aa] align-middle h-5 border-r border-[#00f0ff]/20 leading-none tabular-nums opacity-60">
           {line.newLine || ''}
         </td>
-        <td className="w-full pl-2 pr-2 align-middle font-mono text-[12px] font-medium h-4 leading-[1.6] tracking-normal">
+        <td className="w-full pl-3 pr-2 align-middle font-mono text-[12px] font-medium h-5 leading-tight tracking-normal">
           <SyntaxHighlightedCode
             code={line.content}
             filePath={filePath}

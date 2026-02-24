@@ -105,12 +105,12 @@ export const getThemeColors = (syntaxTheme: string) => {
 
   if (isDark) {
     return {
-      background: '#18191d',
-      surface: '#1f1e24',
-      primary: '#2e2e33',
+      background: '#0a0a0f',
+      surface: '#0a0a0f',
+      primary: '#00f0ff',
       text: '#ececec',
       subtle: '#a1a1aa',
-      accent: '#428fdc',
+      accent: '#00f0ff',
       isDark: true,
     };
   }
