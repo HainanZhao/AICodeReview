@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
 import {
-    type AIReviewRequest,
-    type MrReviewOptions,
-    MrReviewService,
-    buildReviewPrompt,
+  type AIReviewRequest,
+  type MrReviewOptions,
+  MrReviewService,
+  buildReviewPrompt,
 } from '../../shared/index.js';
 import type { LLMProvider, MrUrlRequest, ReviewRequest } from './types.js';
 

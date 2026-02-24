@@ -7,9 +7,9 @@ import type {
   Severity,
 } from '../types';
 import { FeedbackCard } from './FeedbackCard';
-import { CombinedFeedbackCard, SEVERITY_CONFIG } from './FileDiffCard';
+import { CombinedFeedbackCard } from './FileDiffCard';
 import { SplitDiffLine } from './SplitDiffLine';
-import { AddCommentIcon, ChevronDownIcon } from './icons';
+import { AddCommentIcon } from './icons';
 
 interface SplitDiffViewProps {
   codeTheme?: string;
@@ -36,13 +36,16 @@ const GapExpanderRow: React.FC<{ hiddenLineCount: number; onClick: () => void }>
   if (hiddenLineCount <= 0) return null;
   return (
     <tr className="group">
-      <td colSpan={2} className="text-center p-0">
+      <td colSpan={2} className="p-0">
         <button
           onClick={onClick}
-          className="w-full text-center py-1 text-xs text-gray-500 dark:text-brand-subtle bg-gray-100/50 dark:bg-brand-primary/20 hover:bg-gray-200 dark:hover:bg-brand-primary/50 transition-colors"
+          className="w-full flex items-center justify-center py-3 text-[10px] font-bold uppercase tracking-[0.3em] text-[#a1a1aa] bg-[#0a0a0f] hover:bg-[#00f0ff]/10 transition-all border-y border-[#00f0ff]/10 hover:border-[#00f0ff]/30"
         >
-          <ChevronDownIcon className="inline-block h-4 w-4 mr-2" />
-          Expand {hiddenLineCount} hidden lines
+          <div className="flex items-center space-x-6">
+            <div className="h-[1px] w-12 bg-[#00f0ff]/20" />
+            <span className="cyber-text-glow">EXPAND {hiddenLineCount}_HIDDEN_SECTORS</span>
+            <div className="h-[1px] w-12 bg-[#00f0ff]/20" />
+          </div>
         </button>
       </td>
     </tr>
@@ -223,24 +226,22 @@ export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
           });
         }
 
-        // Render feedback cards - span across both panes for better visibility
-        if (feedbacksToShow.length === 1) {
-          const feedback = feedbacksToShow[0];
+        const pendingFeedbacks = feedbacksToShow.filter((f) => f.status === 'pending');
+        const submittedFeedbacks = feedbacksToShow.filter((f) => f.status === 'submitted');
+
+        // Render pending (new AI) feedbacks individually
+        pendingFeedbacks.forEach((feedback) => {
           const isActive = feedback.id === activeFeedbackId;
           elements.push(
             <tr
               key={`feedback-${feedback.id}`}
               id={`feedback-wrapper-${feedback.id}`}
-              className={`transition-colors duration-300 ${
-                isActive
-                  ? 'bg-blue-100/50 dark:bg-brand-primary/40'
-                  : 'bg-white dark:bg-brand-surface'
-              }`}
+              className={`transition-all duration-500 ${isActive ? 'bg-[#00f0ff]/5' : 'bg-transparent'}`}
             >
-              <td colSpan={2} className="py-1 px-2">
-                <div className="flex items-start space-x-2">
-                  <div className="text-brand-secondary mt-1 flex-shrink-0">
-                    <AddCommentIcon />
+              <td colSpan={2} className="py-2 px-4">
+                <div className="flex items-start space-x-4">
+                  <div className="text-[#00f0ff] mt-2 flex-shrink-0 animate-pulse">
+                    <AddCommentIcon className="w-4 h-4 shadow-[0_0_8px_#00f0ff]" />
                   </div>
                   <div className="flex-1">
                     <FeedbackCard
@@ -256,20 +257,23 @@ export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
               </td>
             </tr>
           );
-        } else if (feedbacksToShow.length > 1) {
+        });
+
+        // Render all submitted (existing) feedbacks grouped together
+        if (submittedFeedbacks.length > 0) {
           elements.push(
             <tr
-              key={`feedback-combined-${pair.left?.newLine || pair.right?.newLine}`}
-              className="bg-white dark:bg-brand-surface"
+              key={`feedback-combined-submitted-${pair.left?.newLine || pair.right?.newLine}`}
+              className="bg-transparent"
             >
-              <td colSpan={2} className="py-1 px-2">
-                <div className="flex items-start space-x-2">
-                  <div className="text-brand-secondary mt-1 flex-shrink-0">
-                    <AddCommentIcon />
+              <td colSpan={2} className="py-2 px-4">
+                <div className="flex items-start space-x-4">
+                  <div className="text-[#00f0ff] mt-2 flex-shrink-0 animate-pulse">
+                    <AddCommentIcon className="w-4 h-4 shadow-[0_0_8px_#00f0ff]" />
                   </div>
                   <div className="flex-1">
                     <CombinedFeedbackCard
-                      feedbacks={feedbacksToShow}
+                      feedbacks={submittedFeedbacks}
                       onPostComment={onPostComment}
                       onUpdateFeedback={onUpdateFeedback}
                       onDeleteFeedback={onDeleteFeedback}

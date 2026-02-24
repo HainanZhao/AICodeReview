@@ -162,16 +162,24 @@ export const ResizablePane: React.FC<ResizablePaneProps> = ({
         `}
       >
         {/* Visual Line */}
-        <div className={`
+        <div
+          className={`
           absolute inset-0 m-auto
           ${direction === 'horizontal' ? 'w-[2px] h-full' : 'h-[2px] w-full'}
           ${isResizing ? 'bg-brand-secondary' : 'bg-gray-200 dark:bg-white/5 group-hover:bg-brand-secondary'}
           transition-colors duration-200
-        `}></div>
+        `}
+        />
 
         {/* Grab handle decoration */}
-        <div className={`absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity`}>
-           <div className={`${direction === 'horizontal' ? 'h-8 w-1' : 'w-8 h-1'} bg-brand-secondary/50 rounded-full`}></div>
+        <div
+          className={
+            'absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity'
+          }
+        >
+          <div
+            className={`${direction === 'horizontal' ? 'h-8 w-1' : 'w-8 h-1'} bg-brand-secondary/50 rounded-full`}
+          />
         </div>
       </div>
 

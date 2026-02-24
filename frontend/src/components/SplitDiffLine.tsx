@@ -18,15 +18,15 @@ interface SplitDiffLineProps {
 const getLineClasses = (type?: ParsedDiffLine['type']) => {
   switch (type) {
     case 'add':
-      return 'bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-l-2 border-green-500/50';
+      return 'bg-[#05ffa1]/10 text-[#05ffa1] border-l-2 border-[#05ffa1]/50';
     case 'remove':
-      return 'bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-l-2 border-red-500/50';
+      return 'bg-[#ff2a6d]/10 text-[#ff2a6d] border-l-2 border-[#ff2a6d]/50';
     case 'meta':
-      return 'bg-brand-secondary/10 dark:bg-brand-secondary/20 text-brand-secondary dark:text-brand-secondary/80 border-l-2 border-brand-secondary/50';
+      return 'bg-[#00f0ff]/10 text-[#00f0ff] border-l-2 border-[#00f0ff]/50';
     case 'context':
-      return 'bg-transparent text-gray-600 dark:text-brand-subtle border-l-2 border-transparent';
+      return 'bg-transparent text-[#a1a1aa] border-l-2 border-transparent';
     default:
-      return 'bg-gray-50/50 dark:bg-brand-primary/5 text-gray-400 dark:text-brand-subtle/50 border-l-2 border-transparent';
+      return 'bg-[#0a0a0f]/20 text-[#a1a1aa]/40 border-l-2 border-transparent';
   }
 };
 
@@ -48,20 +48,20 @@ const SplitDiffSide: React.FC<{
 
   return (
     <td
-      className={`w-1/2 border-r border-gray-200 dark:border-white/5 ${lineClasses} group hover:bg-black/5 dark:hover:bg-white/5 transition-all`}
+      className={`w-1/2 border-r border-[#00f0ff]/10 ${lineClasses} group hover:bg-[#00f0ff]/5 transition-all`}
     >
-      <div className="flex h-4">
+      <div className="flex h-5">
         {/* Action buttons */}
-        <div className="w-12 flex items-center justify-center pl-1 pr-1">
-          <div className="flex items-center justify-center space-x-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 translate-x-1 group-hover:translate-x-0">
+        <div className="w-14 flex items-center justify-center pl-1 pr-1">
+          <div className="flex items-center justify-center space-x-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
             {/* Add comment button */}
             {canComment && (
               <button
                 onClick={onAddComment}
                 title="Add Comment"
-                className="bg-brand-secondary text-white rounded-lg p-[3.5px] leading-none shadow-glass hover:scale-110 active:scale-95 transition-all"
+                className="cyber-btn cyber-btn--cyan cyber-btn--xs p-[2px] leading-none min-w-0 w-5 h-5"
               >
-                <PlusIcon className="w-2.5 h-2.5" />
+                <PlusIcon className="w-3 h-3" />
               </button>
             )}
 
@@ -70,21 +70,21 @@ const SplitDiffSide: React.FC<{
               <button
                 onClick={(e) => onExplainClick(e, line)}
                 title="AI Explain"
-                className="bg-brand-accent text-white rounded-lg p-[3.5px] leading-none shadow-glass hover:scale-110 active:scale-95 transition-all"
+                className="cyber-btn cyber-btn--magenta cyber-btn--xs p-[2px] leading-none min-w-0 w-5 h-5"
               >
-                <AIExplainIcon className="w-2.5 h-2.5" />
+                <AIExplainIcon className="w-3 h-3" />
               </button>
             )}
           </div>
         </div>
 
         {/* Line number */}
-        <div className="w-10 text-right px-1 select-none text-[11px] font-mono text-[#444444] dark:text-[#a1a1aa] align-middle leading-none tabular-nums mt-[3px]">
+        <div className="w-12 text-right px-2 select-none text-[10px] font-mono text-[#a1a1aa] align-middle leading-none tabular-nums mt-[6px] opacity-60">
           {lineNumber || ''}
         </div>
 
         {/* Line content */}
-        <div className="flex-1 pl-2 pr-2 font-mono text-[12px] font-medium leading-[1.6] tracking-normal">
+        <div className="flex-1 pl-3 pr-2 font-mono text-[12px] font-medium leading-tight tracking-normal py-[2px]">
           {line ? (
             <>
               <SyntaxHighlightedCode
@@ -96,7 +96,7 @@ const SplitDiffSide: React.FC<{
               />
             </>
           ) : (
-            <div className="h-4">&nbsp;</div>
+            <div className="h-5">&nbsp;</div>
           )}
         </div>
       </div>

@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { resetToBackendConfig, saveConfig } from '../services/configService';
+import { saveConfig } from '../services/configService';
 import type { Config } from '../types';
 import { CloseIcon } from './icons';
 
@@ -74,38 +74,48 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       aria-modal="true"
       role="dialog"
     >
-      <div className="absolute inset-0 bg-brand-bg/60 backdrop-blur-md transition-opacity" onClick={onClose}></div>
-      <div className="relative bg-white dark:bg-brand-surface rounded-3xl shadow-2xl dark:shadow-black/50 w-full max-w-lg overflow-hidden transform transition-all border border-gray-200 dark:border-white/5 animate-in fade-in zoom-in-95 duration-300">
-        <div className="flex justify-between items-center p-8 border-b border-gray-100 dark:border-white/5 bg-gray-50/30 dark:bg-brand-primary/20">
+      <div
+        className="absolute inset-0 bg-[#0a0a0f]/80 backdrop-blur-md transition-opacity"
+        onClick={onClose}
+      />
+      <div className="relative cyber-card cyber-neon-border--cyan w-full max-w-lg overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-300 shadow-[0_0_30px_rgba(0,240,255,0.2)]">
+        <div className="cyber-card__header flex justify-between items-center p-6 border-b border-[#00f0ff]/20 bg-[#00f0ff]/5">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Configuration</h2>
+            <h2
+              className="text-xl font-bold text-[#ececec] tracking-widest uppercase cyber-glitch"
+              data-text="CONFIGURATION"
+            >
+              CONFIGURATION
+            </h2>
             <div className="mt-2 flex items-center">
-              <div className={`w-2 h-2 rounded-full mr-2 ${configSource !== 'none' ? 'bg-brand-success shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-brand-warning animate-pulse'}`}></div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-brand-subtle">
-                {configSource === 'localStorage' && 'Session: Persistence Enabled'}
-                {configSource === 'backend' && 'System: Remote Config Loaded'}
-                {configSource === 'none' && 'Status: Connection Required'}
+              <div
+                className={`w-2 h-2 mr-2 ${configSource !== 'none' ? 'bg-[#05ffa1] shadow-[0_0_8px_rgba(5,255,161,0.6)]' : 'bg-[#fdee06] animate-pulse shadow-[0_0_8px_rgba(253,238,6,0.6)]'}`}
+              />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#a1a1aa] cyber-text-glow">
+                {configSource === 'localStorage' && '// SESSION: PERSISTENCE_ACTIVE'}
+                {configSource === 'backend' && '// SYSTEM: REMOTE_CONFIG_SYNCED'}
+                {configSource === 'none' && '// STATUS: AWAITING_CONNECTION'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2.5 rounded-xl text-gray-400 dark:text-brand-subtle hover:bg-white dark:hover:bg-brand-primary hover:text-brand-secondary dark:hover:text-white transition-all transform active:scale-95"
+            className="cyber-btn cyber-btn--ghost cyber-btn--xs opacity-70 hover:opacity-100"
             aria-label="Close settings"
           >
             <CloseIcon className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-8 space-y-8">
+        <div className="p-6 space-y-6 bg-transparent">
           <div className="space-y-3">
             <label
               htmlFor="gitlab-url"
-              className="block text-[11px] font-bold uppercase tracking-[0.15em] text-gray-400 dark:text-brand-subtle ml-1"
+              className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#00f0ff] ml-1"
             >
-              GitLab Instance Endpoint
+              GITLAB_INSTANCE_ENDPOINT
             </label>
             <div className="relative group">
-               <input
+              <input
                 id="gitlab-url"
                 type="text"
                 value={gitlabUrl}
@@ -113,44 +123,58 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
                   setGitlabUrl(e.target.value);
                   setIsBackendConfigUsed(false);
                 }}
-                placeholder="https://gitlab.example.com"
-                className="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-brand-primary/30 border border-gray-200 dark:border-white/5 text-gray-900 dark:text-white font-mono text-sm rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-secondary/50 shadow-inner transition-all disabled:opacity-50"
+                placeholder="HTTPS://GITLAB.EXAMPLE.COM"
+                className="cyber-input w-full p-3 bg-transparent text-[#00f0ff] font-mono text-sm focus:outline-none transition-all disabled:opacity-50"
                 disabled={isBackendConfigUsed}
               />
               {isBackendConfigUsed && (
                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                   <span className="text-[10px] font-bold uppercase tracking-wider bg-brand-secondary/10 text-brand-secondary px-2 py-0.5 rounded-full border border-brand-secondary/20">Locked</span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest bg-[#00f0ff]/10 text-[#00f0ff] px-2 py-0.5 border border-[#00f0ff]/30 shadow-[0_0_5px_rgba(0,240,255,0.2)]">
+                    LOCKED
+                  </span>
                 </div>
               )}
             </div>
-            
+
             {isBackendConfigUsed ? (
-              <div className="flex items-center text-[10px] font-medium text-gray-500 dark:text-brand-subtle bg-gray-50 dark:bg-brand-primary/20 p-2.5 rounded-xl border border-gray-100 dark:border-white/5">
-                <svg className="w-3.5 h-3.5 mr-2 text-brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <div className="flex items-center text-[10px] font-bold text-[#a1a1aa] bg-[#00f0ff]/5 p-3 border border-[#00f0ff]/10 uppercase tracking-tight">
+                <svg
+                  className="w-4 h-4 mr-3 text-[#00f0ff] opacity-60"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
-                Managed by backend environment variables.
+                {/* // MANAGED_BY_ENVIRONMENT_VARIABLES */}
               </div>
-            ) : backendConfig?.url && (
-              <button
-                type="button"
-                onClick={() => {
-                  setGitlabUrl(backendConfig.url!);
-                  setIsBackendConfigUsed(true);
-                }}
-                className="text-[11px] font-bold text-brand-secondary hover:text-brand-accent transition-colors ml-1 underline decoration-brand-secondary/30 underline-offset-4"
-              >
-                Restore to Backend Configuration ({backendConfig.url})
-              </button>
+            ) : (
+              backendConfig?.url && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGitlabUrl(backendConfig.url!);
+                    setIsBackendConfigUsed(true);
+                  }}
+                  className="text-[10px] font-bold text-[#00f0ff] hover:text-[#00f0ff]/80 transition-colors ml-1 uppercase tracking-widest underline underline-offset-4"
+                >
+                  RESTORE_TO_BACKEND_DEFAULTS ({backendConfig.url})
+                </button>
+              )
             )}
           </div>
-          
+
           <div className="space-y-3">
             <label
               htmlFor="access-token"
-              className="block text-[11px] font-bold uppercase tracking-[0.15em] text-gray-400 dark:text-brand-subtle ml-1"
+              className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#00f0ff] ml-1"
             >
-              Secure Access Token
+              SECURE_ACCESS_TOKEN
             </label>
             <div className="relative group">
               <input
@@ -158,33 +182,45 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
                 type="password"
                 value={accessToken}
                 onChange={(e) => setAccessToken(e.target.value)}
-                placeholder="Paste your personal access token..."
-                className="w-full pl-4 pr-4 py-3.5 bg-gray-50 dark:bg-brand-primary/30 border border-gray-200 dark:border-white/5 text-gray-900 dark:text-white font-mono text-sm rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-secondary/50 shadow-inner transition-all"
+                placeholder="PASTE_PERSONAL_ACCESS_TOKEN..."
+                className="cyber-input w-full p-3 bg-transparent text-[#00f0ff] font-mono text-sm focus:outline-none transition-all"
               />
             </div>
-            <div className="flex items-start bg-blue-50/50 dark:bg-blue-500/5 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/10">
-               <svg className="w-4 h-4 mr-3 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-               </svg>
-               <p className="text-[11px] font-medium text-blue-700/80 dark:text-blue-300/60 leading-relaxed">
-                 Requires <span className="font-bold text-blue-800 dark:text-blue-300">api</span> and <span className="font-bold text-blue-800 dark:text-blue-300">read_api</span> permissions. Your token remains encrypted in browser local storage and is never transmitted outside your GitLab instance.
-               </p>
+            <div className="flex items-start bg-[#00f0ff]/5 p-4 border border-[#00f0ff]/10">
+              <svg
+                className="w-4 h-4 mr-4 text-[#00f0ff] opacity-60 flex-shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+              <p className="text-[10px] font-bold text-[#a1a1aa] uppercase tracking-widest leading-relaxed">
+                REQUIRES <span className="text-[#00f0ff]">API</span> AND{' '}
+                <span className="text-[#00f0ff]">READ_API</span> PERMISSIONS.
+                TOKENS_ENCRYPTED_IN_LOCAL_STORAGE.
+              </p>
             </div>
           </div>
         </div>
-        <div className="px-8 py-6 bg-gray-50/50 dark:bg-brand-primary/20 border-t border-gray-100 dark:border-white/5 flex justify-between items-center backdrop-blur-sm">
+        <div className="px-6 py-4 bg-[#00f0ff]/5 border-t border-[#00f0ff]/20 flex justify-between items-center backdrop-blur-sm">
           <button
             onClick={onClose}
-            className="text-xs font-bold text-gray-400 dark:text-brand-subtle hover:text-gray-900 dark:hover:text-white transition-all px-4 py-2"
+            className="text-[10px] font-bold text-[#a1a1aa] hover:text-[#ececec] transition-all px-4 py-2 uppercase tracking-[0.3em]"
           >
-            Discard
+            DISCARD
           </button>
           <button
             onClick={handleSave}
             disabled={!gitlabUrl.trim() || !accessToken.trim()}
-            className="bg-brand-secondary hover:bg-brand-secondary/90 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold py-3.5 px-8 rounded-2xl transition-all shadow-lg shadow-brand-secondary/20 hover:shadow-brand-secondary/40 active:scale-95 text-xs tracking-tight"
+            className="cyber-btn cyber-btn--magenta cyber-btn--sm"
           >
-            Apply Configuration
+            APPLY_CHANGES
           </button>
         </div>
       </div>

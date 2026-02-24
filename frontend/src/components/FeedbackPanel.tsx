@@ -10,11 +10,10 @@ import {
 import type { ParsedDiffLine } from '../types';
 import { getStoredViewMode, setStoredViewMode } from '../utils/viewModeStorage';
 import { FeedbackCard } from './FeedbackCard';
-import { FileDiffCard } from './FileDiffCard';
+import { CombinedFeedbackCard, FileDiffCard } from './FileDiffCard';
 import { Spinner } from './Spinner';
-import { SyntaxHighlightedCode } from './SyntaxHighlightedCode';
 import { type ViewMode, ViewModeToggle } from './ViewModeToggle';
-import { ApproveIcon, ArrowDownIcon, ArrowUpIcon, CheckmarkIcon, RefreshIcon } from './icons';
+import { ApproveIcon, ArrowDownIcon, ArrowUpIcon, CheckmarkIcon } from './icons';
 
 interface FeedbackPanelProps {
   codeTheme?: string;
@@ -48,21 +47,19 @@ interface FeedbackPanelProps {
 const InitialState = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-[500px] text-center px-6 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#1f75cb]/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#6b4fbb]/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      <div className="absolute inset-0 pointer-events-none opacity-30">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#00f0ff]/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#ff2a6d]/10 rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
 
       <div className="relative mb-10 group">
-        {/* Radar/Scanner Animation */}
-        <div className="absolute inset-0 rounded-full border-2 border-[#1f75cb]/20 scale-150 animate-ping opacity-20"></div>
-        <div className="absolute inset-0 rounded-full border border-[#1f75cb]/10 scale-[2] animate-ping opacity-10 delay-700"></div>
-        
-        <div className="relative p-8 bg-white dark:bg-[#1f1e24] rounded-full border border-[#dbdbdb] dark:border-[#404040] shadow-xl transform transition-transform group-hover:scale-105 duration-500">
+        <div className="absolute inset-0 rounded-full border-2 border-[#00f0ff]/20 scale-150 animate-ping opacity-30" />
+        <div className="absolute inset-0 rounded-full border border-[#00f0ff]/10 scale-[2] animate-ping opacity-15 delay-700" />
+
+        <div className="relative p-8 cyber-card cyber-card--interactive rounded-full border-2 border-[#00f0ff] shadow-[0_0_30px_rgba(0,240,255,0.3)] transform transition-transform group-hover:scale-105 duration-500">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-20 w-20 text-[#1f75cb] dark:text-[#428fdc]"
+            className="h-20 w-20 text-[#00f0ff]"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -73,38 +70,44 @@ const InitialState = () => {
               strokeLinejoin="round"
               d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
             />
-            <circle cx="12" cy="9" r="3" strokeDasharray="2 2" className="animate-spin-slow origin-center" />
+            <circle
+              cx="12"
+              cy="9"
+              r="3"
+              strokeDasharray="2 2"
+              className="animate-spin-slow origin-center"
+            />
           </svg>
         </div>
       </div>
 
       <div className="relative z-10 space-y-4">
-        <h3 className="text-3xl font-extrabold text-[#111111] dark:text-[#ececec] tracking-tight">
-          Awaiting Target
+        <h3
+          className="cyber-glitch text-3xl font-extrabold text-[#00f0ff] tracking-tight"
+          data-text="AWAITING TARGET"
+        >
+          AWAITING TARGET
         </h3>
-        <p className="max-w-md mx-auto text-[15px] font-medium text-[#444444] dark:text-[#a1a1aa] leading-relaxed">
-          The intelligence engine is on standby. Select a Merge Request from the workspace dashboard to initiate deep code analysis.
+        <p className="max-w-md mx-auto text-[15px] font-medium text-[#b4b4b4] leading-relaxed">
+          The intelligence engine is on standby. Select a Merge Request from the workspace dashboard
+          to initiate deep code analysis.
         </p>
       </div>
 
-      {/* Modern Animated 'Code Grid' Decoration */}
-      <div className="mt-16 grid grid-cols-4 gap-4 opacity-20">
+      <div className="mt-16 grid grid-cols-4 gap-4 opacity-30">
         {[...Array(8)].map((_, i) => (
-          <div 
-            key={i} 
-            className="h-1 w-16 bg-[#dbdbdb] dark:bg-[#404040] rounded-full overflow-hidden"
-          >
-            <div 
-              className="h-full bg-[#1f75cb] animate-progress" 
+          <div key={i} className="h-1 w-16 bg-[#00f0ff] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#00f0ff] animate-progress"
               style={{ animationDelay: `${i * 150}ms`, width: '100%' }}
-            ></div>
+            />
           </div>
         ))}
       </div>
 
-      <div className="mt-12 flex items-center space-x-3 text-[11px] font-bold text-[#8c8c8c] dark:text-[#666666] uppercase tracking-[0.2em]">
-        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-        <span>Neural Core Online</span>
+      <div className="mt-12 flex items-center space-x-3 text-[11px] font-bold text-[#05ffa1] uppercase tracking-[0.2em]">
+        <span className="w-2 h-2 rounded-full bg-[#05ffa1] animate-pulse shadow-[0_0_10px_#05ffa1]" />
+        <span>NEURAL CORE ONLINE</span>
       </div>
 
       <style>{`
@@ -131,7 +134,7 @@ const NoIssuesFound = () => (
   <div className="text-center">
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      className="mx-auto h-16 w-16 text-green-500 dark:text-green-400"
+      className="mx-auto h-16 w-16 text-[#05ffa1]"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -143,8 +146,8 @@ const NoIssuesFound = () => (
         d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
       />
     </svg>
-    <h3 className="mt-2 text-base font-semibold text-gray-900 dark:text-white">Excellent Work!</h3>
-    <p className="mt-1 text-sm text-gray-500 dark:text-brand-subtle">
+    <h3 className="mt-2 text-base font-semibold text-[#05ffa1]">EXCELLENT WORK!</h3>
+    <p className="mt-1 text-sm text-[#b4b4b4]">
       Our AI reviewer found no issues in the provided changes. Keep up the great coding!
     </p>
   </div>
@@ -173,9 +176,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   const [globalViewMode, setGlobalViewMode] = useState<ViewMode>(() => getStoredViewMode());
 
   // Detect dark mode from document class
-  const [isDarkMode, setIsDarkMode] = useState(() =>
-    document.documentElement.classList.contains('dark')
-  );
+  const [setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
 
   // Listen for theme changes
   useEffect(() => {
@@ -332,8 +333,10 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
     if (!mrDetails) {
       return (
         <div className="flex items-center justify-center py-10">
-          <div className="text-gray-500 dark:text-brand-subtle text-center">
-            <p>No MR details available</p>
+          <div className="text-[#a1a1aa] text-center">
+            <p className="uppercase tracking-widest text-[10px] font-bold">
+              {/* // NO_MR_DETAILS_LOADED */}
+            </p>
           </div>
         </div>
       );
@@ -349,83 +352,53 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
         feedback[0].status === 'submitted');
 
     return (
-      <div className="space-y-4">
-        {pendingComments.length > 0 && (
-          <div className="p-3 bg-white/40 dark:bg-brand-bg/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl flex items-center justify-between sticky top-4 z-20 shadow-glass animate-in slide-in-from-top-4 duration-500">
-            <div className="flex items-center space-x-3 px-3">
-              <div className="flex -space-x-1">
-                {[...Array(Math.min(3, pendingComments.length))].map((_, i) => (
-                  <div key={i} className="w-5 h-5 rounded-full border-2 border-white dark:border-brand-bg bg-brand-secondary/20 flex items-center justify-center">
-                     <span className="w-1.5 h-1.5 rounded-full bg-brand-secondary animate-pulse"></span>
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
-                {pendingComments.length} review items ready
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center bg-gray-100 dark:bg-brand-primary p-1 rounded-xl border border-gray-200 dark:border-white/5">
-                <button
-                  onClick={() => handleNavigate('up')}
-                  className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-brand-surface text-gray-500 dark:text-brand-subtle hover:text-brand-secondary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                  disabled={pendingComments.length === 0}
-                  aria-label="Previous comment"
-                >
-                  <ArrowUpIcon />
-                </button>
-                <div className="h-4 w-[1px] bg-gray-200 dark:bg-white/10 mx-1"></div>
-                <span className="text-[10px] font-bold font-mono text-gray-500 dark:text-brand-subtle px-2 min-w-[50px] text-center uppercase tracking-widest">
-                  {currentCommentIndex > -1
-                    ? `${String(currentCommentIndex + 1).padStart(2, '0')}`
-                    : '--'}
-                  /{`${String(pendingComments.length).padStart(2, '0')}`}
-                </span>
-                <div className="h-4 w-[1px] bg-gray-200 dark:bg-white/10 mx-1"></div>
-                <button
-                  onClick={() => handleNavigate('down')}
-                  className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-brand-surface text-gray-500 dark:text-brand-subtle hover:text-brand-secondary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                  disabled={pendingComments.length === 0}
-                  aria-label="Next comment"
-                >
-                  <ArrowDownIcon />
-                </button>
-              </div>
-              <button
-                onClick={onPostAllComments}
-                className="group relative inline-flex items-center justify-center px-4 py-2 font-bold text-white transition-all duration-200 bg-brand-secondary rounded-xl hover:bg-brand-secondary/90 hover:shadow-lg hover:shadow-brand-secondary/20 active:scale-95 text-xs"
-              >
-                <CheckmarkIcon className="w-3.5 h-3.5 mr-2" />
-                Submit All
-              </button>
-            </div>
-          </div>
-        )}
-
+      <div className="space-y-6">
         {/* Display general MR comments first */}
         {generalComments.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-brand-subtle mb-2">
-              General Comments
+          <div className="space-y-3 mb-6">
+            <h3 className="text-[10px] font-bold text-[#a1a1aa] uppercase tracking-widest ml-1">
+              {/* // GENERAL FEEDBACK */}
             </h3>
-            {generalComments.map((item) => (
-              <FeedbackCard
-                key={item.id}
-                feedback={item}
-                onPostComment={onPostComment}
-                onUpdateFeedback={handlers.onUpdateFeedback}
-                onDeleteFeedback={handlers.onDeleteFeedback}
-                onSetEditing={handlers.onSetEditing}
-                onToggleIgnoreFeedback={onToggleIgnoreFeedback}
-              />
-            ))}
+            {/* Render pending (new AI) feedbacks individually */}
+            {generalComments
+              .filter((item) => item.status === 'pending')
+              .map((item) => (
+                <FeedbackCard
+                  key={item.id}
+                  feedback={item}
+                  onPostComment={onPostComment}
+                  onUpdateFeedback={handlers.onUpdateFeedback}
+                  onDeleteFeedback={handlers.onDeleteFeedback}
+                  onSetEditing={handlers.onSetEditing}
+                  onToggleIgnoreFeedback={onToggleIgnoreFeedback}
+                />
+              ))}
+
+            {/* Render all submitted (existing) feedbacks grouped together */}
+            {(() => {
+              const submittedGeneral = generalComments.filter(
+                (item) => item.status === 'submitted'
+              );
+              if (submittedGeneral.length === 0) return null;
+              return (
+                <CombinedFeedbackCard
+                  feedbacks={submittedGeneral}
+                  onPostComment={onPostComment}
+                  onUpdateFeedback={handlers.onUpdateFeedback}
+                  onDeleteFeedback={handlers.onDeleteFeedback}
+                  onSetEditing={handlers.onSetEditing}
+                  onToggleIgnoreFeedback={onToggleIgnoreFeedback}
+                  activeFeedbackId={activeFeedbackId}
+                />
+              );
+            })()}
           </div>
         )}
 
         {/* Show the "No Issues" message as a banner if there's no feedback, but always show the diffs below */}
         {shouldShowNoIssuesMessage &&
           (!mrDetails.parsedDiffs || mrDetails.parsedDiffs.length === 0) && (
-            <div className="flex items-center justify-center py-10">
+            <div className="flex items-center justify-center py-20">
               <NoIssuesFound />
             </div>
           )}
@@ -434,18 +407,19 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
           const feedbackForThisFile = feedbackByFile.get(fileDiff.filePath) || [];
 
           return (
-            <FileDiffCard
-              key={fileDiff.filePath}
-              codeTheme={props.codeTheme}
-              fileDiff={fileDiff}
-              feedbackForFile={feedbackForThisFile}
-              onPostComment={onPostComment}
-              activeFeedbackId={activeFeedbackId}
-              mrDetails={mrDetails}
-              onToggleIgnoreFeedback={onToggleIgnoreFeedback}
-              viewMode={globalViewMode}
-              {...handlers}
-            />
+            <div key={fileDiff.filePath} className="mb-8">
+              <FileDiffCard
+                codeTheme={props.codeTheme}
+                fileDiff={fileDiff}
+                feedbackForFile={feedbackForThisFile}
+                onPostComment={onPostComment}
+                activeFeedbackId={activeFeedbackId}
+                mrDetails={mrDetails}
+                onToggleIgnoreFeedback={onToggleIgnoreFeedback}
+                viewMode={globalViewMode}
+                {...handlers}
+              />
+            </div>
           );
         })}
       </div>
@@ -455,11 +429,13 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   const renderContent = () => {
     if (isLoading && !isAiAnalyzing) {
       return (
-        <div className="flex flex-col items-center justify-center h-full text-center">
+        <div className="flex flex-col items-center justify-center h-full text-center py-20">
           <Spinner size="lg" />
-          <p className="mt-4 text-lg text-gray-500 dark:text-brand-subtle">Loading MR details...</p>
-          <p className="text-sm text-gray-500/70 dark:text-brand-subtle/70">
-            Fetching merge request information.
+          <p className="mt-6 text-[14px] font-bold text-[#00f0ff] cyber-text-glow uppercase tracking-widest animate-pulse">
+            LOADING MR_DATASTREAM...
+          </p>
+          <p className="mt-2 text-[10px] text-[#a1a1aa] font-mono uppercase tracking-tighter">
+            ESTABLISHING CONNECTION TO GITLAB CORE
           </p>
         </div>
       );
@@ -467,11 +443,13 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
 
     if (isLoading && isAiAnalyzing) {
       return (
-        <div className="flex flex-col items-center justify-center h-full text-center">
+        <div className="flex flex-col items-center justify-center h-full text-center py-20">
           <Spinner size="lg" />
-          <p className="mt-4 text-lg text-gray-500 dark:text-brand-subtle">AI is thinking...</p>
-          <p className="text-sm text-gray-500/70 dark:text-brand-subtle/70">
-            Analyzing your merge request for quality and improvements.
+          <p className="mt-6 text-[14px] font-bold text-[#ff2a6d] cyber-text-glow uppercase tracking-widest animate-pulse">
+            AI_ANALYSIS IN PROGRESS...
+          </p>
+          <p className="mt-2 text-[10px] text-[#a1a1aa] font-mono uppercase tracking-tighter">
+            SCANNING CODEBLOCKS FOR ANOMALIES
           </p>
         </div>
       );
@@ -484,11 +462,11 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
       if (isAiErrorWithManualReview) {
         // Show a dismissible warning but allow manual review to continue
         return (
-          <div className="space-y-4">
-            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-4 rounded-lg shadow-lg">
+          <div className="space-y-6">
+            <div className="cyber-card cyber-neon-border--magenta bg-[#ff2a6d]/10 p-4 shadow-[0_0_15px_rgba(255,42,109,0.1)]">
               <div className="flex items-start">
                 <div className="flex-shrink-0">
-                  <svg className="h-6 w-6 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <svg className="h-6 w-6 text-[#ff2a6d]" viewBox="0 0 20 20" fill="currentColor">
                     <path
                       fillRule="evenodd"
                       d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -496,26 +474,21 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
                     />
                   </svg>
                 </div>
-                <div className="ml-3 flex-1">
-                  <p className="mt-1 text-sm text-red-700 dark:text-red-300">{error}</p>
-                  <p className="mt-2 text-xs text-red-600 dark:text-red-400">
-                    You can still review the code manually and add comments below.
+                <div className="ml-4 flex-1">
+                  <h3 className="text-[11px] font-bold text-[#ff2a6d] uppercase tracking-widest mb-1" >Error</h3>
+                  <p className="text-[12px] text-[#ececec] font-mono leading-snug">{error}</p>
+                  <p className="mt-2 text-[10px] text-[#a1a1aa] font-bold uppercase tracking-tight italic">
+                    {/* MANUAL REVIEW INTERFACE ACTIVE. AI_SUBSYSTEMS OFFLINE. */}
                   </p>
                 </div>
                 {onClearError && (
                   <div className="ml-auto pl-3">
                     <button
                       onClick={onClearError}
-                      className="inline-flex rounded-md bg-red-50 dark:bg-red-900/30 p-1.5 text-red-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-red-50"
+                      className="cyber-btn cyber-btn--ghost cyber-btn--xs opacity-70 hover:opacity-100"
                       aria-label="Dismiss error"
                     >
-                      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path
-                          fillRule="evenodd"
-                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                      X
                     </button>
                   </div>
                 )}
@@ -528,9 +501,20 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
 
       // Critical error - show full error screen
       return (
-        <div className="text-center text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 p-4 rounded-lg">
-          <h3 className="font-bold">An Error Occurred</h3>
-          <p>{error}</p>
+        <div className="text-center py-20 cyber-card cyber-neon-border--magenta bg-[#ff2a6d]/10 m-4">
+          <h3
+            className="font-bold text-[#ff2a6d] cyber-glitch uppercase tracking-widest text-lg"
+            data-text="CRITICAL_SYSTEM_FAILURE"
+          >
+            CRITICAL_SYSTEM_FAILURE
+          </h3>
+          <p className="mt-4 text-[12px] text-[#ececec] font-mono max-w-md mx-auto">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-8 cyber-btn cyber-btn--magenta cyber-btn--sm"
+          >
+            REBOOT_SYSTEM
+          </button>
         </div>
       );
     }
@@ -547,27 +531,61 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   };
 
   return (
-    <div className="bg-white dark:bg-brand-surface rounded-lg shadow-xl h-full flex flex-col">
-      <div className="border-b border-gray-200 dark:border-brand-primary flex items-center justify-between px-4 py-2">
+    <div className="h-full flex flex-col bg-transparent">
+      <div className="border-b border-[#ececec]/10 flex items-center justify-between px-4 py-2">
         <div className="flex items-center space-x-4">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Review Feedback</h2>
+          <h2 className="text-sm font-bold text-[#ececec]">Review</h2>
           <ViewModeToggle currentMode={globalViewMode} onModeChange={handleGlobalViewModeChange} />
+          {pendingComments.length > 0 && (
+            <div className="flex items-center space-x-2 px-2 py-1 bg-[#05ffa1]/10">
+              <span className="text-[10px] font-bold text-[#05ffa1]">
+                {pendingComments.length} pending
+              </span>
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => handleNavigate('up')}
+                  className="p-0.5 text-[#05ffa1]/60 hover:text-[#05ffa1] disabled:opacity-20"
+                  disabled={pendingComments.length === 0}
+                  aria-label="Previous comment"
+                >
+                  <ArrowUpIcon className="w-3 h-3" />
+                </button>
+                <span className="text-[10px] text-[#05ffa1]">
+                  {currentCommentIndex > -1 ? `${currentCommentIndex + 1}` : '--'}/
+                  {pendingComments.length}
+                </span>
+                <button
+                  onClick={() => handleNavigate('down')}
+                  className="p-0.5 text-[#05ffa1]/60 hover:text-[#05ffa1] disabled:opacity-20"
+                  disabled={pendingComments.length === 0}
+                  aria-label="Next comment"
+                >
+                  <ArrowDownIcon className="w-3 h-3" />
+                </button>
+              </div>
+              <button
+                onClick={onPostAllComments}
+                className="px-2 py-0.5 text-[10px] font-bold bg-[#05ffa1]/20 text-[#05ffa1] hover:bg-[#05ffa1]/30 transition-colors"
+              >
+                Submit
+              </button>
+            </div>
+          )}
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
           {onRedoReview && !isAiAnalyzing && mrDetails && (
             <button
               onClick={onRedoReview}
-              className="h-[28px] px-2.5 flex items-center bg-gray-100 dark:bg-brand-primary text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-brand-secondary rounded text-sm font-medium transition-colors"
+              className="px-2 py-1 text-[10px] font-bold text-[#a1a1aa] hover:text-[#00f0ff] transition-colors"
               aria-label="Redo review"
             >
-              <RefreshIcon className="w-4 h-4 mr-1.5" />
-              <span>Redo Review</span>
+              Re-scan
             </button>
           )}
           {isAiAnalyzing && (
-            <div className="flex items-center space-x-2 text-brand-secondary">
+            <div className="flex items-center space-x-2 text-[#a1a1aa]">
               <Spinner size="sm" />
-              <span className="text-sm font-medium">AI Analyzing...</span>
+              <span className="text-[10px]">Analyzing...</span>
             </div>
           )}
           {mrDetails &&
@@ -577,38 +595,26 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
 
               if (isApproved && onRevokeApproval) {
                 return (
-                  <div className="flex items-center space-x-2">
-                    <div className="h-[28px] px-2.5 flex items-center bg-green-200/80 dark:bg-green-800/40 text-green-900 dark:text-green-200 rounded text-sm font-medium">
-                      <CheckmarkIcon className="w-4 h-4 mr-1.5" />
-                      <span>Approved</span>
+                  <div className="flex items-center space-x-3">
+                    <div className="px-3 py-1 flex items-center bg-[#05ffa1]/10 text-[#05ffa1] border border-[#05ffa1]/30 text-[10px] font-bold uppercase tracking-widest shadow-[0_0_10px_rgba(5,255,161,0.1)]">
+                      <CheckmarkIcon className="w-3.5 h-3.5 mr-2" />
+                      <span>APPROVED</span>
                     </div>
                     <button
                       onClick={onRevokeApproval}
                       disabled={isRevokingApproval}
-                      className="h-[28px] px-2.5 flex items-center bg-red-100/50 dark:bg-red-900/20 text-red-800 dark:text-red-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="cyber-btn cyber-btn--magenta cyber-btn--xs"
                       aria-label="Revoke approval"
                     >
                       {isRevokingApproval ? (
                         <>
                           <Spinner size="sm" />
-                          <span className="ml-1.5">Revoking...</span>
+                          <span className="ml-2">REVOKING...</span>
                         </>
                       ) : (
                         <>
-                          <svg
-                            className="w-4 h-4 mr-1.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                          <span>Revoke</span>
+                          <span className="mr-2">X</span>
+                          <span>REVOKE</span>
                         </>
                       )}
                     </button>
@@ -621,18 +627,18 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
                   <button
                     onClick={onApproveMR}
                     disabled={isApprovingMR}
-                    className="h-[28px] px-2.5 flex items-center bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="cyber-btn cyber-btn--green cyber-btn--xs"
                     aria-label="Approve merge request"
                   >
                     {isApprovingMR ? (
                       <>
                         <Spinner size="sm" />
-                        <span className="ml-1.5">Approving...</span>
+                        <span className="ml-2">APPROVING...</span>
                       </>
                     ) : (
                       <>
-                        <ApproveIcon className="w-4 h-4 mr-1.5" />
-                        <span>Approve MR</span>
+                        <ApproveIcon className="w-3.5 h-3.5 mr-2" />
+                        <span>APPROVE_MR</span>
                       </>
                     )}
                   </button>
@@ -644,8 +650,8 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
         </div>
       </div>
       <div
-        className="p-1 sm:p-4 flex-grow overflow-y-auto"
-        style={{ maxHeight: 'calc(100vh - 150px)' }}
+        className="p-1 sm:p-5 flex-grow overflow-y-auto bg-transparent scrollbar-cyber"
+        style={{ maxHeight: 'calc(100vh - 120px)' }}
       >
         {renderContent()}
       </div>

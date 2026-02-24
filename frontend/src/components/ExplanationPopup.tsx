@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import type { ChatMessage } from '../types';
+import { Spinner } from './Spinner';
 import { CloseIcon, SendIcon } from './icons';
 
 interface ExplanationPopupProps {
@@ -54,15 +55,12 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
 
       setAdjustedPosition({ x, y });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position]);
 
-  // Scroll to bottom of chat history when new messages are added
   React.useEffect(() => {
     if (chatHistoryRef.current) {
       chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
   const handleSendMessage = () => {
@@ -82,113 +80,108 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
   const popupContent = (
     <div
       ref={popupRef}
-      className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-w-2xl w-[640px] flex flex-col"
+      className="fixed z-50 cyber-card cyber-neon-border--magenta max-w-2xl w-[640px] flex flex-col shadow-[0_0_30px_rgba(255,42,109,0.3)]"
       role="dialog"
       aria-labelledby="explanation-popup-title"
       style={{
         left: adjustedPosition.x,
         top: adjustedPosition.y,
-        maxHeight: '80vh', // Set max height
+        maxHeight: '80vh',
       }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-600 flex-shrink-0">
+      <div className="cyber-card__header flex items-center justify-between p-4 border-b border-[#ff2a6d]/30 bg-[#ff2a6d]/5">
         <div className="flex-1 min-w-0">
           <h3
             id="explanation-popup-title"
-            className="text-sm font-medium text-gray-900 dark:text-white truncate"
+            className="text-sm font-bold text-[#ff2a6d] uppercase tracking-wider cyber-text-glow"
           >
-            AI Chat
+            AI EXPLAIN
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">{filePath}</p>
+          <p className="text-[10px] font-mono text-[#a1a1aa] truncate mt-1">{filePath}</p>
         </div>
         <button
           onClick={onClose}
-          className="ml-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          className="cyber-btn cyber-btn--ghost cyber-btn--xs"
           title="Close chat"
         >
-          <CloseIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+          <CloseIcon className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Content */}
       <div
-        className="flex-grow p-3 overflow-y-auto"
+        className="flex-grow p-4 overflow-y-auto bg-[#0a0a0f]"
         id="explanation-popup-content"
         ref={chatHistoryRef}
       >
-        {/* Code line */}
-        <div className="mb-3">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Code line:</p>
-          <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded block break-all">
+        <div className="mb-4">
+          <p className="text-[10px] font-bold text-[#00f0ff] uppercase tracking-wider mb-2">
+            CODE LINE:
+          </p>
+          <code className="text-xs bg-[#00f0ff]/10 text-[#00f0ff] px-3 py-2 border border-[#00f0ff]/20 block break-all font-mono">
             {lineContent}
           </code>
         </div>
 
-        {/* Chat history */}
         <div className="space-y-4">
           {messages.map((message, index) => (
             <div
               key={`${message.author}-${index}`}
-              className={`flex items-start gap-2.5 ${
-                message.author === 'user' ? 'justify-end' : ''
-              }`}
+              className={`flex items-start gap-3 ${message.author === 'user' ? 'justify-end' : ''}`}
             >
               {message.author === 'ai' && (
-                <div className="flex-shrink-0 w-6 h-6 bg-purple-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                <div className="flex-shrink-0 w-8 h-8 bg-[#ff2a6d] text-[#0a0a0f] text-[10px] font-bold flex items-center justify-center border border-[#ff2a6d] shadow-[0_0_10px_rgba(255,42,109,0.5)]">
                   AI
                 </div>
               )}
               <div
-                className={`p-3 rounded-lg max-w-md ${
+                className={`p-3 max-w-md ${
                   message.author === 'ai'
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                    : 'bg-blue-500 text-white'
+                    ? 'cyber-card bg-[#1a1a20] text-[#ececec] border border-[#00f0ff]/20'
+                    : 'bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/30'
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <p className="text-sm whitespace-pre-wrap font-mono">{message.content}</p>
               </div>
             </div>
           ))}
 
           {isLoading && (
-            <div className="flex items-center space-x-2">
-              <div className="flex-shrink-0 w-6 h-6 bg-purple-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-[#ff2a6d] text-[#0a0a0f] text-[10px] font-bold flex items-center justify-center border border-[#ff2a6d] shadow-[0_0_10px_rgba(255,42,109,0.5)]">
                 AI
               </div>
-              <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent" />
+              <div className="p-3 cyber-card border border-[#00f0ff]/20">
+                <Spinner size="sm" />
               </div>
             </div>
           )}
 
           {error && (
-            <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded">
-              <strong>Error:</strong> {error}
+            <div className="text-sm text-[#ff2a6d] bg-[#ff2a6d]/10 border border-[#ff2a6d]/30 p-3">
+              <span className="font-bold uppercase">ERROR:</span> {error}
             </div>
           )}
         </div>
       </div>
 
-      {/* Footer Input */}
-      <div className="p-3 border-t border-gray-200 dark:border-gray-600 flex-shrink-0">
+      <div className="p-4 border-t border-[#ff2a6d]/30 bg-[#0a0a0f]">
         <div className="relative">
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask a follow-up question..."
-            className="w-full pl-3 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="ASK FOLLOW-UP..."
+            className="cyber-input w-full px-4 py-2 pr-12 bg-transparent text-[#00f0ff] text-sm font-mono focus:outline-none"
             disabled={isLoading}
           />
           <button
             onClick={handleSendMessage}
             disabled={isLoading || !newMessage.trim()}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="absolute right-2 top-1/2 -translate-y-1/2 cyber-btn cyber-btn--cyan cyber-btn--xs"
             title="Send message"
           >
-            <SendIcon className="w-5 h-5" />
+            <SendIcon className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -196,10 +189,8 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
   );
 
   if (!portalRoot) {
-    console.error(
-      "Portal root element not found. Make sure you have a <div id='portal-root'></div> in your index.html"
-    );
-    return popupContent; // Fallback to rendering inline
+    console.error('Portal root element not found');
+    return popupContent;
   }
 
   return ReactDOM.createPortal(popupContent, portalRoot);
