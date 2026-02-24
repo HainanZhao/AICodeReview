@@ -7,6 +7,7 @@ import type {
   Severity,
 } from '../types';
 import { FeedbackCard } from './FeedbackCard';
+import { CombinedFeedbackCard, SEVERITY_CONFIG } from './FileDiffCard';
 import { SplitDiffLine } from './SplitDiffLine';
 import { AddCommentIcon, ChevronDownIcon } from './icons';
 
@@ -223,7 +224,8 @@ export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
         }
 
         // Render feedback cards - span across both panes for better visibility
-        feedbacksToShow.forEach((feedback) => {
+        if (feedbacksToShow.length === 1) {
+          const feedback = feedbacksToShow[0];
           const isActive = feedback.id === activeFeedbackId;
           elements.push(
             <tr
@@ -235,7 +237,7 @@ export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
                   : 'bg-white dark:bg-brand-surface'
               }`}
             >
-              <td colSpan={2} className="p-2">
+              <td colSpan={2} className="py-1 px-2">
                 <div className="flex items-start space-x-2">
                   <div className="text-brand-secondary mt-1 flex-shrink-0">
                     <AddCommentIcon />
@@ -254,7 +256,33 @@ export const SplitDiffView: React.FC<SplitDiffViewProps> = ({
               </td>
             </tr>
           );
-        });
+        } else if (feedbacksToShow.length > 1) {
+          elements.push(
+            <tr
+              key={`feedback-combined-${pair.left?.newLine || pair.right?.newLine}`}
+              className="bg-white dark:bg-brand-surface"
+            >
+              <td colSpan={2} className="py-1 px-2">
+                <div className="flex items-start space-x-2">
+                  <div className="text-brand-secondary mt-1 flex-shrink-0">
+                    <AddCommentIcon />
+                  </div>
+                  <div className="flex-1">
+                    <CombinedFeedbackCard
+                      feedbacks={feedbacksToShow}
+                      onPostComment={onPostComment}
+                      onUpdateFeedback={onUpdateFeedback}
+                      onDeleteFeedback={onDeleteFeedback}
+                      onSetEditing={onSetEditing}
+                      onToggleIgnoreFeedback={onToggleIgnoreFeedback}
+                      activeFeedbackId={activeFeedbackId}
+                    />
+                  </div>
+                </div>
+              </td>
+            </tr>
+          );
+        }
       });
 
       // --- 3. Update last rendered line ---

@@ -18,15 +18,15 @@ interface SplitDiffLineProps {
 const getLineClasses = (type?: ParsedDiffLine['type']) => {
   switch (type) {
     case 'add':
-      return 'bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-300';
+      return 'bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-l-2 border-green-500/50';
     case 'remove':
-      return 'bg-red-100/50 dark:bg-red-900/20 text-red-800 dark:text-red-400';
+      return 'bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-l-2 border-red-500/50';
     case 'meta':
-      return 'bg-blue-100/50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300';
+      return 'bg-brand-secondary/10 dark:bg-brand-secondary/20 text-brand-secondary dark:text-brand-secondary/80 border-l-2 border-brand-secondary/50';
     case 'context':
-      return 'bg-transparent text-gray-500 dark:text-brand-subtle';
+      return 'bg-transparent text-gray-600 dark:text-brand-subtle border-l-2 border-transparent';
     default:
-      return 'bg-gray-50 dark:bg-brand-primary/10 text-gray-400 dark:text-brand-subtle';
+      return 'bg-gray-50/50 dark:bg-brand-primary/5 text-gray-400 dark:text-brand-subtle/50 border-l-2 border-transparent';
   }
 };
 
@@ -48,20 +48,20 @@ const SplitDiffSide: React.FC<{
 
   return (
     <td
-      className={`w-1/2 border-r border-gray-200 dark:border-brand-primary/30 ${lineClasses} group hover:bg-black/5 dark:hover:bg-white/10`}
+      className={`w-1/2 border-r border-gray-200 dark:border-white/5 ${lineClasses} group hover:bg-black/5 dark:hover:bg-white/5 transition-all`}
     >
-      <div className="flex">
+      <div className="flex h-4">
         {/* Action buttons */}
-        <div className="w-12 flex items-center justify-center pl-2">
-          <div className="flex items-center justify-center space-x-1">
+        <div className="w-12 flex items-center justify-center pl-1 pr-1">
+          <div className="flex items-center justify-center space-x-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 translate-x-1 group-hover:translate-x-0">
             {/* Add comment button */}
             {canComment && (
               <button
                 onClick={onAddComment}
-                title="Add comment"
-                className="opacity-0 bg-brand-secondary text-white rounded-full p-[3px] leading-none shadow-lg hover:bg-red-600 transition-opacity duration-150 group-hover:opacity-100"
+                title="Add Comment"
+                className="bg-brand-secondary text-white rounded-lg p-[3.5px] leading-none shadow-glass hover:scale-110 active:scale-95 transition-all"
               >
-                <PlusIcon className="w-3 h-3" />
+                <PlusIcon className="w-2.5 h-2.5" />
               </button>
             )}
 
@@ -69,22 +69,22 @@ const SplitDiffSide: React.FC<{
             {canExplain && line && (
               <button
                 onClick={(e) => onExplainClick(e, line)}
-                title="AI Explain this line"
-                className="opacity-0 bg-purple-600 text-white rounded-full p-[3px] leading-none shadow-lg hover:bg-purple-700 transition-opacity duration-150 group-hover:opacity-100"
+                title="AI Explain"
+                className="bg-brand-accent text-white rounded-lg p-[3.5px] leading-none shadow-glass hover:scale-110 active:scale-95 transition-all"
               >
-                <AIExplainIcon className="w-3 h-3" />
+                <AIExplainIcon className="w-2.5 h-2.5" />
               </button>
             )}
           </div>
         </div>
 
         {/* Line number */}
-        <div className="w-10 text-right px-1 select-none opacity-70 text-xs">
+        <div className="w-10 text-right px-1 select-none text-[11px] font-mono text-[#444444] dark:text-[#a1a1aa] align-middle leading-none tabular-nums mt-[3px]">
           {lineNumber || ''}
         </div>
 
         {/* Line content */}
-        <div className="flex-1 pr-2 font-mono text-xs">
+        <div className="flex-1 pl-2 pr-2 font-mono text-[12px] font-medium leading-[1.6] tracking-normal">
           {line ? (
             <>
               <SyntaxHighlightedCode

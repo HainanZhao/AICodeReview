@@ -1,70 +1,85 @@
 import type React from 'react';
-import { SYNTAX_THEMES } from '../constants';
 import { SettingsIcon } from './icons';
 
 const BrainCircuitIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    className="h-8 w-8 text-brand-secondary"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={1.5}
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75l6 4.5-6 4.5" />
-    <rect x="3" y="3" width="18" height="18" rx="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
+  <div className="relative group cursor-default select-none">
+    {/* Dynamic Background Glow */}
+    <div className="absolute -inset-1 bg-gradient-to-tr from-[#1f75cb] via-[#6b4fbb] to-[#428fdc] rounded-xl blur-md opacity-20 group-hover:opacity-40 transition duration-500"></div>
+    
+    <div className="relative flex items-center justify-center w-10 h-10 bg-white dark:bg-[#1f1e24] rounded-xl border border-[#dbdbdb] dark:border-[#404040] shadow-sm overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none">
+        <svg width="100%" height="100%">
+          <pattern id="grid" width="4" height="4" patternUnits="userSpaceOnUse">
+            <path d="M 4 0 L 0 0 0 4" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+          </pattern>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
+      </div>
+
+      {/* Main Logo Mark */}
+      <svg
+        viewBox="0 0 24 24"
+        className="w-6 h-6 text-[#1f75cb] dark:text-[#428fdc]"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {/* Hexagonal Outer Frame */}
+        <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" className="opacity-20" />
+        
+        {/* Central Intelligence Node */}
+        <circle cx="12" cy="12" r="3" className="fill-current opacity-20 animate-pulse" />
+        <circle cx="12" cy="12" r="1" className="fill-current" />
+        
+        {/* Connection Lines */}
+        <path d="M12 2v7M12 15v7M3 7l6 3.5M15 13.5l6 3.5M3 17l6-3.5M15 10.5l6-3.5" className="animate-draw" />
+      </svg>
+
+      {/* Glossy Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none"></div>
+    </div>
+
+    <style>{`
+      @keyframes draw {
+        0% { stroke-dasharray: 0 100; opacity: 0; }
+        50% { opacity: 1; }
+        100% { stroke-dasharray: 100 0; }
+      }
+      .animate-draw {
+        stroke-dasharray: 100;
+        animation: draw 2s ease-out forwards;
+      }
+    `}</style>
+  </div>
 );
 
 interface HeaderProps {
   onOpenSettings: () => void;
-  onSyntaxThemeChange: (theme: string) => void;
-  currentSyntaxTheme: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({
-  onOpenSettings,
-  onSyntaxThemeChange,
-  currentSyntaxTheme,
-}) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
   return (
-    <header className="bg-white/80 dark:bg-brand-surface/50 backdrop-blur-sm border-b border-gray-200 dark:border-brand-primary/50 sticky top-0 z-20">
-      <div className="w-full px-4 md:px-6 lg:px-8">
+    <header className="bg-white/70 dark:bg-brand-bg/70 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/5 sticky top-0 z-30">
+      <div className="w-full px-4 md:px-6">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-4">
             <BrainCircuitIcon />
             <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+              <h1 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight leading-tight">
                 AI Code Review
               </h1>
-              <p className="text-xs text-gray-500 dark:text-brand-subtle">
-                AI-powered Merge Request analysis
+              <p className="text-[11px] font-medium text-gray-500 dark:text-brand-subtle tracking-wide uppercase">
+                Intelligence Engine
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <label
-              htmlFor="syntax-theme-select"
-              className="text-sm text-gray-600 dark:text-brand-subtle"
-            >
-              Theme:
-            </label>
-            <select
-              id="syntax-theme-select"
-              value={currentSyntaxTheme}
-              onChange={(e) => onSyntaxThemeChange(e.target.value)}
-              className="p-2 text-sm bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary hover:bg-gray-200 dark:hover:bg-brand-primary/80 transition-colors"
-              aria-label="Select syntax highlighting theme"
-            >
-              {SYNTAX_THEMES.map((theme) => (
-                <option key={theme.value} value={theme.value}>
-                  {theme.label}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center space-x-4">
             <button
               onClick={onOpenSettings}
-              className="p-2 rounded-full text-gray-500 dark:text-brand-subtle hover:bg-gray-200 dark:hover:bg-brand-primary hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="p-2 rounded text-[#666666] dark:text-[#8c8c8c] hover:bg-[#f0f0f0] dark:hover:bg-[#2e2e33] hover:text-[#333333] dark:hover:text-[#dbdbdb] transition-colors"
               aria-label="Open settings"
             >
               <SettingsIcon />

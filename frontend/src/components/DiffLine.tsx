@@ -18,13 +18,13 @@ interface DiffLineProps {
 const getLineClasses = (type: ParsedDiffLine['type']) => {
   switch (type) {
     case 'add':
-      return 'bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-300';
+      return 'bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-l-2 border-green-500/50';
     case 'remove':
-      return 'bg-red-100/50 dark:bg-red-900/20 text-red-800 dark:text-red-400';
+      return 'bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-l-2 border-red-500/50';
     case 'meta':
-      return 'bg-blue-100/50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300';
+      return 'bg-brand-secondary/10 dark:bg-brand-secondary/20 text-brand-secondary dark:text-brand-secondary/80 border-l-2 border-brand-secondary/50';
     default:
-      return 'bg-transparent text-gray-500 dark:text-brand-subtle';
+      return 'bg-transparent text-gray-600 dark:text-brand-subtle border-l-2 border-transparent';
   }
 };
 
@@ -168,18 +168,18 @@ export const DiffLine: React.FC<DiffLineProps> = ({
 
   return (
     <>
-      <tr className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/10 h-4`}>
-        <td className="w-8 text-center align-middle h-4">
+      <tr className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/5 transition-all h-4`}>
+        <td className="w-12 text-center align-middle h-4 pr-1">
           {/* Action buttons container */}
-          <div className="flex items-center justify-center space-x-1">
+          <div className="flex items-center justify-center space-x-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200">
             {/* Add comment button */}
             <button
               onClick={onAddComment}
-              title={canComment ? 'Add comment' : ''}
+              title={canComment ? 'Add Comment' : ''}
               disabled={!canComment}
               className={`
-                        opacity-0 bg-brand-secondary text-white rounded-full p-[3px] leading-none shadow-lg hover:bg-red-600 transition-opacity duration-150
-                        ${canComment ? 'group-hover:opacity-100' : 'pointer-events-none'}
+                        bg-brand-secondary text-white rounded-lg p-[4px] leading-none shadow-glass hover:scale-110 active:scale-95 transition-transform
+                        ${canComment ? '' : 'pointer-events-none opacity-0'}
                       `}
             >
               <PlusIcon className="w-3 h-3" />
@@ -189,21 +189,21 @@ export const DiffLine: React.FC<DiffLineProps> = ({
             {canExplain && (
               <button
                 onClick={handleExplainClick}
-                title="AI Explain this line"
-                className="opacity-0 bg-purple-600 text-white rounded-full p-[3px] leading-none shadow-lg hover:bg-purple-700 transition-opacity duration-150 group-hover:opacity-100"
+                title="AI Explain"
+                className="bg-brand-accent text-white rounded-lg p-[4px] leading-none shadow-glass hover:scale-110 active:scale-95 transition-transform"
               >
                 <AIExplainIcon className="w-3 h-3" />
               </button>
             )}
           </div>
         </td>
-        <td className="w-10 text-right px-1 select-none opacity-70 align-middle h-4 text-xs">
+        <td className="w-10 text-right px-1 select-none text-[11px] font-mono text-[#444444] dark:text-[#a1a1aa] align-middle h-4 leading-none tabular-nums">
           {line.oldLine || ''}
         </td>
-        <td className="w-10 text-right px-1 select-none opacity-70 align-middle h-4 text-xs">
+        <td className="w-10 text-right px-1 select-none text-[11px] font-mono text-[#444444] dark:text-[#a1a1aa] align-middle h-4 border-r border-[#dbdbdb] dark:border-[#404040] leading-none tabular-nums">
           {line.newLine || ''}
         </td>
-        <td className="w-full pr-2 align-middle font-mono text-xs h-4">
+        <td className="w-full pl-2 pr-2 align-middle font-mono text-[12px] font-medium h-4 leading-[1.6] tracking-normal">
           <SyntaxHighlightedCode
             code={line.content}
             filePath={filePath}

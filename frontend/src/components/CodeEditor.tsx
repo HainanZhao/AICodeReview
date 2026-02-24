@@ -118,49 +118,52 @@ export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-brand-surface rounded-lg shadow-xl h-full flex flex-col">
-      <div className="p-4 border-b border-gray-200 dark:border-brand-primary flex justify-between items-center">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white">Review Dashboard</h2>
+    <div className="bg-white dark:bg-[#18191d] rounded-md shadow-sm h-full flex flex-col border border-[#dbdbdb] dark:border-[#404040] overflow-hidden">
+      <div className="p-4 border-b border-[#dbdbdb] dark:border-[#404040] bg-[#fbfbfb] dark:bg-[#1f1e24] flex justify-between items-center">
+        <div>
+          <h2 className="text-[13px] font-bold text-[#111111] dark:text-[#ececec] tracking-tight">Review Dashboard</h2>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#444444] dark:text-[#a1a1aa] mt-0.5">Project Overview</p>
+        </div>
         <div className="relative" ref={filterRef}>
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="flex items-center space-x-2 text-xs bg-gray-100 dark:bg-brand-primary hover:bg-gray-200 dark:hover:bg-brand-secondary text-gray-800 dark:text-white font-semibold py-2 px-3 rounded-md transition-colors"
+            className="flex items-center space-x-2 text-[11px] font-bold bg-white dark:bg-[#2e2e33] border border-[#dbdbdb] dark:border-[#404040] hover:bg-[#f0f0f0] dark:hover:bg-[#404040] text-[#111111] dark:text-[#ececec] py-1.5 px-3 rounded shadow-sm transition-all"
           >
-            <FilterIcon />
-            <span>Filter Projects</span>
-            <span className="bg-brand-secondary text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-              {selectedProjectIds.length > 0 ? selectedProjectIds.length : '0'}
+            <FilterIcon className="w-3.5 h-3.5" />
+            <span>Filter</span>
+            <span className="bg-[#1f75cb] text-white text-[10px] font-bold rounded px-1.5 py-0.5 ml-1">
+              {selectedProjectIds.length}
             </span>
           </button>
           {isFilterOpen && (
-            <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-brand-bg border border-gray-200 dark:border-brand-primary rounded-lg shadow-2xl z-20">
-              <div className="p-2">
+            <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-[#1f1e24] border border-[#dbdbdb] dark:border-[#404040] rounded shadow-lg z-30">
+              <div className="p-3 border-b border-[#dbdbdb] dark:border-[#404040]">
                 <input
                   type="text"
                   placeholder="Search projects..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full p-2 bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                  className="w-full p-2 bg-white dark:bg-[#18191d] border border-[#dbdbdb] dark:border-[#404040] text-[#111111] dark:text-[#ececec] text-xs rounded focus:outline-none focus:border-[#1f75cb]"
                 />
               </div>
-              <div className="max-h-60 overflow-y-auto p-2">
+              <div className="max-h-64 overflow-y-auto p-2 scrollbar-thin">
                 {isLoadingProjects ? (
-                  <div className="p-4 text-center">
+                  <div className="p-6 text-center">
                     <Spinner size="md" />
                   </div>
                 ) : (
                   filteredProjects.map((project) => (
                     <label
                       key={project.id}
-                      className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-brand-primary rounded-md cursor-pointer"
+                      className="flex items-center space-x-3 p-2 hover:bg-[#f0f0f0] dark:hover:bg-[#2e2e33] rounded cursor-pointer transition-colors"
                     >
                       <input
                         type="checkbox"
                         checked={selectedProjectIds.includes(project.id)}
                         onChange={() => handleProjectSelectionChange(project.id)}
-                        className="form-checkbox h-4 w-4 bg-gray-200 dark:bg-brand-primary border-gray-300 dark:border-brand-subtle text-brand-secondary focus:ring-brand-secondary"
+                        className="form-checkbox h-4 w-4 rounded border-[#dbdbdb] dark:border-[#404040] text-[#1f75cb] focus:ring-[#1f75cb]"
                       />
-                      <span className="text-xs text-gray-800 dark:text-brand-text">
+                      <span className="text-xs font-medium text-[#111111] dark:text-[#ececec]">
                         {project.name_with_namespace}
                       </span>
                     </label>
@@ -171,14 +174,8 @@ export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
           )}
         </div>
       </div>
-      <div className="p-4 border-b border-gray-200 dark:border-brand-primary">
+      <div className="p-4 border-b border-[#dbdbdb] dark:border-[#404040] bg-white dark:bg-[#18191d]">
         <form onSubmit={handleUrlSubmit}>
-          <label
-            htmlFor="mr-url-input"
-            className="block text-xs font-medium text-gray-600 dark:text-brand-subtle mb-2"
-          >
-            Review by URL
-          </label>
           <div className="flex space-x-2">
             <input
               id="mr-url-input"
@@ -186,77 +183,85 @@ export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
               value={mrUrlInput}
               onChange={(e) => setMrUrlInput(e.target.value)}
               placeholder="Paste Merge Request URL..."
-              className="flex-grow p-2 bg-gray-100 dark:bg-brand-primary border border-gray-300 dark:border-brand-primary/50 text-gray-800 dark:text-brand-text text-xs rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary disabled:opacity-50"
+              className="flex-grow px-3 py-2 bg-white dark:bg-[#18191d] border border-[#dbdbdb] dark:border-[#404040] text-[#111111] dark:text-[#ececec] text-[12px] rounded focus:outline-none focus:border-[#1f75cb] transition-all"
               disabled={isLoading}
-              aria-label="Merge Request URL"
             />
             <button
               type="submit"
               disabled={!mrUrlInput.trim() || isLoading}
-              className="bg-brand-secondary hover:bg-red-600 disabled:bg-gray-300 dark:disabled:bg-brand-primary disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-md transition-all duration-300 text-xs"
+              className="bg-[#1f75cb] hover:bg-[#1068bf] disabled:opacity-50 text-white font-bold py-2 px-4 rounded transition-all text-[11px]"
             >
               Review
             </button>
           </div>
         </form>
       </div>
-      <div className="flex-grow overflow-y-auto">
+      <div className="flex-grow overflow-y-auto p-4 bg-white dark:bg-[#18191d]">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-4">
+          <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-60">
             <Spinner size="lg" />
-            <p className="mt-4 text-sm text-gray-500 dark:text-brand-subtle">
-              Analyzing Merge Request...
+            <p className="mt-4 text-[11px] font-bold uppercase tracking-widest text-[#444444] dark:text-[#a1a1aa]">
+              Analyzing...
             </p>
           </div>
         ) : (
-          <div className="p-4">
+          <div className="space-y-4">
             {error && (
-              <div className="text-center text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 p-4 rounded-lg mb-4">
-                <h3 className="font-bold text-sm">An Error Occurred</h3>
-                <p className="text-xs">{error}</p>
+              <div className="text-center bg-[#db3b21]/10 border border-[#db3b21]/20 p-3 rounded mb-4">
+                <h3 className="font-bold text-[11px] text-[#db3b21] uppercase tracking-wider mb-1">Error</h3>
+                <p className="text-[11px] text-[#db3b21]">{error}</p>
               </div>
             )}
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-brand-subtle mb-3">
-              Or Select from List
+            
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#444444] dark:text-[#a1a1aa]">
+              Open Merge Requests
             </h3>
+
             {isLoadingMrs ? (
-              <div className="pt-10 text-center">
+              <div className="py-12 text-center opacity-40">
                 <Spinner size="lg" />
               </div>
             ) : mergeRequests.length > 0 ? (
-              <ul className="space-y-3">
+              <ul className="space-y-2">
                 {mergeRequests.map((mr) => (
                   <li
                     key={mr.web_url}
                     onClick={() => onReview(mr.web_url)}
-                    className="bg-gray-100/50 dark:bg-brand-primary/40 hover:bg-gray-100 dark:hover:bg-brand-primary/80 p-4 rounded-lg cursor-pointer transition-colors group"
+                    className="bg-white dark:bg-[#1f1e24] border border-[#dbdbdb] dark:border-[#404040] hover:border-[#1f75cb] dark:hover:border-[#428fdc] p-3 rounded cursor-pointer transition-all group"
                   >
-                    <p className="font-semibold text-gray-800 dark:text-brand-text group-hover:text-brand-secondary dark:group-hover:text-brand-secondary transition-colors text-sm">
-                      {mr.title}
-                    </p>
-                    <div className="text-xs text-gray-500 dark:text-brand-subtle mt-2 flex items-center justify-between">
-                      <div className="truncate pr-2">
-                        <span className="text-xs">
-                          !{mr.iid} in {mr.project_name} by @{mr.author.name}
-                        </span>
-                      </div>
-                      <span className="text-xs">{timeAgo(mr.updated_at)}</span>
+                    <div className="flex justify-between items-start mb-1.5">
+                       <h4 className="font-bold text-[#111111] dark:text-[#ececec] group-hover:text-[#1f75cb] dark:group-hover:text-[#428fdc] transition-colors text-[13px] leading-tight">
+                         {mr.title}
+                       </h4>
+                       <span className="text-[10px] font-bold text-[#444444] dark:text-[#a1a1aa] tabular-nums whitespace-nowrap ml-2">
+                         {timeAgo(mr.updated_at)}
+                       </span>
                     </div>
-                    <div className="flex items-center text-xs font-mono bg-white/50 dark:bg-brand-surface/50 p-2 mt-3 rounded-md">
-                      <BranchIcon />
-                      <span className="ml-2 bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-full truncate">{`${mr.source_branch}`}</span>
-                      <span className="text-gray-500 dark:text-brand-subtle mx-2">→</span>
-                      <span className="bg-gray-200 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full truncate">{`${mr.target_branch}`}</span>
+                    
+                    <div className="flex items-center text-[11px] font-semibold text-[#444444] dark:text-[#a1a1aa] mb-2.5">
+                      <span className="bg-[#f0f0f0] dark:bg-[#2e2e33] px-1.5 py-0.5 rounded border border-[#dbdbdb] dark:border-[#404040] mr-2 font-bold tracking-tight">
+                        !{mr.iid}
+                      </span>
+                      <span className="truncate">{mr.project_name}</span>
+                      <span className="mx-1.5 opacity-30">•</span>
+                      <span>@{mr.author.name}</span>
+                    </div>
+                    
+                    <div className="flex items-center text-[10px] font-mono bg-[#fbfbfb] dark:bg-[#18191d] p-1.5 rounded border border-[#dbdbdb] dark:border-[#404040]">
+                      <BranchIcon className="w-3 h-3 text-[#444444] dark:text-[#a1a1aa]" />
+                      <span className="ml-1.5 text-[#1f75cb] dark:text-[#428fdc] font-bold truncate max-w-[100px]">{mr.source_branch}</span>
+                      <span className="text-[#444444] dark:text-[#a1a1aa] mx-1.5">→</span>
+                      <span className="text-[#444444] dark:text-[#a1a1aa] font-medium truncate max-w-[100px]">{mr.target_branch}</span>
                     </div>
                   </li>
                 ))}
               </ul>
             ) : (
-              <div className="text-center py-10">
-                <p className="text-gray-500 dark:text-brand-subtle">
+              <div className="text-center py-12 opacity-40">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-[#444444] dark:text-[#a1a1aa]">
                   {selectedProjectIds.length > 0
-                    ? 'No open merge requests found for the selected projects.'
-                    : 'Select projects to see open merge requests.'}
+                    ? 'No open merge requests'
+                    : 'Select projects to begin'}
                 </p>
               </div>
             )}

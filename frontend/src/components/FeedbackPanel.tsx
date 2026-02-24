@@ -45,87 +45,84 @@ interface FeedbackPanelProps {
   onClearError?: () => void;
 }
 
-const InitialState = ({ codeTheme, isDarkMode }: { codeTheme?: string; isDarkMode?: boolean }) => {
-  const sampleCode = `interface User {
-  id: number;
-  name: string;
-  email?: string;
-}
-
-const createUser = (data: Partial<User>): User => {
-  return {
-    id: Date.now(),
-    name: data.name || 'Anonymous',
-    ...data
-  };
-};
-
-// Example usage
-const user = createUser({ 
-  name: 'John Doe', 
-  email: 'john@example.com' 
-});
-console.log('Created user:', user);`;
-
+const InitialState = () => {
   return (
-    <div className="text-center space-y-6">
-      <div>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="mx-auto h-16 w-16 text-gray-300 dark:text-brand-primary"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="m19 19-2.5-2.5m0 0a4 4 0 10-5.656-5.656 4 4 0 005.656 5.656z"
-          />
-        </svg>
-        <h3 className="mt-2 text-base font-semibold text-gray-900 dark:text-white">
-          Awaiting Analysis
+    <div className="flex flex-col items-center justify-center min-h-[500px] text-center px-6 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#1f75cb]/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#6b4fbb]/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+
+      <div className="relative mb-10 group">
+        {/* Radar/Scanner Animation */}
+        <div className="absolute inset-0 rounded-full border-2 border-[#1f75cb]/20 scale-150 animate-ping opacity-20"></div>
+        <div className="absolute inset-0 rounded-full border border-[#1f75cb]/10 scale-[2] animate-ping opacity-10 delay-700"></div>
+        
+        <div className="relative p-8 bg-white dark:bg-[#1f1e24] rounded-full border border-[#dbdbdb] dark:border-[#404040] shadow-xl transform transition-transform group-hover:scale-105 duration-500">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-20 w-20 text-[#1f75cb] dark:text-[#428fdc]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            />
+            <circle cx="12" cy="9" r="3" strokeDasharray="2 2" className="animate-spin-slow origin-center" />
+          </svg>
+        </div>
+      </div>
+
+      <div className="relative z-10 space-y-4">
+        <h3 className="text-3xl font-extrabold text-[#111111] dark:text-[#ececec] tracking-tight">
+          Awaiting Target
         </h3>
-        <p className="mt-1 text-sm text-gray-500 dark:text-brand-subtle">
-          Select a Merge Request from the dashboard to begin.
+        <p className="max-w-md mx-auto text-[15px] font-medium text-[#444444] dark:text-[#a1a1aa] leading-relaxed">
+          The intelligence engine is on standby. Select a Merge Request from the workspace dashboard to initiate deep code analysis.
         </p>
       </div>
 
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white dark:bg-brand-surface border border-gray-200 dark:border-brand-primary rounded-lg overflow-hidden">
-          <div className="bg-gray-100 dark:bg-brand-primary px-4 py-2 border-b border-gray-200 dark:border-brand-primary">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-sm font-semibold text-gray-800 dark:text-white">
-                example.tsx
-              </span>
-              <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                TypeScript
-              </span>
-            </div>
+      {/* Modern Animated 'Code Grid' Decoration */}
+      <div className="mt-16 grid grid-cols-4 gap-4 opacity-20">
+        {[...Array(8)].map((_, i) => (
+          <div 
+            key={i} 
+            className="h-1 w-16 bg-[#dbdbdb] dark:bg-[#404040] rounded-full overflow-hidden"
+          >
+            <div 
+              className="h-full bg-[#1f75cb] animate-progress" 
+              style={{ animationDelay: `${i * 150}ms`, width: '100%' }}
+            ></div>
           </div>
-          <div className="bg-white dark:bg-brand-surface p-4 overflow-x-auto">
-            <pre className="font-mono text-sm text-left" style={{ textAlign: 'left' }}>
-              <SyntaxHighlightedCode
-                code={sampleCode}
-                filePath="example.tsx"
-                isDarkMode={isDarkMode}
-                codeTheme={codeTheme}
-                className="whitespace-pre-wrap"
-              />
-            </pre>
-          </div>
-        </div>
-        <p className="text-xs text-gray-500 dark:text-brand-subtle mt-2">
-          Preview: Syntax highlighting theme is active. Select a theme from the header dropdown to
-          test different styles.
-        </p>
+        ))}
       </div>
+
+      <div className="mt-12 flex items-center space-x-3 text-[11px] font-bold text-[#8c8c8c] dark:text-[#666666] uppercase tracking-[0.2em]">
+        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+        <span>Neural Core Online</span>
+      </div>
+
+      <style>{`
+        @keyframes progress {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .animate-progress {
+          animation: progress 2s infinite linear;
+        }
+        .animate-spin-slow {
+          animation: spin 8s infinite linear;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };
@@ -352,31 +349,42 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
         feedback[0].status === 'submitted');
 
     return (
-      <div className="space-y-1.5">
+      <div className="space-y-4">
         {pendingComments.length > 0 && (
-          <div className="p-3 bg-white/20 dark:bg-gray-900/20 border border-white/30 dark:border-gray-700/30 rounded-xl flex items-center justify-between sticky top-0 z-10 backdrop-blur-md shadow-lg shadow-black/5 dark:shadow-black/20">
-            <p className="text-sm text-orange-800 dark:text-orange-300 font-semibold px-2 py-1">
-              {pendingComments.length} comments to post.
-            </p>
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-1">
-                <span className="text-xs font-mono text-gray-500 dark:text-brand-subtle w-10 text-center">
-                  {currentCommentIndex > -1
-                    ? `${String(currentCommentIndex + 1).padStart(2, '0')}`
-                    : '--'}
-                  /{`${String(pendingComments.length).padStart(2, '0')}`}
-                </span>
+          <div className="p-3 bg-white/40 dark:bg-brand-bg/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl flex items-center justify-between sticky top-4 z-20 shadow-glass animate-in slide-in-from-top-4 duration-500">
+            <div className="flex items-center space-x-3 px-3">
+              <div className="flex -space-x-1">
+                {[...Array(Math.min(3, pendingComments.length))].map((_, i) => (
+                  <div key={i} className="w-5 h-5 rounded-full border-2 border-white dark:border-brand-bg bg-brand-secondary/20 flex items-center justify-center">
+                     <span className="w-1.5 h-1.5 rounded-full bg-brand-secondary animate-pulse"></span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
+                {pendingComments.length} review items ready
+              </p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center bg-gray-100 dark:bg-brand-primary p-1 rounded-xl border border-gray-200 dark:border-white/5">
                 <button
                   onClick={() => handleNavigate('up')}
-                  className="p-0.5 rounded-md bg-gray-200 dark:bg-brand-primary hover:bg-brand-secondary text-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-brand-surface text-gray-500 dark:text-brand-subtle hover:text-brand-secondary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   disabled={pendingComments.length === 0}
                   aria-label="Previous comment"
                 >
                   <ArrowUpIcon />
                 </button>
+                <div className="h-4 w-[1px] bg-gray-200 dark:bg-white/10 mx-1"></div>
+                <span className="text-[10px] font-bold font-mono text-gray-500 dark:text-brand-subtle px-2 min-w-[50px] text-center uppercase tracking-widest">
+                  {currentCommentIndex > -1
+                    ? `${String(currentCommentIndex + 1).padStart(2, '0')}`
+                    : '--'}
+                  /{`${String(pendingComments.length).padStart(2, '0')}`}
+                </span>
+                <div className="h-4 w-[1px] bg-gray-200 dark:bg-white/10 mx-1"></div>
                 <button
                   onClick={() => handleNavigate('down')}
-                  className="p-0.5 rounded-md bg-gray-200 dark:bg-brand-primary hover:bg-brand-secondary text-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-brand-surface text-gray-500 dark:text-brand-subtle hover:text-brand-secondary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   disabled={pendingComments.length === 0}
                   aria-label="Next comment"
                 >
@@ -385,9 +393,10 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
               </div>
               <button
                 onClick={onPostAllComments}
-                className="bg-brand-secondary hover:bg-red-600 text-white text-xs font-semibold py-1 px-2 rounded-md transition-colors"
+                className="group relative inline-flex items-center justify-center px-4 py-2 font-bold text-white transition-all duration-200 bg-brand-secondary rounded-xl hover:bg-brand-secondary/90 hover:shadow-lg hover:shadow-brand-secondary/20 active:scale-95 text-xs"
               >
-                Add All Comments
+                <CheckmarkIcon className="w-3.5 h-3.5 mr-2" />
+                Submit All
               </button>
             </div>
           </div>
@@ -529,7 +538,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
     if (!mrDetails) {
       return (
         <div className="flex items-center justify-center h-full">
-          <InitialState codeTheme={codeTheme} isDarkMode={isDarkMode} />
+          <InitialState />
         </div>
       );
     }

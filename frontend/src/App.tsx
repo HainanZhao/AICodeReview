@@ -57,7 +57,7 @@ function App() {
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [projects, setProjects] = useState<GitLabProject[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
-  const [syntaxTheme, setSyntaxTheme] = useState<string>('default');
+  const [syntaxTheme] = useState<string>('default');
   const [isRestoringState, setIsRestoringState] = useState<boolean>(false);
   const [notification, setNotification] = useState<{
     message: string;
@@ -114,12 +114,8 @@ function App() {
   }, [config]);
 
   useEffect(() => {
-    const savedSyntaxTheme = loadSyntaxTheme();
-    const initialSyntaxTheme = savedSyntaxTheme || 'default';
-    setSyntaxTheme(initialSyntaxTheme);
-
-    // Apply comprehensive theme colors on startup
-    const themeColors = getThemeColors(initialSyntaxTheme);
+    // Apply comprehensive theme colors on startup (locked to default)
+    const themeColors = getThemeColors('default');
     applyThemeColors(themeColors);
   }, []);
 
@@ -348,15 +344,6 @@ function App() {
     setIsRestoredFromCache(false);
     clearReviewState(); // Clear saved state when starting a new review
   }, []);
-
-  const handleSyntaxThemeChange = (newSyntaxTheme: string) => {
-    setSyntaxTheme(newSyntaxTheme);
-    saveSyntaxTheme(newSyntaxTheme);
-
-    // Apply comprehensive theme colors
-    const themeColors = getThemeColors(newSyntaxTheme);
-    applyThemeColors(themeColors);
-  };
 
   const handleSetEditing = useCallback((feedbackId: string, isEditing: boolean) => {
     setFeedback((prev) => {
@@ -672,12 +659,8 @@ function App() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col font-sans h-screen">
-      <Header
-        onOpenSettings={() => setIsConfigModalOpen(true)}
-        onSyntaxThemeChange={handleSyntaxThemeChange}
-        currentSyntaxTheme={syntaxTheme}
-      />
+    <div className="min-h-screen flex flex-col font-sans h-screen bg-gray-50 dark:bg-brand-bg transition-colors duration-500 overflow-hidden">
+      <Header onOpenSettings={() => setIsConfigModalOpen(true)} />
       <ConfigModal
         isOpen={isConfigModalOpen}
         onClose={() => setIsConfigModalOpen(false)}
@@ -686,15 +669,15 @@ function App() {
         backendConfig={backendConfig}
         configSource={configSource}
       />
-      <main className="flex-grow w-full px-2 md:px-4 lg:px-4 py-2 md:py-3 lg:py-3 h-full">
+      <main className="flex-grow w-full px-2 md:px-3 py-3 h-[calc(100vh-64px)] overflow-hidden">
         <ResizablePane
-          defaultSizePercent={mrDetails ? 25 : 33}
-          minSizePercent={10}
-          maxSizePercent={50}
-          className="h-full"
-          storageKey="main-layout"
+          defaultSizePercent={mrDetails ? 22 : 30}
+          minSizePercent={15}
+          maxSizePercent={45}
+          className="h-full gap-2"
+          storageKey="main-layout-v2"
         >
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full min-h-0">
             {mrDetails ? (
               <MrSummary
                 mrDetails={mrDetails}
@@ -711,7 +694,7 @@ function App() {
               />
             )}
           </div>
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full min-h-0">
             <FeedbackPanel
               codeTheme={syntaxTheme}
               feedback={feedback}

@@ -2,12 +2,12 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { type ReviewFeedback, Severity } from '../../../types';
 import { Spinner } from './Spinner';
-import { AddCommentIcon, CheckmarkIcon, EditIcon, EyeSlashIcon, TrashIcon } from './icons';
+import { CheckmarkIcon, EditIcon, EyeSlashIcon } from './icons';
 
 const BugIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    className="h-5 w-5"
+    className="h-4 w-4 text-[#db3b21]"
     viewBox="0 0 20 20"
     fill="currentColor"
   >
@@ -22,7 +22,7 @@ const BugIcon = () => (
 const WarningIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    className="h-5 w-5"
+    className="h-4 w-4 text-[#e75e00]"
     viewBox="0 0 20 20"
     fill="currentColor"
   >
@@ -37,7 +37,7 @@ const WarningIcon = () => (
 const LightbulbIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    className="h-5 w-5"
+    className="h-4 w-4 text-[#1f75cb]"
     viewBox="0 0 20 20"
     fill="currentColor"
   >
@@ -48,7 +48,7 @@ const LightbulbIcon = () => (
 const InfoIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    className="h-5 w-5"
+    className="h-4 w-4 text-[#444444] dark:text-[#a1a1aa]"
     viewBox="0 0 20 20"
     fill="currentColor"
   >
@@ -63,7 +63,7 @@ const InfoIcon = () => (
 const ChevronDownIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    className="h-4 w-4"
+    className="h-3.5 w-3.5"
     viewBox="0 0 20 20"
     fill="currentColor"
   >
@@ -78,15 +78,19 @@ const ChevronDownIcon = () => (
 const SEVERITY_CONFIG = {
   [Severity.Critical]: {
     icon: <BugIcon />,
+    labelClass: 'text-[#db3b21] bg-[#db3b21]/10',
   },
   [Severity.Warning]: {
     icon: <WarningIcon />,
+    labelClass: 'text-[#e75e00] bg-[#e75e00]/10',
   },
   [Severity.Suggestion]: {
     icon: <LightbulbIcon />,
+    labelClass: 'text-[#1f75cb] bg-[#1f75cb]/10',
   },
   [Severity.Info]: {
     icon: <InfoIcon />,
+    labelClass: 'text-[#444444] dark:text-[#a1a1aa] bg-gray-100 dark:bg-gray-800',
   },
 };
 
@@ -110,6 +114,7 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
   const [editedDescription, setEditedDescription] = useState(feedback.description);
   const [editedSeverity, setEditedSeverity] = useState(feedback.severity);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(feedback.isExisting ?? false);
 
   useEffect(() => {
     if (feedback.isEditing) {
@@ -159,83 +164,75 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
 
   if (feedback.isEditing) {
     return (
-      <div className="shadow-md bg-white dark:bg-gray-800 border-2 border-blue-300 dark:border-blue-700 rounded-md">
-        <div className="p-2">
-          <label
-            htmlFor={`description-${feedback.id}`}
-            className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            {feedback.isNewlyAdded ? 'Add New Comment' : `Edit Comment: ${feedback.title}`}
-          </label>
+      <div className="bg-white dark:bg-[#1f1e24] border border-[#dbdbdb] dark:border-[#404040] rounded-lg overflow-hidden mb-2 animate-in fade-in duration-200 shadow-md hover:shadow-lg transition-shadow">
+        <div className="p-2.5 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <label
+              htmlFor={`description-${feedback.id}`}
+              className="block text-[10px] font-bold text-[#444444] dark:text-[#a1a1aa] uppercase tracking-tight"
+            >
+              {feedback.isNewlyAdded ? 'Add insight' : `Edit: ${feedback.title}`}
+            </label>
+            <div className="relative" data-dropdown-id={feedback.id}>
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center space-x-1 text-[10px] text-[#111111] dark:text-[#ececec] font-bold py-0.5 px-1.5 bg-white dark:bg-[#2e2e33] rounded border border-[#dbdbdb] dark:border-[#404040] hover:bg-[#f0f0f0] transition-colors"
+              >
+                <span className="transform scale-75 opacity-70">
+                  {SEVERITY_CONFIG[editedSeverity].icon}
+                </span>
+                <span className="uppercase tracking-tight">{editedSeverity}</span>
+                <ChevronDownIcon />
+              </button>
+              {isDropdownOpen && (
+                <div className="absolute top-full right-0 mt-1 bg-white dark:bg-[#1f1e24] border border-[#dbdbdb] dark:border-[#404040] rounded-lg shadow-xl z-20 min-w-[110px] overflow-hidden">
+                  {Object.entries(SEVERITY_CONFIG).map(([severity, config]) => (
+                    <button
+                      key={severity}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setEditedSeverity(severity as Severity);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center space-x-2 px-2.5 py-1.5 text-[10px] font-bold text-left hover:bg-[#f0f0f0] dark:hover:bg-[#2e2e33] transition-colors ${
+                        editedSeverity === severity
+                          ? 'text-[#1f75cb] bg-[#1f75cb]/5'
+                          : 'text-[#111111] dark:text-[#ececec]'
+                      }`}
+                    >
+                      <span className="transform scale-75 opacity-70">{config.icon}</span>
+                      <span className="uppercase">{severity}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           <textarea
             id={`description-${feedback.id}`}
             value={editedDescription}
             onChange={(e) => setEditedDescription(e.target.value)}
-            placeholder="Detailed explanation and suggestions..."
-            className="w-full p-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-xs font-mono rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-            rows={3}
+            placeholder="Write a comment..."
+            className="w-full p-2.5 bg-white dark:bg-[#18191d] border border-[#dbdbdb] dark:border-[#404040] text-[#111111] dark:text-[#ececec] text-[12px] font-mono rounded-md focus:outline-none focus:border-[#1f75cb] dark:focus:border-[#428fdc] transition-colors min-h-[60px] resize-none leading-snug"
+            rows={2}
+            autoFocus
           />
         </div>
-        <div className="px-2 py-1.5 bg-blue-50 dark:bg-blue-950/30 rounded-b-md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => onDeleteFeedback(feedback.id)}
-                className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                aria-label="Delete comment"
-              >
-                <TrashIcon />
-              </button>
-              <div className="relative" data-dropdown-id={feedback.id}>
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-1 text-xs text-gray-700 dark:text-gray-200 font-semibold py-1 px-2 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                >
-                  <span className="text-gray-600 dark:text-gray-300">
-                    {SEVERITY_CONFIG[editedSeverity].icon}
-                  </span>
-                  <span>{editedSeverity}</span>
-                  <ChevronDownIcon />
-                </button>
-                {isDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 min-w-[120px]">
-                    {Object.entries(SEVERITY_CONFIG).map(([severity, config]) => (
-                      <button
-                        key={severity}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setEditedSeverity(severity as Severity);
-                          setIsDropdownOpen(false);
-                        }}
-                        className={`w-full flex items-center space-x-2 px-3 py-2 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors first:rounded-t-md last:rounded-b-md ${
-                          editedSeverity === severity ? 'bg-gray-100 dark:bg-gray-700' : ''
-                        }`}
-                      >
-                        <span className="text-gray-600 dark:text-gray-300">{config.icon}</span>
-                        <span className="text-gray-800 dark:text-gray-200">{severity}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={handleCancel}
-                className="text-xs text-gray-600 dark:text-gray-300 font-semibold py-1 px-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={!editedDescription.trim()}
-                className="text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-1 px-2 rounded-md transition-all"
-              >
-                Save
-              </button>
-            </div>
-          </div>
+        <div className="px-2.5 py-1.5 bg-[#fbfbfb] dark:bg-[#2e2e33] flex items-center justify-start border-t border-[#f0f0f0] dark:border-[#404040] rounded-b-lg space-x-2">
+          <button
+            onClick={handleSave}
+            disabled={!editedDescription.trim()}
+            className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] dark:from-[#10b981] dark:to-[#059669] dark:hover:from-[#059669] dark:hover:to-[#047857] disabled:opacity-50 text-white font-semibold py-1 px-3 rounded-md shadow-sm hover:shadow-md transition-all active:scale-95 text-[10px] uppercase"
+          >
+            Save
+          </button>
+          <button
+            onClick={handleCancel}
+            className="text-[10px] font-bold text-[#444444] dark:text-[#a1a1aa] hover:text-[#333333] dark:hover:text-[#dbdbdb] px-2"
+          >
+            {feedback.isNewlyAdded ? 'Discard' : 'Cancel'}
+          </button>
         </div>
       </div>
     );
@@ -244,130 +241,190 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
   // If this is an existing comment from GitLab
   if (feedback.isExisting) {
     return (
-      <div className="transition-all duration-300 shadow-md bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md font-sans">
-        <div className="p-1.5">
-          <div className="flex items-start space-x-2">
-            <div className="mt-0.5 text-gray-500 dark:text-gray-400">
+      <div className="bg-white dark:bg-[#1f1e24] border border-[#dbdbdb] dark:border-[#404040] rounded-lg overflow-hidden mb-2 shadow-md hover:shadow-lg transition-shadow">
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="w-full px-2.5 py-2 flex items-center justify-between text-left hover:bg-[#f5f5f5] dark:hover:bg-[#2a2a30] transition-colors"
+        >
+          <div className="flex items-center space-x-2 min-w-0">
+            <div className="flex-shrink-0 mt-0.5 transform scale-75 opacity-70">
+              <div className="text-[#444444] dark:text-[#a1a1aa]">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                  stroke="currentColor"
+                  className="w-4 h-4"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H11.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9Z"
+                  />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-[12px] font-bold text-[#111111] dark:text-[#ececec] truncate leading-tight">
+              {feedback.title}
+            </h3>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-gray-50 dark:bg-gray-800 text-[#444444] dark:text-[#a1a1aa] uppercase tracking-tighter border border-gray-100 dark:border-white/5">
+              GitLab
+            </span>
+            <span
+              className={`text-[#444444] dark:text-[#a1a1aa] transform transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
+            >
               <svg
-                xmlns="http://www.w3.org/2000/svg"
+                className="w-3 h-3"
                 fill="none"
                 viewBox="0 0 24 24"
-                strokeWidth="1.5"
                 stroke="currentColor"
-                className="w-5 h-5"
+                strokeWidth={2}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H11.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9Z"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
-            </div>
-            <div className="flex-1">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xs font-semibold text-gray-800 dark:text-gray-200">
-                  {feedback.title}
-                </h3>
-                <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-2 py-0.5 rounded-full ml-2">
-                  Existing
-                </span>
-              </div>
-              <p className="mt-0.5 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                {feedback.description}
-              </p>
-            </div>
+            </span>
           </div>
-        </div>
+        </button>
+        {!isCollapsed && (
+          <div className="px-2.5 py-2 pt-0">
+            <p className="text-[12px] text-[#111111] dark:text-[#ececec] whitespace-pre-wrap leading-tight pl-5">
+              {feedback.description}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
 
   const config = SEVERITY_CONFIG[feedback.severity] || SEVERITY_CONFIG[Severity.Info];
 
+  const isNewComment = !feedback.isExisting;
+
   return (
-    <div className="transition-all duration-300 shadow-md bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-800 rounded-md">
-      <div className={`p-1.5 ${feedback.isIgnored ? 'opacity-60' : ''}`}>
-        <div className="flex items-start space-x-2">
-          <div className="mt-0.5 text-gray-600 dark:text-gray-300">{config.icon}</div>
-          <div className="flex-1">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+    <div
+      className={`group transition-all duration-200 bg-white dark:bg-[#1f1e24] rounded-lg overflow-hidden mb-2 shadow-md hover:shadow-lg ${
+        isNewComment
+          ? 'border-2 border-[#1f75cb] dark:border-[#428fdc]'
+          : 'border border-[#dbdbdb] dark:border-[#404040]'
+      }`}
+    >
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className={`w-full px-3 py-2.5 flex items-start justify-between text-left hover:bg-[#fafafa] dark:hover:bg-[#252529] transition-colors ${feedback.isIgnored ? 'opacity-50' : ''}`}
+      >
+        <div className="flex items-start space-x-2.5 min-w-0">
+          <div className="flex-shrink-0 mt-0.5 transform scale-90">{config.icon}</div>
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-center mb-1">
+              <h3 className="text-[12px] font-bold text-[#111111] dark:text-[#ececec] truncate leading-tight">
                 {feedback.title}
               </h3>
             </div>
-            <p className="mt-0.5 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-              {feedback.description}
-            </p>
+            {!isCollapsed && (
+              <p className="text-[12px] font-medium text-[#111111] dark:text-[#ececec] whitespace-pre-wrap leading-relaxed">
+                {feedback.description}
+              </p>
+            )}
           </div>
         </div>
-      </div>
-      <div className="px-1.5 py-1 bg-blue-50 dark:bg-blue-950/30 flex items-center justify-between rounded-b-md">
+        <div className="flex items-center space-x-2 ml-2">
+          {isNewComment && (
+            <span className="text-[#db3b21] dark:text-[#db3b21]">
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+            </span>
+          )}
+          <span
+            className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tight ${config.labelClass}`}
+          >
+            {feedback.severity}
+          </span>
+          <span
+            className={`text-[#444444] dark:text-[#a1a1aa] transform transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
+          >
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </span>
+        </div>
+      </button>
+      <div
+        className={`px-2.5 py-1.5 bg-[#fbfbfb] dark:bg-[#2e2e33] flex items-center justify-between border-t border-[#f0f0f0] dark:border-[#404040] rounded-b-lg ${isCollapsed ? 'hidden' : ''}`}
+      >
         {feedback.isIgnored ? (
           <>
-            <span className="text-xs italic text-gray-600 dark:text-gray-400">Comment ignored</span>
+            <span className="text-[10px] text-[#444444] dark:text-[#a1a1aa] italic">Ignored</span>
             <button
               onClick={() => onToggleIgnoreFeedback(feedback.id)}
-              className="text-xs text-gray-600 dark:text-gray-300 font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+              className="text-[10px] text-[#1f75cb] dark:text-[#428fdc] font-bold hover:underline"
             >
               Undo
             </button>
           </>
         ) : (
           <>
-            <div>
+            <div className="flex items-center space-x-3">
               {feedback.status === 'pending' && (
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center space-x-3">
                   <button
                     onClick={() => onSetEditing(feedback.id, true)}
-                    className="flex items-center space-x-1 text-xs text-gray-600 dark:text-gray-300 font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    className="text-[11px] text-[#444444] dark:text-[#a1a1aa] font-bold hover:text-[#1f75cb] flex items-center space-x-1 transition-colors"
                   >
-                    <EditIcon />
+                    <EditIcon className="w-3 h-3" />
                     <span>Edit</span>
                   </button>
                   <button
                     onClick={() => onToggleIgnoreFeedback(feedback.id)}
-                    className="flex items-center space-x-1 text-xs text-gray-600 dark:text-gray-300 font-semibold py-0.5 px-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                    aria-label="Ignore comment"
+                    className="text-[11px] text-[#444444] dark:text-[#a1a1aa] font-bold hover:text-[#db3b21] flex items-center space-x-1 transition-colors"
                   >
-                    <EyeSlashIcon />
+                    <EyeSlashIcon className="w-3 h-3" />
                     <span>Ignore</span>
                   </button>
                 </div>
               )}
             </div>
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-2">
               {feedback.status === 'error' && (
-                <p className="text-xs text-red-600 dark:text-red-400">
-                  Error: {feedback.submissionError}
+                <p className="text-[10px] font-bold text-[#db3b21] mr-2 uppercase tracking-tighter">
+                  {feedback.submissionError}
                 </p>
               )}
 
               {feedback.status === 'pending' && (
                 <button
                   onClick={handleAction}
-                  className="flex items-center space-x-1 text-xs bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-semibold py-0.5 px-1.5 rounded-md transition-colors"
+                  className="bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:from-[#2563eb] hover:to-[#1d4ed8] dark:from-[#428fdc] dark:to-[#3b82f6] dark:hover:from-[#3b82f6] dark:hover:to-[#2563eb] text-white text-[11px] font-semibold py-1 px-3 rounded-md shadow-sm hover:shadow-md transition-all active:scale-95"
                 >
-                  <AddCommentIcon />
-                  <span>Add to MR</span>
+                  Post
                 </button>
               )}
               {feedback.status === 'submitting' && (
-                <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400 py-0.5 px-1.5">
-                  <Spinner size="sm" /> <span>Posting...</span>
+                <div className="flex items-center space-x-1.5 text-[10px] font-bold text-[#666666] uppercase tracking-wider">
+                  <Spinner size="sm" /> <span>Wait...</span>
                 </div>
               )}
               {feedback.status === 'submitted' && (
-                <div className="flex items-center space-x-1 text-xs text-green-600 dark:text-green-400 py-0.5 px-1.5">
-                  <CheckmarkIcon />
-                  <span>Posted on GitLab</span>
+                <div className="flex items-center space-x-1 text-[11px] text-[#108548] font-bold bg-[#108548]/5 px-2 py-0.5 rounded border border-[#108548]/10">
+                  <CheckmarkIcon className="w-3 h-3" />
+                  <span className="uppercase tracking-tight text-[10px]">GitLab</span>
                 </div>
               )}
               {feedback.status === 'error' && (
                 <button
                   onClick={handleAction}
-                  className="flex items-center space-x-1 text-xs bg-red-600 hover:bg-red-500 text-white font-semibold py-0.5 px-1.5 rounded-md transition-colors"
+                  className="bg-gradient-to-r from-[#ef4444] to-[#dc2626] hover:from-[#dc2626] hover:to-[#b91c1c] dark:from-[#ef4444] dark:to-[#dc2626] dark:hover:from-[#dc2626] dark:hover:to-[#b91c1c] text-white text-[11px] font-semibold py-1 px-3 rounded-md shadow-sm hover:shadow-md transition-all active:scale-95"
                 >
-                  <span>Retry</span>
+                  Retry
                 </button>
               )}
             </div>

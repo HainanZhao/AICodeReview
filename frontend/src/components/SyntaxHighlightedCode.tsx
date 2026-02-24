@@ -242,8 +242,8 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
           wordBreak: 'normal',
           overflow: 'visible',
           // Improved font rendering
-          WebkitFontSmoothing: 'antialiased',
-          MozOsxFontSmoothing: 'grayscale',
+          WebkitFontSmoothing: 'subpixel-antialiased',
+          MozOsxFontSmoothing: 'auto',
         }}
         codeTagProps={{
           style: {
@@ -263,8 +263,8 @@ export const SyntaxHighlightedCode: React.FC<SyntaxHighlightedCodeProps> = ({
             padding: '0',
             margin: '0',
             // Improved font rendering
-            WebkitFontSmoothing: 'antialiased',
-            MozOsxFontSmoothing: 'grayscale',
+            WebkitFontSmoothing: 'subpixel-antialiased',
+            MozOsxFontSmoothing: 'auto',
           },
         }}
         PreTag={({ children, ...props }) => (
