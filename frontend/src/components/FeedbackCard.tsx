@@ -1,6 +1,7 @@
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { type ReviewFeedback, Severity } from '../../../types';
+import { Button } from './Button';
 import { Spinner } from './Spinner';
 import { CheckmarkIcon, EditIcon, EyeSlashIcon } from './icons';
 
@@ -220,19 +221,17 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
           />
         </div>
         <div className="px-2.5 py-1.5 bg-[#fbfbfb] dark:bg-[#2e2e33] flex items-center justify-start border-t border-[#f0f0f0] dark:border-[#404040] rounded-b-lg space-x-2">
-          <button
+          <Button
+            variant="success"
+            size="sm"
             onClick={handleSave}
             disabled={!editedDescription.trim()}
-            className="bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] dark:from-[#10b981] dark:to-[#059669] dark:hover:from-[#059669] dark:hover:to-[#047857] disabled:opacity-50 text-white font-semibold py-1 px-3 rounded-md shadow-sm hover:shadow-md transition-all active:scale-95 text-[10px] uppercase"
           >
             Save
-          </button>
-          <button
-            onClick={handleCancel}
-            className="text-[10px] font-bold text-[#444444] dark:text-[#a1a1aa] hover:text-[#333333] dark:hover:text-[#dbdbdb] px-2"
-          >
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleCancel}>
             {feedback.isNewlyAdded ? 'Discard' : 'Cancel'}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -364,32 +363,31 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
         {feedback.isIgnored ? (
           <>
             <span className="text-[10px] text-[#444444] dark:text-[#a1a1aa] italic">Ignored</span>
-            <button
-              onClick={() => onToggleIgnoreFeedback(feedback.id)}
-              className="text-[10px] text-[#1f75cb] dark:text-[#428fdc] font-bold hover:underline"
-            >
+            <Button variant="ghost" size="sm" onClick={() => onToggleIgnoreFeedback(feedback.id)}>
               Undo
-            </button>
+            </Button>
           </>
         ) : (
           <>
             <div className="flex items-center space-x-3">
               {feedback.status === 'pending' && (
                 <div className="flex items-center space-x-3">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => onSetEditing(feedback.id, true)}
-                    className="text-[11px] text-[#444444] dark:text-[#a1a1aa] font-bold hover:text-[#1f75cb] flex items-center space-x-1 transition-colors"
+                    leftIcon={<EditIcon className="w-3 h-3" />}
                   >
-                    <EditIcon className="w-3 h-3" />
-                    <span>Edit</span>
-                  </button>
-                  <button
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => onToggleIgnoreFeedback(feedback.id)}
-                    className="text-[11px] text-[#444444] dark:text-[#a1a1aa] font-bold hover:text-[#db3b21] flex items-center space-x-1 transition-colors"
+                    leftIcon={<EyeSlashIcon className="w-3 h-3" />}
                   >
-                    <EyeSlashIcon className="w-3 h-3" />
-                    <span>Ignore</span>
-                  </button>
+                    Ignore
+                  </Button>
                 </div>
               )}
             </div>
@@ -401,12 +399,9 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
               )}
 
               {feedback.status === 'pending' && (
-                <button
-                  onClick={handleAction}
-                  className="bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:from-[#2563eb] hover:to-[#1d4ed8] dark:from-[#428fdc] dark:to-[#3b82f6] dark:hover:from-[#3b82f6] dark:hover:to-[#2563eb] text-white text-[11px] font-semibold py-1 px-3 rounded-md shadow-sm hover:shadow-md transition-all active:scale-95"
-                >
+                <Button variant="primary" size="sm" onClick={handleAction}>
                   Post
-                </button>
+                </Button>
               )}
               {feedback.status === 'submitting' && (
                 <div className="flex items-center space-x-1.5 text-[10px] font-bold text-[#666666] uppercase tracking-wider">
@@ -420,12 +415,9 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
                 </div>
               )}
               {feedback.status === 'error' && (
-                <button
-                  onClick={handleAction}
-                  className="bg-gradient-to-r from-[#ef4444] to-[#dc2626] hover:from-[#dc2626] hover:to-[#b91c1c] dark:from-[#ef4444] dark:to-[#dc2626] dark:hover:from-[#dc2626] dark:hover:to-[#b91c1c] text-white text-[11px] font-semibold py-1 px-3 rounded-md shadow-sm hover:shadow-md transition-all active:scale-95"
-                >
+                <Button variant="danger" size="sm" onClick={handleAction}>
                   Retry
-                </button>
+                </Button>
               )}
             </div>
           </>

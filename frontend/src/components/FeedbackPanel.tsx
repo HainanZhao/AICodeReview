@@ -14,6 +14,7 @@ import { FileDiffCard } from './FileDiffCard';
 import { Spinner } from './Spinner';
 import { SyntaxHighlightedCode } from './SyntaxHighlightedCode';
 import { type ViewMode, ViewModeToggle } from './ViewModeToggle';
+import { Button } from './Button';
 import { ApproveIcon, ArrowDownIcon, ArrowUpIcon, CheckmarkIcon, RefreshIcon } from './icons';
 
 interface FeedbackPanelProps {
@@ -351,54 +352,10 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
     return (
       <div className="space-y-4">
         {pendingComments.length > 0 && (
-          <div className="p-3 bg-white/40 dark:bg-brand-bg/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl flex items-center justify-between sticky top-4 z-20 shadow-glass animate-in slide-in-from-top-4 duration-500">
-            <div className="flex items-center space-x-3 px-3">
-              <div className="flex -space-x-1">
-                {[...Array(Math.min(3, pendingComments.length))].map((_, i) => (
-                  <div key={i} className="w-5 h-5 rounded-full border-2 border-white dark:border-brand-bg bg-brand-secondary/20 flex items-center justify-center">
-                     <span className="w-1.5 h-1.5 rounded-full bg-brand-secondary animate-pulse"></span>
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
-                {pendingComments.length} review items ready
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center bg-gray-100 dark:bg-brand-primary p-1 rounded-xl border border-gray-200 dark:border-white/5">
-                <button
-                  onClick={() => handleNavigate('up')}
-                  className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-brand-surface text-gray-500 dark:text-brand-subtle hover:text-brand-secondary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                  disabled={pendingComments.length === 0}
-                  aria-label="Previous comment"
-                >
-                  <ArrowUpIcon />
-                </button>
-                <div className="h-4 w-[1px] bg-gray-200 dark:bg-white/10 mx-1"></div>
-                <span className="text-[10px] font-bold font-mono text-gray-500 dark:text-brand-subtle px-2 min-w-[50px] text-center uppercase tracking-widest">
-                  {currentCommentIndex > -1
-                    ? `${String(currentCommentIndex + 1).padStart(2, '0')}`
-                    : '--'}
-                  /{`${String(pendingComments.length).padStart(2, '0')}`}
-                </span>
-                <div className="h-4 w-[1px] bg-gray-200 dark:bg-white/10 mx-1"></div>
-                <button
-                  onClick={() => handleNavigate('down')}
-                  className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-brand-surface text-gray-500 dark:text-brand-subtle hover:text-brand-secondary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                  disabled={pendingComments.length === 0}
-                  aria-label="Next comment"
-                >
-                  <ArrowDownIcon />
-                </button>
-              </div>
-              <button
-                onClick={onPostAllComments}
-                className="group relative inline-flex items-center justify-center px-4 py-2 font-bold text-white transition-all duration-200 bg-brand-secondary rounded-xl hover:bg-brand-secondary/90 hover:shadow-lg hover:shadow-brand-secondary/20 active:scale-95 text-xs"
-              >
-                <CheckmarkIcon className="w-3.5 h-3.5 mr-2" />
-                Submit All
-              </button>
-            </div>
+          <div className="px-3 py-2 bg-brand-secondary/5 dark:bg-brand-secondary/10 rounded-lg border border-brand-secondary/10 dark:border-brand-secondary/20">
+            <p className="text-xs font-medium text-brand-secondary">
+              {pendingComments.length} review item{pendingComments.length !== 1 ? 's' : ''} ready for submission
+            </p>
           </div>
         )}
 
@@ -504,9 +461,11 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
                 </div>
                 {onClearError && (
                   <div className="ml-auto pl-3">
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={onClearError}
-                      className="inline-flex rounded-md bg-red-50 dark:bg-red-900/30 p-1.5 text-red-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-red-50"
+                      className="!p-1.5 !text-red-400 hover:!text-red-500 hover:!bg-red-100 dark:hover:!bg-red-900/50"
                       aria-label="Dismiss error"
                     >
                       <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -516,7 +475,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
                           clipRule="evenodd"
                         />
                       </svg>
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -548,21 +507,69 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
 
   return (
     <div className="bg-white dark:bg-brand-surface rounded-lg shadow-xl h-full flex flex-col">
-      <div className="border-b border-gray-200 dark:border-brand-primary flex items-center justify-between px-4 py-2">
+      <div className="border-b border-gray-200 dark:border-brand-primary flex items-center justify-between px-4 py-2.5">
         <div className="flex items-center space-x-4">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Review Feedback</h2>
+          <div className="flex items-center space-x-3">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Review Feedback</h2>
+            {pendingComments.length > 0 && (
+              <div className="flex items-center px-2.5 py-1 bg-brand-secondary/10 dark:bg-brand-secondary/20 rounded-full">
+                <span className="text-xs font-bold text-brand-secondary">{pendingComments.length}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 ml-1.5">pending</span>
+              </div>
+            )}
+          </div>
           <ViewModeToggle currentMode={globalViewMode} onModeChange={handleGlobalViewModeChange} />
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
+          {pendingComments.length > 0 && (
+            <>
+              <div className="flex items-center space-x-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleNavigate('up')}
+                  disabled={pendingComments.length === 0}
+                  className="!p-1"
+                  aria-label="Previous comment"
+                >
+                  <ArrowUpIcon />
+                </Button>
+                <span className="text-[10px] font-bold font-mono text-gray-500 dark:text-brand-subtle min-w-[45px] text-center">
+                  {currentCommentIndex > -1
+                    ? `${currentCommentIndex + 1}`
+                    : '-'}
+                /{pendingComments.length}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleNavigate('down')}
+                  disabled={pendingComments.length === 0}
+                  className="!p-1"
+                  aria-label="Next comment"
+                >
+                  <ArrowDownIcon />
+                </Button>
+              </div>
+              <Button
+                variant="success"
+                size="sm"
+                onClick={onPostAllComments}
+                leftIcon={<CheckmarkIcon className="w-3.5 h-3.5" />}
+              >
+                Submit All
+              </Button>
+            </>
+          )}
           {onRedoReview && !isAiAnalyzing && mrDetails && (
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={onRedoReview}
-              className="h-[28px] px-2.5 flex items-center bg-gray-100 dark:bg-brand-primary text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-brand-secondary rounded text-sm font-medium transition-colors"
-              aria-label="Redo review"
+              leftIcon={<RefreshIcon className="w-4 h-4" />}
             >
-              <RefreshIcon className="w-4 h-4 mr-1.5" />
-              <span>Redo Review</span>
-            </button>
+              Redo Review
+            </Button>
           )}
           {isAiAnalyzing && (
             <div className="flex items-center space-x-2 text-brand-secondary">
@@ -582,11 +589,11 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
                       <CheckmarkIcon className="w-4 h-4 mr-1.5" />
                       <span>Approved</span>
                     </div>
-                    <button
+                    <Button
+                      variant="danger"
+                      size="sm"
                       onClick={onRevokeApproval}
                       disabled={isRevokingApproval}
-                      className="h-[28px] px-2.5 flex items-center bg-red-100/50 dark:bg-red-900/20 text-red-800 dark:text-red-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      aria-label="Revoke approval"
                     >
                       {isRevokingApproval ? (
                         <>
@@ -611,18 +618,18 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
                           <span>Revoke</span>
                         </>
                       )}
-                    </button>
+                    </Button>
                   </div>
                 );
               }
 
               if (!isApproved && onApproveMR) {
                 return (
-                  <button
+                  <Button
+                    variant="success"
+                    size="sm"
                     onClick={onApproveMR}
                     disabled={isApprovingMR}
-                    className="h-[28px] px-2.5 flex items-center bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-300 group hover:bg-black/5 dark:hover:bg-white/10 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label="Approve merge request"
                   >
                     {isApprovingMR ? (
                       <>
@@ -635,7 +642,7 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
                         <span>Approve MR</span>
                       </>
                     )}
-                  </button>
+                  </Button>
                 );
               }
 

@@ -7,6 +7,7 @@ import {
   type ReviewFeedback,
   Severity,
 } from '../types';
+import { Button } from './Button';
 import { DiffLine } from './DiffLine';
 import { FeedbackCard } from './FeedbackCard';
 import { SplitDiffView } from './SplitDiffView';
@@ -206,24 +207,19 @@ export const CombinedFeedbackCard: React.FC<CombinedFeedbackCardProps> = ({
                     </p>
                     {fb.status === 'pending' && !fb.isEditing && (
                       <div className="mt-1.5 flex items-center space-x-2">
-                        <button
-                          onClick={() => onSetEditing(fb.id, true)}
-                          className="text-[10px] text-[#444444] dark:text-[#a1a1aa] font-bold hover:text-[#1f75cb] transition-colors"
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => onSetEditing(fb.id, true)}>
                           Edit
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => onToggleIgnoreFeedback(fb.id)}
-                          className="text-[10px] text-[#444444] dark:text-[#a1a1aa] font-bold hover:text-[#db3b21] transition-colors"
                         >
                           Ignore
-                        </button>
-                        <button
-                          onClick={() => onPostComment(fb.id)}
-                          className="bg-[#1f75cb] hover:bg-[#1068bf] text-white text-[10px] font-bold py-0.5 px-2 rounded transition-colors"
-                        >
+                        </Button>
+                        <Button variant="primary" size="sm" onClick={() => onPostComment(fb.id)}>
                           Post
-                        </button>
+                        </Button>
                       </div>
                     )}
                     {fb.status === 'submitted' && (

@@ -1,4 +1,5 @@
 import type React from 'react';
+import { Button } from './Button';
 
 export type ViewMode = 'inline' | 'split';
 
@@ -28,30 +29,26 @@ const SplitViewIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4'
 export const ViewModeToggle: React.FC<ViewModeToggleProps> = ({ currentMode, onModeChange }) => {
   return (
     <div className="flex items-center bg-gray-100 dark:bg-brand-primary/30 rounded-lg p-1">
-      <button
+      <Button
+        variant={currentMode === 'inline' ? 'secondary' : 'ghost'}
+        size="sm"
         onClick={() => onModeChange('inline')}
-        className={`flex items-center space-x-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-          currentMode === 'inline'
-            ? 'bg-white dark:bg-brand-surface text-gray-900 dark:text-brand-text shadow-sm'
-            : 'text-gray-600 dark:text-brand-subtle hover:text-gray-900 dark:hover:text-brand-text'
-        }`}
+        className={currentMode === 'inline' ? '!shadow-sm' : ''}
         title="Inline view"
+        leftIcon={<InlineViewIcon className="w-3 h-3" />}
       >
-        <InlineViewIcon />
-        <span>Inline</span>
-      </button>
-      <button
+        Inline
+      </Button>
+      <Button
+        variant={currentMode === 'split' ? 'secondary' : 'ghost'}
+        size="sm"
         onClick={() => onModeChange('split')}
-        className={`flex items-center space-x-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-          currentMode === 'split'
-            ? 'bg-white dark:bg-brand-surface text-gray-900 dark:text-brand-text shadow-sm'
-            : 'text-gray-600 dark:text-brand-subtle hover:text-gray-900 dark:hover:text-brand-text'
-        }`}
+        className={currentMode === 'split' ? '!shadow-sm' : ''}
         title="Split view"
+        leftIcon={<SplitViewIcon className="w-3 h-3" />}
       >
-        <SplitViewIcon />
-        <span>Split</span>
-      </button>
+        Split
+      </Button>
     </div>
   );
 };

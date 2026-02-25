@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { loadSelectedProjectIds, saveSelectedProjectIds } from '../services/configService';
 import { fetchMergeRequestsForProjects } from '../services/gitlabService';
 import type { Config, GitLabMergeRequest, GitLabProject } from '../types';
+import { Button } from './Button';
 import { Spinner } from './Spinner';
 import { BranchIcon, FilterIcon } from './icons';
 
@@ -186,13 +187,13 @@ export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
               className="flex-grow px-3 py-2 bg-white dark:bg-[#18191d] border border-[#dbdbdb] dark:border-[#404040] text-[#111111] dark:text-[#ececec] text-[12px] rounded focus:outline-none focus:border-[#1f75cb] transition-all"
               disabled={isLoading}
             />
-            <button
+            <Button
               type="submit"
+              variant="primary"
               disabled={!mrUrlInput.trim() || isLoading}
-              className="bg-[#1f75cb] hover:bg-[#1068bf] disabled:opacity-50 text-white font-bold py-2 px-4 rounded transition-all text-[11px]"
             >
               Review
-            </button>
+            </Button>
           </div>
         </form>
       </div>
