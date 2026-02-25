@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.14] - 2026-02-25
+
+### Added
+- **Button Component Enhancement**: Unified button styling system with modern gradients and shadows
+  - Added `success` variant for primary action buttons (e.g., "New Review Cycle", "Review", "Submit All")
+  - Implemented `React.cloneElement` for proper icon sizing and alignment within buttons
+  - Added consistent icon size scaling across all button variants (sm, md, lg)
+
+### Changed
+- **UI Component Modernization**: Comprehensive button style updates across all components
+  - Updated `MrSummary.tsx`: "New Review Cycle" and "Open in GitLab" buttons now stack vertically with full-width layout
+  - Updated `FeedbackPanel.tsx`: Integrated navigation controls into header, replaced all plain buttons with Button component
+  - Updated `CodeEditor.tsx`: "Review" button now uses shared Button component with success variant
+  - Updated `FeedbackCard.tsx`: "Post" button changed to success variant, fixed icon alignment
+  - Updated `FileDiffCard.tsx`: "Post" button changed to success variant
+  - Updated `ConfigModal.tsx`: "Apply Configuration" button changed to success variant
+- **Header Optimization**: Integrated floating "X review items ready" bar into FeedbackPanel header with pending count badge
+- **GitLab Comment Formatting**: Removed `**` markdown bold syntax from comment bodies to prevent formatting issues in GitLab UI
+- **AI Response Cleanup**: Added regex cleanup for trailing dashes (`-`, `–`, `—`) at end of AI-generated feedback descriptions
+
+### Fixed
+- **Icon Alignment**: Fixed misaligned icons in Edit and Ignore buttons by having Button component control icon sizing via `React.cloneElement`
+- **Icon Component Updates**: Updated `EditIcon` and `EyeSlashIcon` in `icons.tsx` to accept `className` prop directly for proper size inheritance
+- **Button Import**: Changed Button.tsx import from `import type React` to `import React` to enable runtime use of `React.cloneElement`
+- **Code Quality**: Ran Biome lint:fix across the codebase to resolve TypeScript and linting issues
+
+### Technical
+- Refactored icon handling from `<span>` wrappers to `React.cloneElement` for better type safety and style inheritance
+- Removed unused props (`onUpdateFeedback`, `onDeleteFeedback`) from `CombinedFeedbackCard`
+- Streamlined navigation controls container by removing bulky styling
+
 ## [1.5.12] - 2026-02-20
 
 ### Added
