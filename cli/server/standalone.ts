@@ -182,26 +182,21 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
         try {
           const { GeminiACPSession } = await import('../services/GeminiACPSession.js');
           const session = GeminiACPSession.getInstance();
-          
+
           if (!session.mrContext) {
             return res.status(503).json({ error: 'MR context not yet initialized' });
           }
 
           const { projectId, headSha, gitlabConfig } = session.mrContext;
           const { fetchFileContentAsLines } = await import('../shared/services/gitlabCore.js');
-          
-          const lines = await fetchFileContentAsLines(
-            gitlabConfig,
-            projectId,
-            filePath,
-            headSha
-          );
-          
+
+          const lines = await fetchFileContentAsLines(gitlabConfig, projectId, filePath, headSha);
+
           if (lines) {
             res.set('Content-Type', 'text/plain');
             return res.send(lines.join('\n'));
           }
-          
+
           res.status(404).json({ error: 'File not found in GitLab repository' });
         } catch (error) {
           console.error(`Failed to fetch file ${filePath} from GitLab:`, error);
@@ -218,7 +213,9 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
           }
 
           if (!gitlabConfig.url || !gitlabConfig.accessToken) {
-            return res.status(400).json({ success: false, error: 'GitLab config missing url or accessToken' });
+            return res
+              .status(400)
+              .json({ success: false, error: 'GitLab config missing url or accessToken' });
           }
 
           const { postDiscussion } = await import('../services/gitlabService.js');
@@ -227,18 +224,30 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
           res.json({ success: true, result });
         } catch (error) {
           console.error('Failed to post discussion:', error);
-          res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+          res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
         }
       });
 
       // Unified AI Chat endpoint
       router.post('/api/chat', async (req, res) => {
         try {
-          const { messages, lineContent, filePath, lineNumber, fileContent, contextLines = 5 } = req.body;
+          const {
+            messages,
+            lineContent,
+            filePath,
+            lineNumber,
+            fileContent,
+            contextLines = 5,
+          } = req.body;
           const isNewConversation = !messages || messages.length === 0;
 
           if (isNewConversation && !lineContent) {
-            return res.status(400).json({ success: false, error: 'Missing lineContent for new conversation' });
+            return res
+              .status(400)
+              .json({ success: false, error: 'Missing lineContent for new conversation' });
           }
 
           if (!filePath) {
@@ -252,30 +261,68 @@ export async function startServer(cliOptions: CLIOptions = {}): Promise<void> {
             const { GeminiCliProvider } = await import('../services/llm/geminiCliProvider.js');
             const provider = new GeminiCliProvider();
             if (isNewConversation) {
-              response = await provider.explainLine(lineContent, filePath, fileContent, contextLines, lineNumber);
+              response = await provider.explainLine(
+                lineContent,
+                filePath,
+                fileContent,
+                contextLines,
+                lineNumber
+              );
             } else {
               response = await provider.continueChat(messages, filePath, fileContent, lineNumber);
             }
           } else if (config.llm.provider === 'gemini' && config.llm.apiKey) {
             if (isNewConversation) {
-              response = await AIProviderCore.generateGeminiExplanation(config.llm.apiKey, lineContent, filePath, fileContent, contextLines, lineNumber);
+              response = await AIProviderCore.generateGeminiExplanation(
+                config.llm.apiKey,
+                lineContent,
+                filePath,
+                fileContent,
+                contextLines,
+                lineNumber
+              );
             } else {
-              response = await AIProviderCore.continueGeminiChat(config.llm.apiKey, messages, filePath, fileContent, lineNumber);
+              response = await AIProviderCore.continueGeminiChat(
+                config.llm.apiKey,
+                messages,
+                filePath,
+                fileContent,
+                lineNumber
+              );
             }
           } else if (config.llm.provider === 'anthropic' && config.llm.apiKey) {
             if (isNewConversation) {
-              response = await AIProviderCore.generateAnthropicExplanation(config.llm.apiKey, lineContent, filePath, fileContent, contextLines, lineNumber);
+              response = await AIProviderCore.generateAnthropicExplanation(
+                config.llm.apiKey,
+                lineContent,
+                filePath,
+                fileContent,
+                contextLines,
+                lineNumber
+              );
             } else {
-              response = await AIProviderCore.continueAnthropicChat(config.llm.apiKey, messages, filePath, fileContent, lineNumber);
+              response = await AIProviderCore.continueAnthropicChat(
+                config.llm.apiKey,
+                messages,
+                filePath,
+                fileContent,
+                lineNumber
+              );
             }
           } else {
-            return res.status(400).json({ success: false, error: `Unsupported LLM provider: ${config.llm.provider} or API key missing` });
+            return res.status(400).json({
+              success: false,
+              error: `Unsupported LLM provider: ${config.llm.provider} or API key missing`,
+            });
           }
 
           res.json({ success: true, explanation: response });
         } catch (error) {
           console.error('AI chat/explain error:', error);
-          res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+          res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
         }
       });
 

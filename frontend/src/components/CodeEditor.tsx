@@ -122,8 +122,12 @@ export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
     <div className="bg-white dark:bg-[#18191d] rounded-md shadow-sm h-full flex flex-col border border-[#dbdbdb] dark:border-[#404040] overflow-hidden">
       <div className="p-4 border-b border-[#dbdbdb] dark:border-[#404040] bg-[#fbfbfb] dark:bg-[#1f1e24] flex justify-between items-center">
         <div>
-          <h2 className="text-[13px] font-bold text-[#111111] dark:text-[#ececec] tracking-tight">Review Dashboard</h2>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#444444] dark:text-[#a1a1aa] mt-0.5">Project Overview</p>
+          <h2 className="text-[13px] font-bold text-[#111111] dark:text-[#ececec] tracking-tight">
+            Review Dashboard
+          </h2>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#444444] dark:text-[#a1a1aa] mt-0.5">
+            Project Overview
+          </p>
         </div>
         <div className="relative" ref={filterRef}>
           <button
@@ -189,7 +193,8 @@ export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
             />
             <Button
               type="submit"
-              variant="primary"
+              variant="success"
+              size="sm"
               disabled={!mrUrlInput.trim() || isLoading}
             >
               Review
@@ -209,11 +214,13 @@ export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
           <div className="space-y-4">
             {error && (
               <div className="text-center bg-[#db3b21]/10 border border-[#db3b21]/20 p-3 rounded mb-4">
-                <h3 className="font-bold text-[11px] text-[#db3b21] uppercase tracking-wider mb-1">Error</h3>
+                <h3 className="font-bold text-[11px] text-[#db3b21] uppercase tracking-wider mb-1">
+                  Error
+                </h3>
                 <p className="text-[11px] text-[#db3b21]">{error}</p>
               </div>
             )}
-            
+
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#444444] dark:text-[#a1a1aa]">
               Open Merge Requests
             </h3>
@@ -231,14 +238,14 @@ export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
                     className="bg-white dark:bg-[#1f1e24] border border-[#dbdbdb] dark:border-[#404040] hover:border-[#1f75cb] dark:hover:border-[#428fdc] p-3 rounded cursor-pointer transition-all group"
                   >
                     <div className="flex justify-between items-start mb-1.5">
-                       <h4 className="font-bold text-[#111111] dark:text-[#ececec] group-hover:text-[#1f75cb] dark:group-hover:text-[#428fdc] transition-colors text-[13px] leading-tight">
-                         {mr.title}
-                       </h4>
-                       <span className="text-[10px] font-bold text-[#444444] dark:text-[#a1a1aa] tabular-nums whitespace-nowrap ml-2">
-                         {timeAgo(mr.updated_at)}
-                       </span>
+                      <h4 className="font-bold text-[#111111] dark:text-[#ececec] group-hover:text-[#1f75cb] dark:group-hover:text-[#428fdc] transition-colors text-[13px] leading-tight">
+                        {mr.title}
+                      </h4>
+                      <span className="text-[10px] font-bold text-[#444444] dark:text-[#a1a1aa] tabular-nums whitespace-nowrap ml-2">
+                        {timeAgo(mr.updated_at)}
+                      </span>
                     </div>
-                    
+
                     <div className="flex items-center text-[11px] font-semibold text-[#444444] dark:text-[#a1a1aa] mb-2.5">
                       <span className="bg-[#f0f0f0] dark:bg-[#2e2e33] px-1.5 py-0.5 rounded border border-[#dbdbdb] dark:border-[#404040] mr-2 font-bold tracking-tight">
                         !{mr.iid}
@@ -247,12 +254,16 @@ export const ReviewDashboard: React.FC<ReviewDashboardProps> = ({
                       <span className="mx-1.5 opacity-30">•</span>
                       <span>@{mr.author.name}</span>
                     </div>
-                    
+
                     <div className="flex items-center text-[10px] font-mono bg-[#fbfbfb] dark:bg-[#18191d] p-1.5 rounded border border-[#dbdbdb] dark:border-[#404040]">
                       <BranchIcon className="w-3 h-3 text-[#444444] dark:text-[#a1a1aa]" />
-                      <span className="ml-1.5 text-[#1f75cb] dark:text-[#428fdc] font-bold truncate max-w-[100px]">{mr.source_branch}</span>
+                      <span className="ml-1.5 text-[#1f75cb] dark:text-[#428fdc] font-bold truncate max-w-[100px]">
+                        {mr.source_branch}
+                      </span>
                       <span className="text-[#444444] dark:text-[#a1a1aa] mx-1.5">→</span>
-                      <span className="text-[#444444] dark:text-[#a1a1aa] font-medium truncate max-w-[100px]">{mr.target_branch}</span>
+                      <span className="text-[#444444] dark:text-[#a1a1aa] font-medium truncate max-w-[100px]">
+                        {mr.target_branch}
+                      </span>
                     </div>
                   </li>
                 ))}

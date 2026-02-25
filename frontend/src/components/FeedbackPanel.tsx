@@ -9,12 +9,11 @@ import {
 } from '../../../types';
 import type { ParsedDiffLine } from '../types';
 import { getStoredViewMode, setStoredViewMode } from '../utils/viewModeStorage';
+import { Button } from './Button';
 import { FeedbackCard } from './FeedbackCard';
 import { FileDiffCard } from './FileDiffCard';
 import { Spinner } from './Spinner';
-import { SyntaxHighlightedCode } from './SyntaxHighlightedCode';
 import { type ViewMode, ViewModeToggle } from './ViewModeToggle';
-import { Button } from './Button';
 import { ApproveIcon, ArrowDownIcon, ArrowUpIcon, CheckmarkIcon, RefreshIcon } from './icons';
 
 interface FeedbackPanelProps {
@@ -51,15 +50,15 @@ const InitialState = () => {
     <div className="flex flex-col items-center justify-center min-h-[500px] text-center px-6 relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#1f75cb]/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#6b4fbb]/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#1f75cb]/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#6b4fbb]/5 rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
 
       <div className="relative mb-10 group">
         {/* Radar/Scanner Animation */}
-        <div className="absolute inset-0 rounded-full border-2 border-[#1f75cb]/20 scale-150 animate-ping opacity-20"></div>
-        <div className="absolute inset-0 rounded-full border border-[#1f75cb]/10 scale-[2] animate-ping opacity-10 delay-700"></div>
-        
+        <div className="absolute inset-0 rounded-full border-2 border-[#1f75cb]/20 scale-150 animate-ping opacity-20" />
+        <div className="absolute inset-0 rounded-full border border-[#1f75cb]/10 scale-[2] animate-ping opacity-10 delay-700" />
+
         <div className="relative p-8 bg-white dark:bg-[#1f1e24] rounded-full border border-[#dbdbdb] dark:border-[#404040] shadow-xl transform transition-transform group-hover:scale-105 duration-500">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -74,7 +73,13 @@ const InitialState = () => {
               strokeLinejoin="round"
               d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
             />
-            <circle cx="12" cy="9" r="3" strokeDasharray="2 2" className="animate-spin-slow origin-center" />
+            <circle
+              cx="12"
+              cy="9"
+              r="3"
+              strokeDasharray="2 2"
+              className="animate-spin-slow origin-center"
+            />
           </svg>
         </div>
       </div>
@@ -84,27 +89,28 @@ const InitialState = () => {
           Awaiting Target
         </h3>
         <p className="max-w-md mx-auto text-[15px] font-medium text-[#444444] dark:text-[#a1a1aa] leading-relaxed">
-          The intelligence engine is on standby. Select a Merge Request from the workspace dashboard to initiate deep code analysis.
+          The intelligence engine is on standby. Select a Merge Request from the workspace dashboard
+          to initiate deep code analysis.
         </p>
       </div>
 
       {/* Modern Animated 'Code Grid' Decoration */}
       <div className="mt-16 grid grid-cols-4 gap-4 opacity-20">
         {[...Array(8)].map((_, i) => (
-          <div 
-            key={i} 
+          <div
+            key={i}
             className="h-1 w-16 bg-[#dbdbdb] dark:bg-[#404040] rounded-full overflow-hidden"
           >
-            <div 
-              className="h-full bg-[#1f75cb] animate-progress" 
+            <div
+              className="h-full bg-[#1f75cb] animate-progress"
               style={{ animationDelay: `${i * 150}ms`, width: '100%' }}
-            ></div>
+            />
           </div>
         ))}
       </div>
 
       <div className="mt-12 flex items-center space-x-3 text-[11px] font-bold text-[#8c8c8c] dark:text-[#666666] uppercase tracking-[0.2em]">
-        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
         <span>Neural Core Online</span>
       </div>
 
@@ -172,25 +178,6 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
   } = props;
   const [currentCommentIndex, setCurrentCommentIndex] = useState(-1);
   const [globalViewMode, setGlobalViewMode] = useState<ViewMode>(() => getStoredViewMode());
-
-  // Detect dark mode from document class
-  const [isDarkMode, setIsDarkMode] = useState(() =>
-    document.documentElement.classList.contains('dark')
-  );
-
-  // Listen for theme changes
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains('dark'));
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   const handleGlobalViewModeChange = (newMode: ViewMode) => {
     setGlobalViewMode(newMode);
@@ -354,7 +341,8 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
         {pendingComments.length > 0 && (
           <div className="px-3 py-2 bg-brand-secondary/5 dark:bg-brand-secondary/10 rounded-lg border border-brand-secondary/10 dark:border-brand-secondary/20">
             <p className="text-xs font-medium text-brand-secondary">
-              {pendingComments.length} review item{pendingComments.length !== 1 ? 's' : ''} ready for submission
+              {pendingComments.length} review item{pendingComments.length !== 1 ? 's' : ''} ready
+              for submission
             </p>
           </div>
         )}
@@ -510,10 +498,14 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
       <div className="border-b border-gray-200 dark:border-brand-primary flex items-center justify-between px-4 py-2.5">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-3">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Review Feedback</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+              Review Feedback
+            </h2>
             {pendingComments.length > 0 && (
               <div className="flex items-center px-2.5 py-1 bg-brand-secondary/10 dark:bg-brand-secondary/20 rounded-full">
-                <span className="text-xs font-bold text-brand-secondary">{pendingComments.length}</span>
+                <span className="text-xs font-bold text-brand-secondary">
+                  {pendingComments.length}
+                </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400 ml-1.5">pending</span>
               </div>
             )}
@@ -535,10 +527,8 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = (props) => {
                   <ArrowUpIcon />
                 </Button>
                 <span className="text-[10px] font-bold font-mono text-gray-500 dark:text-brand-subtle min-w-[45px] text-center">
-                  {currentCommentIndex > -1
-                    ? `${currentCommentIndex + 1}`
-                    : '-'}
-                /{pendingComments.length}
+                  {currentCommentIndex > -1 ? `${currentCommentIndex + 1}` : '-'}/
+                  {pendingComments.length}
                 </span>
                 <Button
                   variant="ghost"

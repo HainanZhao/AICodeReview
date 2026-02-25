@@ -168,7 +168,9 @@ export const DiffLine: React.FC<DiffLineProps> = ({
 
   return (
     <>
-      <tr className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/5 transition-all h-4`}>
+      <tr
+        className={`${lineClasses} group hover:bg-black/5 dark:hover:bg-white/5 transition-all h-4`}
+      >
         <td className="w-12 text-center align-middle h-4 pr-1">
           {/* Action buttons container */}
           <div className="flex items-center justify-center space-x-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200">

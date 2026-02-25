@@ -1,8 +1,5 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(grep:*)",
-      "mcp__ide__getDiagnostics"
-    ]
+    "allow": ["Bash(grep:*)", "mcp__ide__getDiagnostics", "Bash(npx biome:*)"]
   }
 }

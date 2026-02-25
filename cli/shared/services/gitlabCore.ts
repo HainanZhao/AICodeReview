@@ -234,7 +234,9 @@ export const parseDiffsToHunks = (
 
       promptParts.push(`\n=== FULL FILE CONTENT: ${file.new_path} ===`);
       if (isTruncated) {
-        promptParts.push(`(Note: File truncated to ${MAX_CONTENT_LINES} lines of ${newFileContent.length} total)\n`);
+        promptParts.push(
+          `(Note: File truncated to ${MAX_CONTENT_LINES} lines of ${newFileContent.length} total)\n`
+        );
       }
       cappedContent.forEach((line: string, index: number) => {
         const lineNumber = (index + 1).toString().padStart(4, ' ');
@@ -431,7 +433,7 @@ export const getNewLineFromOldLine = (
 export const fetchMrData = async (
   config: GitLabConfig,
   mrUrl: string,
-  optimizedMode: boolean = true
+  optimizedMode = true
 ): Promise<GitLabMRDetails> => {
   const { projectPath, mrIid } = parseMrUrl(mrUrl, config.url);
   const encodedProjectPath = encodeURIComponent(projectPath);
@@ -554,14 +556,13 @@ export const fetchMrData = async (
     fileDiffs: diffs,
     diffForPrompt,
     parsedDiffs,
-        fileContents,
-        lineMappings,
-        discussions, // Include discussions for reference
-        existingFeedback, // Add existing feedback to the returned object
-        approvals, // Include approval information
-      };
-    }
-    ;
+    fileContents,
+    lineMappings,
+    discussions, // Include discussions for reference
+    existingFeedback, // Add existing feedback to the returned object
+    approvals, // Include approval information
+  };
+};
 
 /**
  * Fetches repository tree (directory listing) from GitLab
@@ -894,7 +895,9 @@ export const buildOptimizedDiffForPrompt = (
 
       promptParts.push(`\n=== FULL FILE CONTENT: ${file.new_path} ===`);
       if (isTruncated) {
-        promptParts.push(`(Note: File truncated to ${MAX_CONTENT_LINES} lines of ${newFileContent.length} total)\n`);
+        promptParts.push(
+          `(Note: File truncated to ${MAX_CONTENT_LINES} lines of ${newFileContent.length} total)\n`
+        );
       }
       cappedContent.forEach((line: string, index: number) => {
         const lineNumber = (index + 1).toString().padStart(4, ' ');

@@ -78,7 +78,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       <div
         className="absolute inset-0 bg-brand-bg/60 backdrop-blur-md transition-opacity"
         onClick={onClose}
-      ></div>
+      />
       <div className="relative bg-white dark:bg-brand-surface rounded-3xl shadow-2xl dark:shadow-black/50 w-full max-w-lg overflow-hidden transform transition-all border border-gray-200 dark:border-white/5 animate-in fade-in zoom-in-95 duration-300">
         <div className="flex justify-between items-center p-8 border-b border-gray-100 dark:border-white/5 bg-gray-50/30 dark:bg-brand-primary/20">
           <div>
@@ -88,7 +88,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
             <div className="mt-2 flex items-center">
               <div
                 className={`w-2 h-2 rounded-full mr-2 ${configSource !== 'none' ? 'bg-brand-success shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-brand-warning animate-pulse'}`}
-              ></div>
+              />
               <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-brand-subtle">
                 {configSource === 'localStorage' && 'Session: Persistence Enabled'}
                 {configSource === 'backend' && 'System: Remote Config Loaded'}
@@ -216,7 +216,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
             Discard
           </Button>
           <Button
-            variant="primary"
+            variant="success"
             size="lg"
             onClick={handleSave}
             disabled={!gitlabUrl.trim() || !accessToken.trim()}

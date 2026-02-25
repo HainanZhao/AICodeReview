@@ -41,7 +41,7 @@ export class GeminiCliProvider extends BaseLLMProvider {
       const prompt = await this.buildPrompt(requestData);
 
       // Get configurable timeout
-      const timeout = await this.getTimeout();
+      const _timeout = await this.getTimeout();
 
       try {
         // Use shared core for execution with backend-appropriate options

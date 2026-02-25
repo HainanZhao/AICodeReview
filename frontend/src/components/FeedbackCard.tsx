@@ -217,7 +217,6 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
             placeholder="Write a comment..."
             className="w-full p-2.5 bg-white dark:bg-[#18191d] border border-[#dbdbdb] dark:border-[#404040] text-[#111111] dark:text-[#ececec] text-[12px] font-mono rounded-md focus:outline-none focus:border-[#1f75cb] dark:focus:border-[#428fdc] transition-colors min-h-[60px] resize-none leading-snug"
             rows={2}
-            autoFocus
           />
         </div>
         <div className="px-2.5 py-1.5 bg-[#fbfbfb] dark:bg-[#2e2e33] flex items-center justify-start border-t border-[#f0f0f0] dark:border-[#404040] rounded-b-lg space-x-2">
@@ -376,7 +375,7 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => onSetEditing(feedback.id, true)}
-                    leftIcon={<EditIcon className="w-3 h-3" />}
+                    leftIcon={<EditIcon />}
                   >
                     Edit
                   </Button>
@@ -384,7 +383,7 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => onToggleIgnoreFeedback(feedback.id)}
-                    leftIcon={<EyeSlashIcon className="w-3 h-3" />}
+                    leftIcon={<EyeSlashIcon />}
                   >
                     Ignore
                   </Button>
@@ -399,7 +398,7 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
               )}
 
               {feedback.status === 'pending' && (
-                <Button variant="primary" size="sm" onClick={handleAction}>
+                <Button variant="success" size="sm" onClick={handleAction}>
                   Post
                 </Button>
               )}

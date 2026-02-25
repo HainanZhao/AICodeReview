@@ -94,8 +94,6 @@ export const SEVERITY_CONFIG = {
 export const CombinedFeedbackCard: React.FC<CombinedFeedbackCardProps> = ({
   feedbacks,
   onPostComment,
-  onUpdateFeedback,
-  onDeleteFeedback,
   onSetEditing,
   onToggleIgnoreFeedback,
   activeFeedbackId,
@@ -217,7 +215,7 @@ export const CombinedFeedbackCard: React.FC<CombinedFeedbackCardProps> = ({
                         >
                           Ignore
                         </Button>
-                        <Button variant="primary" size="sm" onClick={() => onPostComment(fb.id)}>
+                        <Button variant="success" size="sm" onClick={() => onPostComment(fb.id)}>
                           Post
                         </Button>
                       </div>
@@ -303,9 +301,9 @@ const GapExpanderRow: React.FC<{ hiddenLineCount: number; onClick: () => void }>
           className="w-full flex items-center justify-center py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-brand-subtle bg-gray-50/50 dark:bg-brand-primary/10 hover:bg-brand-secondary/10 dark:hover:bg-brand-secondary/20 transition-all border-y border-transparent hover:border-brand-secondary/20"
         >
           <div className="flex items-center space-x-3">
-            <div className="h-[1px] w-8 bg-gray-200 dark:bg-white/10"></div>
+            <div className="h-[1px] w-8 bg-gray-200 dark:bg-white/10" />
             <span>Reveal {hiddenLineCount} lines</span>
-            <div className="h-[1px] w-8 bg-gray-200 dark:bg-white/10"></div>
+            <div className="h-[1px] w-8 bg-gray-200 dark:bg-white/10" />
           </div>
         </button>
       </td>

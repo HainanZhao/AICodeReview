@@ -66,7 +66,11 @@ const FileIcon = ({ fileName }: { fileName: string }) => {
 };
 
 const FolderIcon = ({ isOpen }: { isOpen: boolean }) => (
-  <svg className="w-4 h-4 flex-shrink-0 text-[#1f75cb] dark:text-[#428fdc]" fill="currentColor" viewBox="0 0 20 20">
+  <svg
+    className="w-4 h-4 flex-shrink-0 text-[#1f75cb] dark:text-[#428fdc]"
+    fill="currentColor"
+    viewBox="0 0 20 20"
+  >
     {isOpen ? (
       <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v5a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
     ) : (

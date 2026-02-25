@@ -1,4 +1,4 @@
-import type React from 'react';
+import React from 'react';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'success';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -63,18 +63,30 @@ export const Button: React.FC<ButtonProps> = ({
   if (as === 'a') {
     return (
       <a className={combinedClassName} href={href} onClick={onClick} {...props}>
-        {leftIcon && <span className={iconSizeStyles[size]}>{leftIcon}</span>}
+        {leftIcon &&
+          React.cloneElement(leftIcon as React.ReactElement<{ className?: string }>, {
+            className: iconSizeStyles[size],
+          })}
         {children}
-        {rightIcon && <span className={iconSizeStyles[size]}>{rightIcon}</span>}
+        {rightIcon &&
+          React.cloneElement(rightIcon as React.ReactElement<{ className?: string }>, {
+            className: iconSizeStyles[size],
+          })}
       </a>
     );
   }
 
   return (
     <button className={combinedClassName} onClick={onClick} disabled={disabled} {...props}>
-      {leftIcon && <span className={iconSizeStyles[size]}>{leftIcon}</span>}
+      {leftIcon &&
+        React.cloneElement(leftIcon as React.ReactElement<{ className?: string }>, {
+          className: iconSizeStyles[size],
+        })}
       {children}
-      {rightIcon && <span className={iconSizeStyles[size]}>{rightIcon}</span>}
+      {rightIcon &&
+        React.cloneElement(rightIcon as React.ReactElement<{ className?: string }>, {
+          className: iconSizeStyles[size],
+        })}
     </button>
   );
 };

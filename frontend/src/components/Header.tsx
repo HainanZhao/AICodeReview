@@ -5,7 +5,7 @@ import { SettingsIcon } from './icons';
 const BrainCircuitIcon = () => (
   <div className="relative group cursor-default select-none">
     {/* Dynamic Background Glow */}
-    <div className="absolute -inset-1 bg-gradient-to-tr from-[#1f75cb] via-[#6b4fbb] to-[#428fdc] rounded-xl blur-md opacity-20 group-hover:opacity-40 transition duration-500"></div>
+    <div className="absolute -inset-1 bg-gradient-to-tr from-[#1f75cb] via-[#6b4fbb] to-[#428fdc] rounded-xl blur-md opacity-20 group-hover:opacity-40 transition duration-500" />
 
     <div className="relative flex items-center justify-center w-10 h-10 bg-white dark:bg-[#1f1e24] rounded-xl border border-[#dbdbdb] dark:border-[#404040] shadow-sm overflow-hidden">
       {/* Background Pattern */}
@@ -43,7 +43,7 @@ const BrainCircuitIcon = () => (
       </svg>
 
       {/* Glossy Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none"></div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none" />
     </div>
 
     <style>{`

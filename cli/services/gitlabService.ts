@@ -121,7 +121,7 @@ const generateLineCode = (
  * Helper function to format comment body
  */
 const formatCommentBody = (feedback: ReviewFeedback): string => {
-  return `**${feedback.severity}: ${feedback.title}**
+  return `${feedback.severity}: ${feedback.title}
 
 ${feedback.description}`;
 };
@@ -216,7 +216,7 @@ export const postDiscussion = async (
     feedback.filePath && feedback.lineNumber > 0
       ? (() => {
           // Create GitLab code link if we have line_code information
-          let fileLocationText = `📍 **File:** \`${feedback.filePath}\` (line ${feedback.lineNumber})`;
+          let fileLocationText = `📍 File: \`${feedback.filePath}\` (line ${feedback.lineNumber})`;
 
           // Try to construct GitLab code link using line_code
           let lineCode = feedback.position?.line_code;
@@ -238,7 +238,7 @@ export const postDiscussion = async (
 
           if (lineCode && mrDetails.webUrl) {
             const codeLink = `${mrDetails.webUrl}/diffs#${lineCode}`;
-            fileLocationText = `📍 **File:** [${feedback.filePath} (line ${feedback.lineNumber})](${codeLink})`;
+            fileLocationText = `📍 File: [${feedback.filePath} (line ${feedback.lineNumber})](${codeLink})`;
           }
 
           // Reuse the formatted comment body and add file location info
